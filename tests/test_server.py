@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, patch
 
+import httpx
 import pytest
 import respx
-import httpx
 
 from register_mcp.server import (
+    ZEFIX_BASE,
     CompanyByEhraIdInput,
     CompanyByUidInput,
     CompanySearchInput,
@@ -22,7 +22,6 @@ from register_mcp.server import (
     zefix_list_municipalities,
     zefix_search_companies,
     zefix_verify_company,
-    ZEFIX_BASE,
 )
 
 # ---------------------------------------------------------------------------

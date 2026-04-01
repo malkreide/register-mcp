@@ -20,8 +20,8 @@ from __future__ import annotations
 import json
 import os
 import re
-from enum import Enum
-from typing import Any, Optional
+from enum import StrEnum
+from typing import Any
 
 import httpx
 from mcp.server.fastmcp import FastMCP
@@ -108,7 +108,7 @@ def _handle_http_error(e: Exception) -> str:
     return f"Unerwarteter Fehler: {type(e).__name__}: {e}"
 
 
-def _zefix_error_to_str(data: dict) -> Optional[str]:
+def _zefix_error_to_str(data: dict) -> str | None:
     """Extract error message from Zefix error response if present."""
     error = data.get("error")
     if not error:
@@ -179,14 +179,14 @@ def _format_company_detail(firm: dict, legal_forms: list[dict] | None = None) ->
 # Pydantic input models
 # ---------------------------------------------------------------------------
 
-class SearchType(str, Enum):
+class SearchType(StrEnum):
     STARTS_WITH = "STARTS_WITH"
     CONTAINS = "CONTAINS"
     EXACT = "EXACT"
     ENDS_WITH = "ENDS_WITH"
 
 
-class ResponseFormat(str, Enum):
+class ResponseFormat(StrEnum):
     MARKDOWN = "markdown"
     JSON = "json"
 
@@ -194,7 +194,7 @@ class ResponseFormat(str, Enum):
 class CompanySearchInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
 
-    name: Optional[str] = Field(
+    name: str | None = Field(
         default=None,
         description=(
             "Firmenname oder Teilname. Mindestens 3 Zeichen. "
@@ -203,7 +203,7 @@ class CompanySearchInput(BaseModel):
         min_length=2,
         max_length=200,
     )
-    canton: Optional[str] = Field(
+    canton: str | None = Field(
         default=None,
         description=(
             "Kantonskürzel zur Filterung (2 Buchstaben). "
@@ -212,7 +212,7 @@ class CompanySearchInput(BaseModel):
         min_length=2,
         max_length=2,
     )
-    legal_form_ids: Optional[list[int]] = Field(
+    legal_form_ids: list[int] | None = Field(
         default=None,
         description=(
             "Liste von Rechtsform-IDs (aus zefix_list_legal_forms). "
@@ -251,7 +251,7 @@ class CompanySearchInput(BaseModel):
 
     @field_validator("canton")
     @classmethod
-    def validate_canton(cls, v: Optional[str]) -> Optional[str]:
+    def validate_canton(cls, v: str | None) -> str | None:
         if v and v.upper() not in CANTON_CODES:
             raise ValueError(f"Ungültiges Kantonskürzel '{v}'. Gültig: {', '.join(CANTON_CODES)}")
         return v.upper() if v else v
@@ -319,7 +319,7 @@ class VerifyCompanyInput(BaseModel):
         min_length=3,
         max_length=200,
     )
-    canton: Optional[str] = Field(
+    canton: str | None = Field(
         default=None,
         description="Kantonskürzel zur Eingrenzung (z.B. 'ZH')",
         min_length=2,
@@ -328,7 +328,7 @@ class VerifyCompanyInput(BaseModel):
 
     @field_validator("canton")
     @classmethod
-    def validate_canton(cls, v: Optional[str]) -> Optional[str]:
+    def validate_canton(cls, v: str | None) -> str | None:
         if v and v.upper() not in CANTON_CODES:
             raise ValueError(f"Ungültiges Kantonskürzel '{v}'.")
         return v.upper() if v else v
@@ -337,7 +337,7 @@ class VerifyCompanyInput(BaseModel):
 class MunicipalitiesInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
 
-    canton: Optional[str] = Field(
+    canton: str | None = Field(
         default=None,
         description="Kantonskürzel zur Filterung (z.B. 'ZH'). Ohne Filter: alle Gemeinden.",
         min_length=2,
@@ -350,7 +350,7 @@ class MunicipalitiesInput(BaseModel):
 
     @field_validator("canton")
     @classmethod
-    def validate_canton(cls, v: Optional[str]) -> Optional[str]:
+    def validate_canton(cls, v: str | None) -> str | None:
         if v and v.upper() not in CANTON_CODES:
             raise ValueError(f"Ungültiges Kantonskürzel '{v}'.")
         return v.upper() if v else v
@@ -524,8 +524,8 @@ async def zefix_get_company(params: CompanyByEhraIdInput) -> str:
     lines = [
         f"## {status_icon} {detail['name']}",
         "",
-        f"| Feld | Wert |",
-        f"|------|------|",
+        "| Feld | Wert |",
+        "|------|------|",
         f"| **UID** | {detail['uid']} |",
         f"| **CHID** | {detail['chid']} |",
         f"| **EHRAID** | {detail['ehraid']} |",
@@ -632,7 +632,7 @@ async def zefix_get_company_by_uid(params: CompanyByUidInput) -> str:
             r = await client.get(f"{ZEFIX_BASE}/firm/{ehraid}.json")
             r.raise_for_status()
             detail_data = r.json()
-    except Exception as e:
+    except Exception:
         # Return summary if detail fails
         detail_data = exact[0]
 
@@ -646,8 +646,8 @@ async def zefix_get_company_by_uid(params: CompanyByUidInput) -> str:
         f"## {status_icon} {detail['name']}",
         f"**UID:** {uid_formatted}",
         "",
-        f"| Feld | Wert |",
-        f"|------|------|",
+        "| Feld | Wert |",
+        "|------|------|",
         f"| **CHID** | {detail.get('chid', '—')} |",
         f"| **EHRAID** | {detail['ehraid']} |",
         f"| **Rechtsform** | {detail['rechtsform']} |",
