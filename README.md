@@ -1,85 +1,109 @@
-# register-mcp
+> 🇨🇭 **Part of the [Swiss Public Data MCP Portfolio](https://github.com/malkreide)**
 
-> **Swiss Public Data MCP Portfolio** — Part of the [malkreide/swiss-public-data-mcp](https://github.com/malkreide) collection
+# 🏛️ register-mcp
 
-[![PyPI](https://img.shields.io/pypi/v/register-mcp)](https://pypi.org/project/register-mcp/)
-[![Python](https://img.shields.io/pypi/pyversions/register-mcp)](https://pypi.org/project/register-mcp/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://github.com/malkreide/register-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/malkreide/register-mcp/actions)
+![Version](https://img.shields.io/badge/version-0.1.0-blue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
+[![No Auth Required](https://img.shields.io/badge/auth-none%20required-brightgreen)](https://github.com/malkreide/register-mcp)
+![CI](https://github.com/malkreide/register-mcp/actions/workflows/ci.yml/badge.svg)
 
-MCP server providing read-only access to the **Swiss Federal Commercial Register (Zefix/Handelsregister)** and supporting reference data.
+> MCP Server for the Swiss Federal Commercial Register (Zefix/Handelsregister) and supporting reference data
+
+[🇩🇪 Deutsche Version](README.de.md)
+
+---
+
+## Overview
+
+`register-mcp` provides AI-native access to the Swiss Federal Commercial Register via the Zefix REST API, all without authentication:
+
+| Source | Data | API |
+|--------|------|-----|
+| **Zefix (Handelsregister)** | Swiss companies, legal forms, SHAB mutations | ZefixREST v1 |
+| **SHAB** | Official Gazette of Commerce — mutation publications | Embedded in Zefix |
 
 Designed for Swiss public administration use cases: vendor verification, contract partner due diligence, procurement screening, and supplier onboarding — all via natural language queries.
 
----
-
-## Tools
-
-| Tool | Description |
-|------|-------------|
-| `zefix_search_companies` | Search companies by name, canton, legal form |
-| `zefix_get_company` | Full company profile by internal EHRAID |
-| `zefix_get_company_by_uid` | Company lookup by UID (CHE-xxx.xxx.xxx) |
-| `zefix_verify_company` | Quick active/dissolved status check |
-| `zefix_list_legal_forms` | All Swiss legal forms with IDs |
-| `zefix_list_municipalities` | Swiss municipalities with BFS IDs |
+**Anchor demo query:** *"We want to sign a framework agreement with Lehrmittelverlag Zürich AG. Is the company active in the commercial register, what is its stated corporate purpose, and have there been any SHAB mutations in the past two years?"*
 
 ---
 
-## Anchor Demo Query
+## Features
 
-> *«We want to sign a framework agreement with Lehrmittelverlag Zürich AG. Is the company active in the commercial register, what is its stated corporate purpose, and have there been any SHAB mutations in the past two years?»*
-
-Claude calls `zefix_verify_company` → `zefix_get_company_by_uid` and returns a complete due diligence response in seconds — replacing manual searches on zefix.admin.ch.
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────┐
-│           MCP Host (Claude)          │
-│  zefix_search_companies              │
-│  zefix_verify_company                │
-│  zefix_get_company_by_uid            │
-└──────────────┬──────────────────────┘
-               │ JSON-RPC 2.0
-               ▼
-┌─────────────────────────────────────┐
-│          register-mcp               │
-│  FastMCP · httpx · Pydantic v2      │
-│  Transport: stdio (local)           │
-│             SSE (cloud/Railway)     │
-└──────────────┬──────────────────────┘
-               │ HTTPS
-               ▼
-┌─────────────────────────────────────┐
-│  zefix.admin.ch/ZefixREST/api/v1    │
-│  Swiss Federal Commercial Register  │
-│  (Open API, no authentication)      │
-└─────────────────────────────────────┘
-```
+- 🏛️ **6 tools** for company search, verification, and reference data
+- 🔍 **`zefix_verify_company`** — quick active/dissolved status check
+- 🌐 **Bilingual output** (Markdown / JSON)
+- 🔓 **No API key required** — open data from zefix.admin.ch
+- ☁️ **Dual transport** — stdio (Claude Desktop) + SSE (cloud)
 
 ---
 
-## Phased Implementation
+## Prerequisites
 
-| Phase | API | Auth | Status |
-|-------|-----|------|--------|
-| **Phase 1** | `ZefixREST/api/v1` | None ✅ | **Current** |
-| **Phase 2** | `ZefixPublicREST/api/v1` | Basic Auth (free, email zefix@bj.admin.ch) | Planned |
-| **Phase 3** | UID-Register SOAP | Public (20 req/min) | Planned |
-
-Phase 2 will add: signatory details, share capital, full historical entries.  
-Phase 3 will add: MwSt status, NOGA industry codes, cross-register validation.
+- Python 3.11+
+- [uv](https://github.com/astral-sh/uv) (recommended) or pip
 
 ---
 
 ## Installation
 
-### Claude Desktop (stdio)
+```bash
+# Clone the repository
+git clone https://github.com/malkreide/register-mcp.git
+cd register-mcp
 
-Add to `claude_desktop_config.json`:
+# Install
+pip install -e .
+# or with uv:
+uv pip install -e .
+```
+
+Or with `uvx` (no permanent installation):
+
+```bash
+uvx register-mcp
+```
+
+---
+
+## Quickstart
+
+```bash
+# stdio (for Claude Desktop)
+python -m register_mcp.server
+
+# SSE (cloud deployment)
+MCP_TRANSPORT=sse PORT=8000 python -m register_mcp.server
+```
+
+Try it immediately in Claude Desktop:
+
+> *"Is Lehrmittelverlag Zürich AG active in the commercial register?"*
+> *"Look up the company with UID CHE-108.954.978"*
+> *"List all Swiss legal forms"*
+
+---
+
+## Configuration
+
+### Claude Desktop
+
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```json
+{
+  "mcpServers": {
+    "register": {
+      "command": "python",
+      "args": ["-m", "register_mcp.server"]
+    }
+  }
+}
+```
+
+Or with `uvx`:
 
 ```json
 {
@@ -92,18 +116,100 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
-### Cloud / Railway (SSE)
+**Config file locations:**
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-```bash
-MCP_TRANSPORT=sse PORT=8000 uvx register-mcp
-```
+### Cloud Deployment (SSE for browser access)
+
+For use via **claude.ai in the browser** (e.g. on managed workstations without local software):
+
+**Render.com (recommended):**
+1. Push/fork the repository to GitHub
+2. On [render.com](https://render.com): New Web Service → connect GitHub repo
+3. Set start command: `python -m register_mcp.server --http --port 8000`
+4. In claude.ai under Settings → MCP Servers, add: `https://your-app.onrender.com/sse`
+
+> 💡 *"stdio for the developer laptop, SSE for the browser."*
 
 ---
 
-## Data Sources
+## Available Tools
 
-- **Zefix (Handelsregister):** [zefix.admin.ch](https://www.zefix.admin.ch) — Swiss Federal Commercial Register, operated by the Federal Office of Justice (FOJ/BJ). Open data, no authentication required for Phase 1 endpoints.
-- **SHAB:** Swiss Official Gazette of Commerce — mutation publications embedded in Zefix firm records.
+| Tool | Description |
+|------|-------------|
+| `zefix_search_companies` | Search companies by name, canton, legal form |
+| `zefix_get_company` | Full company profile by internal EHRAID |
+| `zefix_get_company_by_uid` | Company lookup by UID (CHE-xxx.xxx.xxx) |
+| `zefix_verify_company` | Quick active/dissolved status check |
+| `zefix_list_legal_forms` | All Swiss legal forms with IDs |
+| `zefix_list_municipalities` | Swiss municipalities with BFS IDs |
+
+### Example Use Cases
+
+| Query | Tool |
+|-------|------|
+| *"Is Lehrmittelverlag Zürich AG active?"* | `zefix_verify_company` |
+| *"Look up CHE-108.954.978"* | `zefix_get_company_by_uid` |
+| *"Find companies named Migros in canton ZH"* | `zefix_search_companies` |
+| *"List all Swiss legal forms"* | `zefix_list_legal_forms` |
+| *"Show municipalities in canton Bern"* | `zefix_list_municipalities` |
+
+---
+
+## Architecture
+
+```
+┌─────────────────┐     ┌──────────────────────────────┐     ┌──────────────────────────┐
+│   Claude / AI   │────▶│       register-mcp            │────▶│  Zefix (Handelsregister)  │
+│   (MCP Host)    │◀────│       (MCP Server)            │◀────│  ZefixREST/api/v1        │
+└─────────────────┘     │                              │     └──────────────────────────┘
+                        │  6 Tools                     │
+                        │  Stdio | SSE                 │
+                        │  No authentication required  │
+                        └──────────────────────────────┘
+```
+
+### Data Source Characteristics
+
+| Source | Protocol | Coverage | Auth |
+|--------|----------|----------|------|
+| Zefix (Phase 1) | REST/JSON | Swiss companies, legal forms, SHAB | None |
+| ZefixPublicREST (Phase 2) | REST/JSON | Signatories, capital, full history | Basic Auth (free) |
+| UID Register (Phase 3) | SOAP | MwSt, NOGA codes, cross-validation | Public (20 req/min) |
+
+---
+
+## Phased Implementation
+
+| Phase | API | Auth | Status |
+|-------|-----|------|--------|
+| **Phase 1** | `ZefixREST/api/v1` | None | **Current** |
+| **Phase 2** | `ZefixPublicREST/api/v1` | Basic Auth (free, email zefix@bj.admin.ch) | Planned |
+| **Phase 3** | UID-Register SOAP | Public (20 req/min) | Planned |
+
+Phase 2 will add: signatory details, share capital, full historical entries.
+Phase 3 will add: MwSt status, NOGA industry codes, cross-register validation.
+
+---
+
+## Project Structure
+
+```
+register-mcp/
+├── src/register_mcp/
+│   ├── __init__.py              # Package
+│   └── server.py                # 6 tools (Zefix + reference data)
+├── tests/
+│   └── test_server.py           # Unit + integration tests (mocked HTTP)
+├── .github/workflows/ci.yml     # GitHub Actions (Python 3.11/3.12/3.13)
+├── pyproject.toml
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── README.md                    # This file (English)
+└── README.de.md                 # German version
+```
 
 ---
 
@@ -116,39 +222,49 @@ MCP_TRANSPORT=sse PORT=8000 uvx register-mcp
 
 ---
 
-## Portfolio Synergies
+## Testing
 
-```
-register-mcp ←→ zurich-opendata-mcp    company seat ↔ geodata
-register-mcp ←→ fedlex-mcp            commercial register ordinance (HRegV)
-register-mcp ←→ swiss-statistics-mcp  industry statistics by NOGA
-register-mcp ←→ swiss-snb-mcp         economic indicators
+```bash
+# Unit tests (no API key required)
+PYTHONPATH=src pytest tests/ -m "not live"
+
+# Integration tests (live API calls)
+pytest tests/ -m "live"
 ```
 
 ---
 
-## Development
+## Changelog
 
-```bash
-git clone https://github.com/malkreide/register-mcp
-cd register-mcp
-pip install -e ".[dev]"
-pytest -m "not live" -v          # unit tests (no API access)
-pytest -m live -v                # live API tests
-```
+See [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). All contributions welcome.
+See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT License — see [LICENSE](LICENSE)
 
 ---
 
-*Part of the [Swiss Public Data MCP Portfolio](https://github.com/malkreide) — connecting AI models to Swiss public data sources.*
+## Author
+
+Hayal Oezkan · [malkreide](https://github.com/malkreide)
+
+---
+
+## Credits & Related Projects
+
+- **Zefix:** [zefix.admin.ch](https://www.zefix.admin.ch/) — Swiss Federal Commercial Register (BJ/FOJ)
+- **SHAB:** Swiss Official Gazette of Commerce — mutation publications
+- **Protocol:** [Model Context Protocol](https://modelcontextprotocol.io/) — Anthropic / Linux Foundation
+- **Related:** [fedlex-mcp](https://github.com/malkreide/fedlex-mcp) — Commercial register ordinance (HRegV)
+- **Related:** [zurich-opendata-mcp](https://github.com/malkreide/zurich-opendata-mcp) — Company seat + geodata
+- **Related:** [swiss-statistics-mcp](https://github.com/malkreide/swiss-statistics-mcp) — Industry statistics by NOGA
+- **Related:** [swiss-snb-mcp](https://github.com/malkreide/swiss-snb-mcp) — Economic indicators
+- **Portfolio:** [Swiss Public Data MCP Portfolio](https://github.com/malkreide)
