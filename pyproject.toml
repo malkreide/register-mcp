@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "register-mcp"
+version = "0.1.0"
+description = "MCP server for Swiss commercial register (Zefix/Handelsregister) and UID register"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "malkreide" }]
+keywords = [
+    "mcp",
+    "zefix",
+    "handelsregister",
+    "uid",
+    "switzerland",
+    "swiss",
+    "company-registry",
+    "due-diligence",
+    "model-context-protocol",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Office/Business",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "mcp[cli]>=1.26.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "respx>=0.21.0",
+    "ruff>=0.4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/malkreide/register-mcp"
+Repository = "https://github.com/malkreide/register-mcp"
+Issues = "https://github.com/malkreide/register-mcp/issues"
+
+[project.scripts]
+register-mcp = "register_mcp.server:mcp.run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/register_mcp"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = ["live: marks tests as requiring live API access (deselect with -m 'not live')"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
