@@ -202,6 +202,10 @@ register-mcp/
 │   └── server.py                # 6 tools (Zefix + reference data)
 ├── tests/
 │   └── test_server.py           # Unit + integration tests (mocked HTTP)
+├── docs/demo/
+│   ├── demo.tape                # vhs recording script → demo.gif
+│   ├── demo.py                  # Standalone CLI demo (live Zefix API)
+│   └── README.md                # How to generate the demo GIF
 ├── .github/workflows/ci.yml     # GitHub Actions (Python 3.11/3.12/3.13)
 ├── pyproject.toml
 ├── CHANGELOG.md
@@ -219,6 +223,68 @@ register-mcp/
 - SHAB publication message text contains XML-style markup (`<FT TYPE="F">...`)
 - Phase 1 API may be rate-limited under heavy load; retry after a short delay
 - ZefixPublicREST (new API) requires registration: email zefix@bj.admin.ch
+
+---
+
+## Safety & Limits
+
+### Rate Limits
+
+| API | Limit | Notes |
+|-----|-------|-------|
+| ZefixREST (Phase 1) | Not officially documented | Throttling possible under heavy load — retry after 1–2 s |
+| ZefixPublicREST (Phase 2) | Not officially documented | Requires prior registration (free) |
+| UID-Register SOAP (Phase 3) | **20 req/min** | Hard limit, publicly documented |
+
+### Data Privacy
+
+- **Read-only access** — all tools carry `readOnlyHint: True`; the server performs no write, delete, or mutation operations against any API
+- **No data storage** — the server acts as a stateless proxy; no company data is persisted, cached, or logged beyond the current request
+- **Public register data only** — the Zefix Handelsregister is a public federal register (HRegV); data returned is legally public information, not personal data in the sense of DSG/GDPR
+- **No personal tracking** — the server does not transmit user identity, query history, or session data to zefix.admin.ch
+
+### Terms of Service & Data Sources
+
+- **Zefix API ToS:** Usage of the Zefix REST API is governed by the [zefix.admin.ch terms of use](https://www.zefix.admin.ch). The data is published under the [Open Government Data (OGD) Switzerland](https://opendata.swiss/) principles.
+- **SHAB:** Swiss Official Gazette of Commerce — published by the Federal Chancellery (BK). Public by law.
+- **Institutional use:** This server is designed for read-only queries in public administration workflows. Not suitable for mass harvesting or automated surveillance use cases.
+
+### Security
+
+- No credentials are stored or transmitted (Phase 1)
+- Phase 2 credentials (`ZEFIX_USER`, `ZEFIX_PASSWORD`) are passed via environment variables only — never hardcoded
+- All HTTP calls use HTTPS exclusively
+- Tool inputs are validated via Pydantic v2 before any API call is made
+
+---
+
+## Demo
+
+> 📽️ *Demo GIF coming soon — see [`docs/demo/`](docs/demo/) to generate it locally with [vhs](https://github.com/charmbracelet/vhs)*
+
+**Example interaction:**
+
+```
+User:  "Is Lehrmittelverlag Zürich AG active in the commercial register?"
+
+→ Tool: zefix_verify_company(name="Lehrmittelverlag Zürich AG")
+
+Claude: ✅ Lehrmittelverlag Zürich AG is ACTIVE in the Handelsregister.
+        UID: CHE-109.741.634 | Canton: ZH | Legal form: AG
+        Last SHAB mutation: 2024-06-15
+```
+
+To generate the demo GIF locally:
+
+```bash
+# Install vhs (macOS/Linux)
+brew install vhs        # macOS
+# or: go install github.com/charmbracelet/vhs@latest
+
+# Generate
+vhs docs/demo/demo.tape
+# → outputs docs/demo/demo.gif
+```
 
 ---
 

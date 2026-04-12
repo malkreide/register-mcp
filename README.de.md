@@ -202,6 +202,10 @@ register-mcp/
 │   └── server.py                # 6 Tools (Zefix + Referenzdaten)
 ├── tests/
 │   └── test_server.py           # Unit + Integrationstests (gemockt)
+├── docs/demo/
+│   ├── demo.tape                # vhs-Aufnahme-Script → demo.gif
+│   ├── demo.py                  # Standalone CLI-Demo (Live Zefix API)
+│   └── README.md                # Anleitung zur GIF-Generierung
 ├── .github/workflows/ci.yml     # GitHub Actions (Python 3.11/3.12/3.13)
 ├── pyproject.toml
 ├── CHANGELOG.md
@@ -219,6 +223,68 @@ register-mcp/
 - SHAB-Publikationstexte enthalten XML-Markup (`<FT TYPE="F">...`)
 - Phase-1-API kann bei hoher Last gedrosselt werden; kurz warten und erneut versuchen
 - ZefixPublicREST (neue API) erfordert Registrierung: E-Mail an zefix@bj.admin.ch
+
+---
+
+## Sicherheit & Grenzen
+
+### Rate Limits
+
+| API | Limit | Hinweis |
+|-----|-------|---------|
+| ZefixREST (Phase 1) | Nicht offiziell dokumentiert | Drosselung bei hoher Last möglich — 1–2 s warten und erneut versuchen |
+| ZefixPublicREST (Phase 2) | Nicht offiziell dokumentiert | Vorab-Registrierung erforderlich (kostenlos) |
+| UID-Register SOAP (Phase 3) | **20 Req/min** | Hartes Limit, öffentlich dokumentiert |
+
+### Datenschutz
+
+- **Schreibgeschützt** — alle Tools tragen `readOnlyHint: True`; der Server führt keine Schreib-, Lösch- oder Mutationsoperationen gegen eine API durch
+- **Keine Datenspeicherung** — der Server agiert als zustandsloser Proxy; keine Firmendaten werden persistent gespeichert, gecacht oder geloggt
+- **Nur öffentliche Registerdaten** — das Zefix-Handelsregister ist ein öffentliches Bundesregister (HRegV); zurückgegebene Daten sind gesetzlich öffentliche Informationen, keine Personendaten im Sinne des DSG
+- **Kein Nutzer-Tracking** — der Server überträgt keine Nutzeridentität, Abfragehistorie oder Sitzungsdaten an zefix.admin.ch
+
+### Nutzungsbedingungen & Datenquellen
+
+- **Zefix API:** Die Nutzung der Zefix REST API unterliegt den [Nutzungsbedingungen von zefix.admin.ch](https://www.zefix.admin.ch). Die Daten werden unter den Grundsätzen von [Open Government Data (OGD) Schweiz](https://opendata.swiss/) veröffentlicht.
+- **SHAB:** Schweizerisches Handelsamtsblatt — veröffentlicht durch die Bundeskanzlei (BK). Gesetzlich öffentlich.
+- **Institutioneller Einsatz:** Dieser Server ist für schreibgeschützte Abfragen in Verwaltungsworkflows konzipiert. Nicht geeignet für Massen-Harvesting oder automatisierte Überwachungsanwendungen.
+
+### Sicherheit
+
+- Keine Credentials gespeichert oder übertragen (Phase 1)
+- Phase-2-Credentials (`ZEFIX_USER`, `ZEFIX_PASSWORD`) nur via Umgebungsvariablen — nie hardcodiert
+- Alle HTTP-Aufrufe ausschliesslich via HTTPS
+- Tool-Inputs werden via Pydantic v2 validiert, bevor ein API-Aufruf erfolgt
+
+---
+
+## Demo
+
+> 📽️ *Demo-GIF folgt — siehe [`docs/demo/`](docs/demo/) zur lokalen Generierung mit [vhs](https://github.com/charmbracelet/vhs)*
+
+**Beispiel-Interaktion:**
+
+```
+Benutzer: «Ist der Lehrmittelverlag Zürich AG im Handelsregister aktiv?»
+
+→ Tool: zefix_verify_company(name="Lehrmittelverlag Zürich AG")
+
+Claude: ✅ Lehrmittelverlag Zürich AG ist AKTIV im Handelsregister.
+        UID: CHE-109.741.634 | Kanton: ZH | Rechtsform: AG
+        Letzte SHAB-Mutation: 2024-06-15
+```
+
+Demo-GIF lokal generieren:
+
+```bash
+# vhs installieren (macOS/Linux)
+brew install vhs        # macOS
+# oder: go install github.com/charmbracelet/vhs@latest
+
+# Generieren
+vhs docs/demo/demo.tape
+# → erzeugt docs/demo/demo.gif
+```
 
 ---
 
