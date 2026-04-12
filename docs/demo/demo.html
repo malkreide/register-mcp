@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>register-mcp demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d1117;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .window {
+    width: 860px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+  }
+
+  /* Title bar */
+  .titlebar {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .dots { display: flex; gap: 8px; align-items: center; }
+  .dot {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+  }
+  .dot-red   { background: #ff5f57; }
+  .dot-yellow{ background: #febc2e; }
+  .dot-green { background: #28c840; }
+  .title-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e2e8f0;
+    letter-spacing: 0.02em;
+  }
+  .badge {
+    background: rgba(139, 92, 246, 0.35);
+    border: 1px solid rgba(139, 92, 246, 0.6);
+    color: #c4b5fd;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+  }
+
+  /* Chat area */
+  .chat {
+    background: #0f172a;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  /* User message */
+  .user-msg {
+    align-self: flex-end;
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    color: #f5f3ff;
+    font-size: 15px;
+    line-height: 1.55;
+    padding: 14px 20px;
+    border-radius: 18px 18px 4px 18px;
+    max-width: 80%;
+    box-shadow: 0 4px 20px rgba(109,40,217,0.4);
+  }
+
+  /* Tool call */
+  .tool-box {
+    background: #0d2137;
+    border: 1px solid #1e3a5f;
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  }
+  .tool-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .tool-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 6px #22c55e;
+  }
+  .tool-name {
+    color: #4ade80;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .tool-param {
+    color: #94a3b8;
+    font-size: 13px;
+    line-height: 1.7;
+    padding-left: 16px;
+  }
+  .tool-param span { color: #7dd3fc; }
+  .tool-param .val { color: #fde68a; }
+
+  /* Second tool call */
+  .tool-box-2 {
+    background: #0d2137;
+    border: 1px solid #1e3a5f;
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  }
+
+  /* Response */
+  .response {
+    background: linear-gradient(135deg, #1e3a5f 0%, #172554 100%);
+    border: 1px solid #2563eb33;
+    border-radius: 10px;
+    padding: 18px 22px;
+    color: #e2e8f0;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .response-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .response-row {
+    display: flex;
+    gap: 8px;
+    color: #94a3b8;
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .response-row strong { color: #cbd5e1; }
+
+  /* Footer note */
+  .footer {
+    background: #0f172a;
+    padding: 10px 32px 20px;
+    text-align: center;
+    font-size: 11px;
+    color: #334155;
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+<div class="window">
+  <div class="titlebar">
+    <div class="dots">
+      <div class="dot dot-red"></div>
+      <div class="dot dot-yellow"></div>
+      <div class="dot dot-green"></div>
+      <span class="title-text" style="margin-left:10px">Claude Code</span>
+    </div>
+    <span class="badge">register-mcp</span>
+  </div>
+
+  <div class="chat">
+
+    <!-- User question -->
+    <div class="user-msg">
+      We want to sign a framework agreement with Lehrmittelverlag Zürich AG.<br>
+      Is the company active in the commercial register and have there been any SHAB mutations recently?
+    </div>
+
+    <!-- Tool call 1: verify -->
+    <div class="tool-box">
+      <div class="tool-header">
+        <div class="tool-dot"></div>
+        <span class="tool-name">Tool Call: zefix_verify_company</span>
+      </div>
+      <div class="tool-param">
+        <span>name</span>: <span class="val">"Lehrmittelverlag Zürich AG"</span>
+      </div>
+    </div>
+
+    <!-- Tool call 2: get company by uid -->
+    <div class="tool-box-2">
+      <div class="tool-header">
+        <div class="tool-dot"></div>
+        <span class="tool-name">Tool Call: zefix_get_company_by_uid</span>
+      </div>
+      <div class="tool-param">
+        <span>uid</span>: <span class="val">"CHE-404.020.972"</span>
+      </div>
+    </div>
+
+    <!-- Response -->
+    <div class="response">
+      <div class="response-title">
+        ✅ Lehrmittelverlag Zürich AG — ACTIVE
+      </div>
+      <div class="response-row"><strong>UID:</strong> CHE-404.020.972 &nbsp;|&nbsp; <strong>Canton:</strong> ZH &nbsp;|&nbsp; <strong>Legal form:</strong> Aktiengesellschaft (AG)</div>
+      <div class="response-row"><strong>Purpose:</strong> Herausgabe und Vertrieb von Lehrmitteln für Schulen</div>
+      <div class="response-row"><strong>Last SHAB mutation:</strong> 2023-07-27 — Mutation Organe (management change)</div>
+      <div class="response-row" style="margin-top:8px;color:#6ee7b7;font-size:12px;">
+        ✓ Safe to proceed — company is active with no dissolution proceedings
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">register-mcp · Swiss Federal Commercial Register (Zefix) · No API key required · MIT License</div>
+</div>
+</body>
+</html>

@@ -260,7 +260,9 @@ register-mcp/
 
 ## Demo
 
-> 📽️ *Demo-GIF folgt — siehe [`docs/demo/`](docs/demo/) zur lokalen Generierung mit [vhs](https://github.com/charmbracelet/vhs)*
+![register-mcp demo](assets/demo.png)
+
+> 📽️ *Terminal-GIF folgt — siehe [`docs/demo/`](docs/demo/) zur lokalen Generierung mit [vhs](https://github.com/charmbracelet/vhs)*
 
 **Beispiel-Interaktion:**
 
