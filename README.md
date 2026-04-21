@@ -276,6 +276,8 @@ Claude: ✅ Lehrmittelverlag Zürich AG is ACTIVE in the Handelsregister.
         Last SHAB mutation: 2024-06-15
 ```
 
+[→ More use cases by audience →](EXAMPLES.md)
+
 To generate the demo GIF locally:
 
 ```bash
