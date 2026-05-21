@@ -8,10 +8,11 @@ ENV UV_LINK_MODE=copy \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # uv pinned via its official image to avoid pulling a curl|sh install script.
-# Pin to a specific patch — the short `:0.8` form is not published as a tag,
-# so the previous `:0.5` reference failed to resolve in CI. Dependabot will
-# bump this via the docker ecosystem hook in .github/dependabot.yml.
-COPY --from=ghcr.io/astral-sh/uv:0.8.17 /uv /uvx /usr/local/bin/
+# Pin to a specific patch — minor aliases like `:0.8` are not published, only
+# full patches and `latest`. Copy only /uv (not /uvx): the runtime image does
+# not need uvx, and not every uv patch tag bundles it. Dependabot's docker
+# hook (see .github/dependabot.yml) bumps this automatically.
+COPY --from=ghcr.io/astral-sh/uv:0.8.17 /uv /usr/local/bin/uv
 
 WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
