@@ -42,7 +42,7 @@ dev = [
 ]
 
 [project.scripts]
-register-mcp = "register_mcp.server:mcp.run"
+register-mcp = "register_mcp.server:main"
 
 [project.urls]
 Homepage   = "https://github.com/malkreide/register-mcp"

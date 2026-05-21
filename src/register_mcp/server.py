@@ -18,14 +18,20 @@ Use cases:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from enum import StrEnum
+from time import monotonic
 from typing import Any
 
 import httpx
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from ._log import configure_logging, log_event, logged_tool
+
+configure_logging()
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -360,12 +366,33 @@ class MunicipalitiesInput(BaseModel):
 # Shared data fetchers
 # ---------------------------------------------------------------------------
 
-async def _fetch_legal_forms() -> list[dict]:
-    """Fetch and return all legal forms from Zefix."""
+LEGAL_FORMS_TTL_SECONDS = float(os.environ.get("LEGAL_FORMS_TTL", "86400"))
+_legal_forms_cache: tuple[float, list[dict]] | None = None
+
+
+async def _fetch_legal_forms(ttl: float | None = None) -> list[dict]:
+    """Fetch all legal forms from Zefix with a TTL cache (default 24h).
+
+    The list changes at most a few times per year; caching avoids a second
+    upstream call on every search/detail tool invocation.
+    """
+    global _legal_forms_cache
+    effective_ttl = LEGAL_FORMS_TTL_SECONDS if ttl is None else ttl
+    now = monotonic()
+    if _legal_forms_cache and now - _legal_forms_cache[0] < effective_ttl:
+        return _legal_forms_cache[1]
     async with _make_client() as client:
         r = await client.get(f"{ZEFIX_BASE}/legalForm")
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+    _legal_forms_cache = (now, data)
+    return data
+
+
+def _reset_legal_forms_cache() -> None:
+    """Test helper: clear the cache between tests."""
+    global _legal_forms_cache
+    _legal_forms_cache = None
 
 
 # ---------------------------------------------------------------------------
@@ -382,6 +409,7 @@ async def _fetch_legal_forms() -> list[dict]:
         "openWorldHint": True,
     },
 )
+@logged_tool("zefix_search_companies")
 async def zefix_search_companies(params: CompanySearchInput) -> str:
     """Sucht Unternehmen im Schweizer Handelsregister (Zefix) nach Name, Kanton und Rechtsform.
 
@@ -486,6 +514,7 @@ async def zefix_search_companies(params: CompanySearchInput) -> str:
         "openWorldHint": True,
     },
 )
+@logged_tool("zefix_get_company")
 async def zefix_get_company(params: CompanyByEhraIdInput) -> str:
     """Ruft vollständige Firmendetails aus dem Handelsregister ab (nach interner EHRAID).
 
@@ -568,6 +597,7 @@ async def zefix_get_company(params: CompanyByEhraIdInput) -> str:
         "openWorldHint": True,
     },
 )
+@logged_tool("zefix_get_company_by_uid")
 async def zefix_get_company_by_uid(params: CompanyByUidInput) -> str:
     """Findet eine Firma im Handelsregister anhand ihrer UID (Unternehmensidentifikationsnummer).
 
@@ -689,6 +719,7 @@ async def zefix_get_company_by_uid(params: CompanyByUidInput) -> str:
         "openWorldHint": True,
     },
 )
+@logged_tool("zefix_verify_company")
 async def zefix_verify_company(params: VerifyCompanyInput) -> str:
     """Schnell-Verifikation: Ist ein Unternehmen im Handelsregister eingetragen und aktiv?
 
@@ -805,6 +836,7 @@ async def zefix_verify_company(params: VerifyCompanyInput) -> str:
         "openWorldHint": False,
     },
 )
+@logged_tool("zefix_list_legal_forms")
 async def zefix_list_legal_forms(params: LegalFormsInput) -> str:
     """Listet alle im Schweizer Handelsregister verwendeten Rechtsformen auf.
 
@@ -872,6 +904,7 @@ async def zefix_list_legal_forms(params: LegalFormsInput) -> str:
         "openWorldHint": False,
     },
 )
+@logged_tool("zefix_list_municipalities")
 async def zefix_list_municipalities(params: MunicipalitiesInput) -> str:
     """Listet Schweizer Gemeinden mit BFS-ID und Handelsregisterkreis auf.
 
@@ -939,5 +972,55 @@ async def zefix_list_municipalities(params: MunicipalitiesInput) -> str:
 # Entry point
 # ---------------------------------------------------------------------------
 
+DEFAULT_RATE_LIMIT = int(os.environ.get("MCP_RATE_LIMIT", "60"))
+DEFAULT_RATE_WINDOW = float(os.environ.get("MCP_RATE_WINDOW", "60"))
+
+
+def _build_sse_app():
+    """Build the SSE Starlette app with auth + rate-limit middleware.
+
+    Requires `MCP_API_KEY` env var to be set. Fails loud at startup otherwise —
+    no implicit "auth disabled" mode is supported for SSE.
+    """
+    from ._middleware import BearerAuthMiddleware, RateLimitMiddleware
+
+    api_key = os.environ.get("MCP_API_KEY", "").strip()
+    if not api_key:
+        raise SystemExit(
+            "MCP_API_KEY must be set when MCP_TRANSPORT=sse. "
+            "Generate a random key (e.g. `openssl rand -hex 32`) and pass it via env."
+        )
+
+    app = mcp.sse_app()
+    # Rate limit runs *after* auth so the bucket key is the bearer-token hash.
+    # Middleware added later runs first → add rate-limit first, then auth.
+    app.add_middleware(RateLimitMiddleware, limit=DEFAULT_RATE_LIMIT, window=DEFAULT_RATE_WINDOW)
+    app.add_middleware(BearerAuthMiddleware, expected_key=api_key)
+    log_event(
+        logging.INFO,
+        "sse_app_built",
+        rate_limit=DEFAULT_RATE_LIMIT,
+        rate_window=DEFAULT_RATE_WINDOW,
+    )
+    return app
+
+
+def main() -> None:
+    if transport == "stdio":
+        log_event(logging.INFO, "starting", transport="stdio")
+        mcp.run(transport="stdio")
+        return
+    if transport == "sse":
+        import uvicorn
+
+        app = _build_sse_app()
+        host = mcp.settings.host
+        port = mcp.settings.port
+        log_event(logging.INFO, "starting", transport="sse", host=host, port=port)
+        uvicorn.run(app, host=host, port=port, log_level=mcp.settings.log_level.lower())
+        return
+    raise SystemExit(f"Unsupported MCP_TRANSPORT={transport!r} (expected 'stdio' or 'sse')")
+
+
 if __name__ == "__main__":
-    mcp.run(transport=transport)
+    main()
