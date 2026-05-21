@@ -1,0 +1,29 @@
+{
+  "server_name": "register-mcp",
+  "run_id": "2026-05-21-register-mcp",
+  "audited_at": "2026-05-21",
+  "auditor": "claude (mcp-audit-skill v0.5 methodology, manual run)",
+  "skill_source": "https://github.com/malkreide/mcp-audit-skill",
+  "policy": "fail-or-partial",
+  "applicable_checks": 28,
+  "production_ready": false,
+  "blocking_findings": [
+    "SEC-007 (Sandbox/Container missing for cloud deployment)",
+    "SEC-023 (No rate limiting on SSE transport)",
+    "SEC-AUTH-SSE (SSE endpoint binds 0.0.0.0 without authentication)"
+  ],
+  "totals": {
+    "by_status": {
+      "pass": 16,
+      "partial": 5,
+      "fail": 7,
+      "skip_not_applicable": 40
+    },
+    "by_severity_of_findings": {
+      "critical": 2,
+      "high": 5,
+      "medium": 5,
+      "low": 0
+    }
+  }
+}

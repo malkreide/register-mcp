@@ -1,0 +1,16 @@
+profile:
+  name: register-mcp
+  repo: https://github.com/malkreide/register-mcp
+  transport: dual                  # stdio + SSE (MCP_TRANSPORT env)
+  auth_model: none                 # ZefixREST Phase 1 ist offen
+  data_class: Public Open Data     # Zefix/Handelsregister = OGD
+  write_capable: false             # alle 6 Tools sind readOnlyHint=True
+  deployment: [local-stdio, Railway]
+  is_cloud_deployed: true          # SSE bindet 0.0.0.0:$PORT — Railway-Pattern
+  phase: 1                         # Phase 1 (no auth); Phase 2 (Basic Auth) noch nicht implementiert
+  prio: medium                     # OGD + Cloud-fähig, kein PII
+  data_source:
+    name: Zefix / Handelsregister (ZefixREST v1)
+    base_url: https://www.zefix.admin.ch/ZefixREST/api/v1
+    is_swiss_open_data: true
+    license: OGD Switzerland (opendata.swiss)
