@@ -7,8 +7,11 @@ ENV UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# uv pinned via its official slim image to avoid pulling a curl|sh script.
-COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /usr/local/bin/uv
+# uv pinned via its official image to avoid pulling a curl|sh install script.
+# Pin to a specific patch — the short `:0.8` form is not published as a tag,
+# so the previous `:0.5` reference failed to resolve in CI. Dependabot will
+# bump this via the docker ecosystem hook in .github/dependabot.yml.
+COPY --from=ghcr.io/astral-sh/uv:0.8.17 /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
