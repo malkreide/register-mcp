@@ -15,7 +15,9 @@ ENV UV_LINK_MODE=copy \
 COPY --from=ghcr.io/astral-sh/uv:0.8.17 /uv /usr/local/bin/uv
 
 WORKDIR /app
-COPY pyproject.toml uv.lock README.md ./
+# LICENSE must be copied — pyproject.toml declares `license = { file = "LICENSE" }`,
+# so hatchling fails the wheel build during `uv sync` if it is missing.
+COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY src/ ./src/
 
 # --frozen: refuse to update the lockfile; build fails loud if it drifted.
