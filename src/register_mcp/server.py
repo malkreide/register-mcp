@@ -41,6 +41,22 @@ ZEFIX_BASE = "https://www.zefix.admin.ch/ZefixREST/api/v1"
 ZEFIX_PUBLIC_BASE = "https://www.zefix.admin.ch/ZefixPublicREST/api/v1"
 REQUEST_TIMEOUT = 15.0
 
+# Egress allow-list — every outbound HTTP request from `_make_client` is
+# checked against this set. Acts as a second-layer defence: even if a
+# dependency tries to follow a redirect to an unexpected host or a future
+# tool adds an unintended URL, the request is rejected before it leaves
+# the process. Override via MCP_ALLOWED_HOSTS (comma-separated).
+_DEFAULT_ALLOWED_HOSTS = frozenset({"www.zefix.admin.ch"})
+ALLOWED_HOSTS: frozenset[str] = frozenset(
+    h.strip().lower()
+    for h in os.environ.get("MCP_ALLOWED_HOSTS", ",".join(_DEFAULT_ALLOWED_HOSTS)).split(",")
+    if h.strip()
+)
+
+
+class EgressDenied(httpx.RequestError):
+    """Raised when an outbound request targets a host outside ALLOWED_HOSTS."""
+
 CANTON_CODES = [
     "AG", "AI", "AR", "BE", "BL", "BS", "FR", "GE", "GL", "GR",
     "JU", "LU", "NE", "NW", "OW", "SG", "SH", "SO", "SZ", "TG",
@@ -75,8 +91,30 @@ if transport == "sse":
 # Shared HTTP client
 # ---------------------------------------------------------------------------
 
+async def _enforce_egress_allowlist(request: httpx.Request) -> None:
+    """httpx event hook: reject requests to hosts outside ALLOWED_HOSTS.
+
+    Runs before send AND on each redirect (httpx fires `request` events for
+    each hop when `follow_redirects=True`), so an unexpected 3xx Location
+    cannot exfiltrate the request.
+    """
+    host = (request.url.host or "").lower()
+    if host not in ALLOWED_HOSTS:
+        log_event(
+            logging.ERROR,
+            "egress_denied",
+            host=host,
+            url=str(request.url),
+            allowed=sorted(ALLOWED_HOSTS),
+        )
+        raise EgressDenied(
+            f"Egress to host {host!r} is not in ALLOWED_HOSTS",
+            request=request,
+        )
+
+
 def _make_client() -> httpx.AsyncClient:
-    """Create a shared async HTTP client with appropriate headers."""
+    """Create a shared async HTTP client with appropriate headers and egress guard."""
     return httpx.AsyncClient(
         timeout=REQUEST_TIMEOUT,
         headers={
@@ -85,6 +123,7 @@ def _make_client() -> httpx.AsyncClient:
             "User-Agent": "register-mcp/1.0 (Swiss Public Data MCP Portfolio)",
         },
         follow_redirects=True,
+        event_hooks={"request": [_enforce_egress_allowlist]},
     )
 
 
@@ -1006,6 +1045,9 @@ def _build_sse_app():
 
 
 def main() -> None:
+    from ._otel import init_otel
+
+    init_otel()
     if transport == "stdio":
         log_event(logging.INFO, "starting", transport="stdio")
         mcp.run(transport="stdio")

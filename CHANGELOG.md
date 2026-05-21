@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Defence-in-depth (Sprint 3 of mcp-audit-skill remediation):**
+  - Egress allow-list: `_make_client` registers an httpx request hook
+    that rejects any outbound URL whose host is not in `ALLOWED_HOSTS`
+    (default `{www.zefix.admin.ch}`; override via `MCP_ALLOWED_HOSTS`).
+    Fires on the initial request and on every redirect, so a malicious
+    `Location` header cannot exfiltrate. Closes `SEC-021`.
+  - Optional OpenTelemetry tracing behind `OTEL_EXPORTER_OTLP_ENDPOINT`,
+    activated by the `[otel]` extra. No-op without env var or deps.
+  - 6 new tests in `tests/test_egress.py` (allowed pass, evil host blocked,
+    AWS-IMDS blocked, redirect-to-evil blocked, case normalisation).
+
+### Added
 - **Supply-chain & container hardening (Sprint 2 of mcp-audit-skill remediation):**
   - `Dockerfile` (multi-stage, `python:3.13-slim`, non-root `mcp` user,
     `uv sync --frozen --no-dev` from `uv.lock`); closes audit finding `SEC-007`.

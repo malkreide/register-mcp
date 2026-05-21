@@ -94,6 +94,14 @@ When running with `MCP_TRANSPORT=sse`, the server enforces:
   at WARNING level. Configure verbosity with `LOG_LEVEL` (default `INFO`).
 - **Reference-data cache** — Zefix legal-forms are cached for 24h
   (`LEGAL_FORMS_TTL` seconds) to avoid an extra upstream call per tool invocation.
+- **Egress allow-list** — outbound HTTP is restricted to `www.zefix.admin.ch`
+  via an `httpx` request hook that also fires on redirects. A `Location` header
+  pointing elsewhere raises `EgressDenied` and is never followed. Override with
+  `MCP_ALLOWED_HOSTS=host1,host2` (comma-separated, lower-case).
+- **Optional OpenTelemetry tracing** — install with `pip install register-mcp[otel]`
+  and set `OTEL_EXPORTER_OTLP_ENDPOINT` (e.g. `http://otel-collector:4318/v1/traces`).
+  Without the extra or without the env var the server stays silent — no hard
+  dependency on the OTel SDK.
 
 For multi-instance deployments, place a real gateway (Cloudflare, Railway internal
 networking, an API-Gateway with Redis-backed rate limiting) in front of the
