@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Multi-stage build: install deps with uv, then ship a slim runtime image.
-FROM python:3.13-slim AS builder
+FROM python:3.14-slim AS builder
 
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
@@ -22,7 +22,7 @@ RUN uv sync --frozen --no-dev --no-editable
 
 # ---------------------------------------------------------------------------
 
-FROM python:3.13-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
