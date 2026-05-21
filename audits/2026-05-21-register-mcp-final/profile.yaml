@@ -1,0 +1,25 @@
+profile:
+  name: register-mcp
+  repo: https://github.com/malkreide/register-mcp
+  transport: dual                  # stdio + SSE (MCP_TRANSPORT env)
+  auth_model: API-Key              # SSE: Bearer via MCP_API_KEY (Pflicht); stdio: keine
+  data_class: Public Open Data     # Zefix OGD
+  write_capable: false
+  deployment: [local-stdio, Railway, Container]
+  is_cloud_deployed: true
+  phase: 1
+  prio: medium
+  data_source:
+    name: Zefix / Handelsregister (ZefixREST v1)
+    base_url: https://www.zefix.admin.ch/ZefixREST/api/v1
+    is_swiss_open_data: true
+    license: OGD Switzerland (opendata.swiss)
+  hardening_state:
+    auth: bearer-token-hmac-compare
+    rate_limit: in-memory-sliding-window-per-token
+    logging: json-stderr-per-tool-call
+    cache: legal-forms-ttl-86400s
+    container: python3.14-slim-multi-stage-non-root
+    egress: httpx-event-hook-allowlist
+    supply_chain: uv.lock-frozen + dependabot
+    observability: opentelemetry-optional-extra
