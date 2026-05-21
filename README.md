@@ -74,9 +74,30 @@ uvx register-mcp
 # stdio (for Claude Desktop)
 python -m register_mcp.server
 
-# SSE (cloud deployment)
-MCP_TRANSPORT=sse PORT=8000 python -m register_mcp.server
+# SSE (cloud deployment) — MCP_API_KEY is REQUIRED
+MCP_API_KEY=$(openssl rand -hex 32) MCP_TRANSPORT=sse PORT=8000 \
+  python -m register_mcp.server
 ```
+
+### SSE / Cloud Deployment
+
+When running with `MCP_TRANSPORT=sse`, the server enforces:
+
+- **Bearer-token auth** — set `MCP_API_KEY` to a secret string. Clients must send
+  `Authorization: Bearer <key>` on every request. Missing or wrong → HTTP 401.
+  The server refuses to start without `MCP_API_KEY` set.
+- **Rate limiting** — sliding window per bearer-token hash. Defaults: 60 req / 60 s.
+  Tunable via `MCP_RATE_LIMIT` and `MCP_RATE_WINDOW`. Exceeding the limit returns
+  HTTP 429 with `Retry-After`.
+- **Structured JSON logging** — every tool call emits one line to stderr with
+  `tool`, `status`, `latency_ms`. Auth failures and rate-limit events are logged
+  at WARNING level. Configure verbosity with `LOG_LEVEL` (default `INFO`).
+- **Reference-data cache** — Zefix legal-forms are cached for 24h
+  (`LEGAL_FORMS_TTL` seconds) to avoid an extra upstream call per tool invocation.
+
+For multi-instance deployments, place a real gateway (Cloudflare, Railway internal
+networking, an API-Gateway with Redis-backed rate limiting) in front of the
+in-memory limiter, which is per-process by design.
 
 Try it immediately in Claude Desktop:
 
