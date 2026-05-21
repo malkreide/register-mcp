@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Supply-chain & container hardening (Sprint 2 of mcp-audit-skill remediation):**
+  - `Dockerfile` (multi-stage, `python:3.13-slim`, non-root `mcp` user,
+    `uv sync --frozen --no-dev` from `uv.lock`); closes audit finding `SEC-007`.
+  - `compose.yaml` for local dev with `read_only`, `cap_drop: ALL`,
+    `no-new-privileges`.
+  - `uv.lock` committed for reproducible builds.
+  - `.github/dependabot.yml` with weekly pip + docker, monthly actions updates.
+  - `SECURITY.md` with disclosure pathway and response SLAs.
+  - `.github/CODEOWNERS` requiring review on security-sensitive surfaces.
+  - CI extended: `lockfile` job runs `uv lock --locked`; `docker` job builds
+    the image and smoke-tests (must fail without `MCP_API_KEY`, must run as
+    user `mcp`). Together these close audit finding `OPS-Supply-Chain`.
+
+### Added
 - **SSE transport hardening (Sprint 1 of mcp-audit-skill remediation):**
   - Bearer-token authentication via `MCP_API_KEY` env var — server refuses to
     start in SSE mode without it (closes audit finding `SEC-AUTH-SSE`).

@@ -1,0 +1,11 @@
+# Default owner for everything
+* @malkreide
+
+# Security-sensitive surfaces require explicit review
+/src/register_mcp/_middleware.py @malkreide
+/src/register_mcp/_log.py        @malkreide
+/.github/workflows/              @malkreide
+/Dockerfile                      @malkreide
+/SECURITY.md                     @malkreide
+/pyproject.toml                  @malkreide
+/uv.lock                         @malkreide

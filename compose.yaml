@@ -1,0 +1,18 @@
+services:
+  register-mcp:
+    build: .
+    image: register-mcp:dev
+    ports:
+      - "8000:8000"
+    environment:
+      MCP_TRANSPORT: sse
+      PORT: "8000"
+      MCP_API_KEY: ${MCP_API_KEY:?set MCP_API_KEY in your shell or .env}
+      MCP_RATE_LIMIT: "60"
+      MCP_RATE_WINDOW: "60"
+      LOG_LEVEL: INFO
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
