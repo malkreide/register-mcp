@@ -99,6 +99,31 @@ For multi-instance deployments, place a real gateway (Cloudflare, Railway intern
 networking, an API-Gateway with Redis-backed rate limiting) in front of the
 in-memory limiter, which is per-process by design.
 
+### Container deployment
+
+A minimal multi-stage `Dockerfile` ships with the repo. The image runs as a
+non-root `mcp` user; dependencies are resolved from `uv.lock` (`uv sync
+--frozen`), so the build is reproducible.
+
+```bash
+docker build -t register-mcp:local .
+
+docker run --rm -p 8000:8000 \
+  -e MCP_TRANSPORT=sse \
+  -e MCP_API_KEY="$(openssl rand -hex 32)" \
+  register-mcp:local
+```
+
+For local iteration there is a `compose.yaml` with `read_only`, `cap_drop: ALL`
+and `no-new-privileges`:
+
+```bash
+MCP_API_KEY=$(openssl rand -hex 32) docker compose up --build
+```
+
+See [SECURITY.md](SECURITY.md) for hardening notes (egress restriction, key
+rotation, SIEM forwarding).
+
 Try it immediately in Claude Desktop:
 
 > *"Is Lehrmittelverlag Zürich AG active in the commercial register?"*
