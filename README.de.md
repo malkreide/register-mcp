@@ -74,9 +74,63 @@ uvx register-mcp
 # stdio (für Claude Desktop)
 python -m register_mcp.server
 
-# SSE (Cloud-Deployment)
-MCP_TRANSPORT=sse PORT=8000 python -m register_mcp.server
+# SSE (Cloud-Deployment) — MCP_API_KEY ist ERFORDERLICH
+MCP_API_KEY=$(openssl rand -hex 32) MCP_TRANSPORT=sse PORT=8000 \
+  python -m register_mcp.server
 ```
+
+### SSE / Cloud-Deployment
+
+Beim Betrieb mit `MCP_TRANSPORT=sse` erzwingt der Server:
+
+- **Bearer-Token-Auth** — setze `MCP_API_KEY` auf eine geheime Zeichenkette. Clients müssen
+  bei jeder Anfrage `Authorization: Bearer <key>` senden. Fehlt der Header oder ist er falsch → HTTP 401.
+  Der Server startet nicht ohne gesetztes `MCP_API_KEY`.
+- **Rate Limiting** — gleitendes Fenster pro Bearer-Token-Hash. Standard: 60 Req / 60 s.
+  Einstellbar via `MCP_RATE_LIMIT` und `MCP_RATE_WINDOW`. Bei Überschreitung folgt
+  HTTP 429 mit `Retry-After`.
+- **Strukturiertes JSON-Logging** — jeder Tool-Aufruf gibt eine Zeile auf stderr aus mit
+  `tool`, `status`, `latency_ms`. Auth-Fehler und Rate-Limit-Ereignisse werden auf
+  WARNING-Level geloggt. Verbosität via `LOG_LEVEL` (Standard `INFO`) konfigurieren.
+- **Referenzdaten-Cache** — Zefix-Rechtsformen werden 24h gecacht
+  (`LEGAL_FORMS_TTL` Sekunden), um einen zusätzlichen Upstream-Aufruf pro Tool-Aufruf zu vermeiden.
+- **Egress-Allow-List** — ausgehendes HTTP ist auf `www.zefix.admin.ch` beschränkt
+  via einen `httpx`-Request-Hook, der auch bei Redirects greift. Ein `Location`-Header,
+  der woanders hinzeigt, löst `EgressDenied` aus und wird nie befolgt. Überschreibbar via
+  `MCP_ALLOWED_HOSTS=host1,host2` (kommagetrennt, klein geschrieben).
+- **Optionales OpenTelemetry-Tracing** — Installation via `pip install register-mcp[otel]`
+  und Setzen von `OTEL_EXPORTER_OTLP_ENDPOINT` (z.B. `http://otel-collector:4318/v1/traces`).
+  Ohne das Extra oder ohne die Umgebungsvariable bleibt der Server still — keine harte
+  Abhängigkeit zum OTel-SDK.
+
+Für Multi-Instanz-Deployments gehört ein echtes Gateway (Cloudflare, Railway Internal
+Networking, ein API-Gateway mit Redis-basiertem Rate Limiting) vor den
+In-Memory-Limiter, der prinzipbedingt pro Prozess arbeitet.
+
+### Container-Deployment
+
+Ein minimales Multi-Stage-`Dockerfile` liegt dem Repo bei. Das Image läuft als
+Non-Root-User `mcp`; Abhängigkeiten werden aus `uv.lock` aufgelöst (`uv sync
+--frozen`), der Build ist also reproduzierbar.
+
+```bash
+docker build -t register-mcp:local .
+
+docker run --rm -p 8000:8000 \
+  -e MCP_TRANSPORT=sse \
+  -e MCP_API_KEY="$(openssl rand -hex 32)" \
+  register-mcp:local
+```
+
+Für die lokale Iteration gibt es eine `compose.yaml` mit `read_only`, `cap_drop: ALL`
+und `no-new-privileges`:
+
+```bash
+MCP_API_KEY=$(openssl rand -hex 32) docker compose up --build
+```
+
+Siehe [SECURITY.md](SECURITY.md) für Hardening-Hinweise (Egress-Beschränkung,
+Schlüsselrotation, SIEM-Weiterleitung).
 
 Sofort in Claude Desktop ausprobieren:
 
@@ -312,7 +366,7 @@ Siehe [CHANGELOG.md](CHANGELOG.md)
 
 ## Mitwirken
 
-Siehe [CONTRIBUTING.md](CONTRIBUTING.md)
+Siehe [CONTRIBUTING.de.md](CONTRIBUTING.de.md)
 
 ---
 

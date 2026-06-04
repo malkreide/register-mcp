@@ -1,5 +1,7 @@
 # Security Policy
 
+[🇩🇪 Deutsche Version](SECURITY.de.md)
+
 ## Supported Versions
 
 `register-mcp` is pre-1.0; only the latest `main` and the most recent tagged
