@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name        = "register-mcp"
-version     = "0.2.2"
+version     = "0.2.3"
 description = "MCP Server for Swiss commercial register (Zefix/Handelsregister) and UID register"
 readme      = "README.md"
 license     = { file = "LICENSE" }
