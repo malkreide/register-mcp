@@ -51,6 +51,7 @@ otel = [
 register-mcp = "register_mcp.server:main"
 
 [project.urls]
+"mcp-name" = "io.github.malkreide/register-mcp"
 Homepage   = "https://github.com/malkreide/register-mcp"
 Repository = "https://github.com/malkreide/register-mcp"
 Issues     = "https://github.com/malkreide/register-mcp/issues"
