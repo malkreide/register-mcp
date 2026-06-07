@@ -392,3 +392,5 @@ Hayal Oezkan · [malkreide](https://github.com/malkreide)
 - **Related:** [swiss-statistics-mcp](https://github.com/malkreide/swiss-statistics-mcp) — Industry statistics by NOGA
 - **Related:** [swiss-snb-mcp](https://github.com/malkreide/swiss-snb-mcp) — Economic indicators
 - **Portfolio:** [Swiss Public Data MCP Portfolio](https://github.com/malkreide)
+
+<!-- mcp-name: io.github.malkreide/register-mcp -->
