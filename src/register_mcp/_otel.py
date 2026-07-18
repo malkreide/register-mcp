@@ -37,7 +37,7 @@ def init_otel() -> bool:
     resource = Resource.create(
         {
             "service.name": os.environ.get("OTEL_SERVICE_NAME", "register-mcp"),
-            "service.version": os.environ.get("OTEL_SERVICE_VERSION", "0.1.0"),
+            "service.version": os.environ.get("OTEL_SERVICE_VERSION", "0.3.0"),
         }
     )
     provider = TracerProvider(resource=resource)
