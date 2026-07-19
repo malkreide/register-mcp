@@ -146,6 +146,34 @@ CANTON_CODES = [
 ]
 
 # ---------------------------------------------------------------------------
+# Public procurement (öffentliches Beschaffungswesen / Submissionen) mapping.
+#
+# Live-verified in the Phase-1 probe (docs/probe-shab.md, 2026-07-19): unlike
+# Handelsregister (HR) or Konkurse (KK), procurement is NOT a federal SHAB
+# rubric. It exists ONLY as a per-canton rubric with the code pattern
+# `OB-<canton>`, and only a handful of cantons publish it in this portal at
+# all — most (incl. Zürich) route procurement through simap.ch, which is a
+# SEPARATE platform outside amtsblattportal.ch.
+#
+# `SB` (Schuldbetreibungen) is DEBT COLLECTION, not Submissionen — a common
+# confusion this map exists to prevent.
+#
+# The gazette also carries no CPV classification: procurement can only be
+# narrowed by free-text keyword + rubric + canton + date, never by CPV code.
+PROCUREMENT_RUBRICS: dict[str, dict[str, Any]] = {
+    "AR": {"rubric": "OB-AR", "active": True, "note": ""},
+    "BS": {"rubric": "OB-BS", "active": True, "note": ""},
+    "TI": {"rubric": "OB-TI", "active": True, "note": ""},
+    "ZG": {"rubric": "OB-ZG", "active": True, "note": "simap.ch-Import bis Ende Februar 2024"},
+    "BL": {"rubric": "OB-BL", "active": False, "note": "inaktiv — nur historische Daten"},
+    "VS": {"rubric": "OB-VS", "active": False, "note": "inaktiv seit Ende 2023 (simap.ch)"},
+}
+PROCUREMENT_ACTIVE_CANTONS = [c for c, v in PROCUREMENT_RUBRICS.items() if v["active"]]
+# A CPV code is exactly 8 digits (optionally with a check digit suffix). Used
+# only to warn the user that CPV filtering is unsupported by this source.
+CPV_RE = re.compile(r"^\d{8}(-\d)?$")
+
+# ---------------------------------------------------------------------------
 # MCP Server
 # ---------------------------------------------------------------------------
 
@@ -1440,7 +1468,11 @@ class GazetteSearchInput(BaseModel):
     )
     rubric: str | None = Field(
         default=None,
-        description="Rubrik-Code (z.B. 'SB' für Submissionen). Wird vorab validiert.",
+        description=(
+            "Rubrik-Code, z.B. 'HR' (Handelsregister), 'KK' (Konkurse) oder "
+            "'OB-BS' (Beschaffung Basel-Stadt). Für Beschaffung besser das Tool "
+            "gazette_search_procurement nutzen. Wird vorab validiert."
+        ),
         max_length=12,
     )
     sub_rubric: str | None = Field(
@@ -1463,6 +1495,66 @@ class GazetteSearchInput(BaseModel):
         default=None,
         description="Zeitraum-Ende (YYYY-MM-DD).",
         pattern=r"^\d{4}-\d{2}-\d{2}$",
+    )
+    limit: int = Field(
+        default=20,
+        description="Maximale Anzahl Ergebnisse (1–100). Standard: 20.",
+        ge=1,
+        le=GAZETTE_MAX_LIMIT,
+    )
+    response_format: ResponseFormat = Field(
+        default=ResponseFormat.MARKDOWN,
+        description="Ausgabeformat: 'markdown' oder 'json'",
+    )
+
+    @field_validator("canton")
+    @classmethod
+    def validate_canton(cls, v: str | None) -> str | None:
+        if v and v.upper() not in CANTON_CODES:
+            raise ValueError(f"Ungültiges Kantonskürzel '{v}'. Gültig: {', '.join(CANTON_CODES)}")
+        return v.upper() if v else v
+
+
+class GazetteProcurementInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+
+    keyword: str | None = Field(
+        default=None,
+        description=(
+            "Freitext-Suchbegriff, z.B. 'Informatik', 'Schulmobiliar', 'Reinigung'. "
+            "HINWEIS: Die Quelle kennt KEINE CPV-Codes — nur Volltextsuche. "
+            "Ein reiner CPV-Code liefert daher keine sinnvollen Treffer."
+        ),
+        min_length=2,
+        max_length=200,
+    )
+    canton: str | None = Field(
+        default=None,
+        description=(
+            "Kantonskürzel (z.B. 'BS'). Beschaffungsrubriken gibt es nur für "
+            "AR, BS, TI, ZG (aktiv) sowie BL, VS (inaktiv). Andere Kantone — "
+            "inkl. ZH — publizieren Ausschreibungen über simap.ch (nicht hier). "
+            "Ohne Kanton wird über alle aktiven Beschaffungsrubriken gesucht."
+        ),
+        min_length=2,
+        max_length=2,
+    )
+    date_start: str | None = Field(
+        default=None,
+        description="Zeitraum-Start / date_from (YYYY-MM-DD).",
+        pattern=r"^\d{4}-\d{2}-\d{2}$",
+    )
+    date_end: str | None = Field(
+        default=None,
+        description="Zeitraum-Ende (YYYY-MM-DD).",
+        pattern=r"^\d{4}-\d{2}-\d{2}$",
+    )
+    include_inactive: bool = Field(
+        default=False,
+        description=(
+            "Auch inaktive Beschaffungsrubriken (BL, VS) einbeziehen — nur "
+            "historische Daten. Standard: False."
+        ),
     )
     limit: int = Field(
         default=20,
@@ -1707,6 +1799,162 @@ async def gazette_search_publications(params: GazetteSearchInput) -> str:
             f"  ↳ ID: `{s.get('id')}` | Nr.: {s.get('publicationNumber') or '—'} "
             f"| Amt: {s.get('registrationOffice') or '—'}",
         ]
+    return _gazette_md(lines, "live_api")
+
+
+# ---------------------------------------------------------------------------
+# Tool: gazette_search_procurement (public procurement / Submissionen)
+# ---------------------------------------------------------------------------
+
+def _procurement_rubrics(canton: str | None, include_inactive: bool) -> tuple[list[str], list[str]]:
+    """Resolve the OB-* rubric codes for a procurement search.
+
+    Returns (rubric_codes, warnings). An empty rubric list means the request
+    cannot be served — the warnings then explain why (e.g. the canton has no
+    procurement rubric in this portal).
+    """
+    warnings: list[str] = []
+    if canton:
+        entry = PROCUREMENT_RUBRICS.get(canton)
+        if not entry:
+            warnings.append(
+                f"Kanton {canton} führt keine Beschaffungsrubrik im Amtsblattportal. "
+                f"Öffentliche Ausschreibungen des Kantons {canton} laufen in der Regel "
+                "über simap.ch — eine separate Plattform ausserhalb dieser Quelle. "
+                f"Beschaffungsrubriken existieren nur für: {', '.join(PROCUREMENT_ACTIVE_CANTONS)} "
+                "(aktiv) sowie BL, VS (inaktiv)."
+            )
+            return [], warnings
+        if not entry["active"] and not include_inactive:
+            warnings.append(
+                f"Beschaffungsrubrik {entry['rubric']} ({canton}) ist inaktiv "
+                f"({entry['note']}). Nur historische Daten. "
+                "Mit include_inactive=True dennoch durchsuchen."
+            )
+            return [], warnings
+        if entry["note"]:
+            warnings.append(f"{entry['rubric']}: {entry['note']}.")
+        return [entry["rubric"]], warnings
+    # No canton → all active procurement rubrics (optionally incl. inactive).
+    codes = [
+        v["rubric"]
+        for v in PROCUREMENT_RUBRICS.values()
+        if v["active"] or include_inactive
+    ]
+    return codes, warnings
+
+
+@mcp.tool(
+    name="gazette_search_procurement",
+    annotations={
+        "title": "Öffentliche Ausschreibungen / Submissionen suchen",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+)
+@logged_tool("gazette_search_procurement")
+async def gazette_search_procurement(params: GazetteProcurementInput) -> str:
+    """Sucht öffentliche Ausschreibungen (Beschaffungswesen/Submissionen) im Amtsblattportal.
+
+    Beschaffung ist ausschliesslich eine KANTONALE Rubrik (`OB-<Kanton>`), nicht
+    föderal. Nur wenige Kantone publizieren sie hier: AR, BS, TI, ZG (aktiv)
+    sowie BL, VS (inaktiv). Die meisten Kantone — inklusive **Zürich** —
+    publizieren Ausschreibungen über simap.ch, das NICHT Teil dieser Quelle ist.
+    Die Quelle kennt keine CPV-Codes; gefiltert wird per Freitext + Kanton + Datum.
+
+    Args:
+        params (GazetteProcurementInput):
+            - keyword (Optional[str]): Freitext (kein CPV-Code)
+            - canton (Optional[str]): Kantonskürzel; ohne Angabe alle aktiven Rubriken
+            - date_start / date_end (Optional[str]): Zeitraum YYYY-MM-DD
+            - include_inactive (bool): inaktive Rubriken (BL, VS) einbeziehen
+            - limit (int): 1–100 (Standard 20)
+            - response_format (str): 'markdown' oder 'json'
+
+    Returns:
+        str: Ausschreibungen (neueste zuerst) mit Datum, Kanton/Rubrik, Titel, ID.
+    """
+    rubrics, warnings = _procurement_rubrics(params.canton, params.include_inactive)
+
+    cpv_warning = None
+    if params.keyword and CPV_RE.match(params.keyword):
+        cpv_warning = (
+            f"«{params.keyword}» sieht wie ein CPV-Code aus. Das Amtsblattportal "
+            "unterstützt keine CPV-Filterung — der Wert wird als Freitext gesucht "
+            "und liefert vermutlich keine Treffer. Bitte ein Stichwort verwenden."
+        )
+
+    if not rubrics:
+        # Cannot serve the request (e.g. canton without a procurement rubric).
+        lines = ["## Öffentliche Ausschreibungen", ""]
+        lines += [f"⚠️ {w}" for w in warnings]
+        if params.response_format == ResponseFormat.JSON:
+            return _gazette_json(
+                {"count": 0, "total": 0, "rubrics": [], "warnings": warnings, "results": []},
+                "live_api",
+            )
+        return _gazette_md(lines, "live_api")
+
+    try:
+        for code in rubrics:
+            await _validate_rubric_code(code, "rubric")
+        data = await _gazette_search({
+            "rubrics": rubrics if len(rubrics) > 1 else rubrics[0],
+            "keyword": params.keyword,
+            "publicationDate.start": params.date_start,
+            "publicationDate.end": params.date_end,
+            "pageRequest.size": min(params.limit, GAZETTE_MAX_LIMIT),
+        })
+    except Exception as e:
+        return _handle_http_error(e)
+
+    content = data.get("content", []) or []
+    total = data.get("total")
+    summaries = [_gazette_meta_summary(i) for i in content]
+    summaries.sort(key=lambda s: s.get("publicationDate") or "", reverse=True)
+
+    all_warnings = warnings + ([cpv_warning] if cpv_warning else [])
+
+    if params.response_format == ResponseFormat.JSON:
+        return _gazette_json(
+            {
+                "count": len(summaries),
+                "total": total,
+                "rubrics": rubrics,
+                "canton": params.canton,
+                "keyword": params.keyword,
+                "warnings": all_warnings,
+                "results": summaries,
+            },
+            "live_api",
+        )
+
+    scope = params.canton or f"alle aktiven Rubriken ({', '.join(rubrics)})"
+    lines = [
+        f"## Öffentliche Ausschreibungen · {scope}",
+        f"Gefunden: **{len(summaries)}** (total: {total})"
+        + (f" | Stichwort: «{params.keyword}»" if params.keyword else ""),
+        "",
+    ]
+    for w in all_warnings:
+        lines.append(f"> ⚠️ {w}")
+    if all_warnings:
+        lines.append("")
+    if not summaries:
+        lines.append("_Keine Ausschreibungen für diese Filter. Zeitraum/Stichwort anpassen._")
+    for s in summaries:
+        title = s.get("title") or "—"
+        cantons = s.get("cantons")
+        canton_str = ", ".join(cantons) if isinstance(cantons, list) else (cantons or "—")
+        lines += [
+            f"- **{s.get('publicationDate') or '—'}** | {canton_str} · {s.get('rubric') or '?'} | {title}",
+            f"  ↳ ID: `{s.get('id')}` | Nr.: {s.get('publicationNumber') or '—'} "
+            f"| Amt: {s.get('registrationOffice') or '—'}",
+        ]
+    lines.append("")
+    lines.append("_Detail-Volltext via `gazette_get_publication(id=…)`._")
     return _gazette_md(lines, "live_api")
 
 
