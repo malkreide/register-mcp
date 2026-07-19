@@ -4,38 +4,47 @@
 
 # 🏛️ register-mcp
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Version](https://img.shields.io/badge/version-0.3.0-blue)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
 [![Kein API-Schlüssel](https://img.shields.io/badge/Auth-keiner%20erforderlich-brightgreen)](https://github.com/malkreide/register-mcp)
 ![CI](https://github.com/malkreide/register-mcp/actions/workflows/ci.yml/badge.svg)
 
-> MCP-Server für das Schweizer Handelsregister (Zefix) und ergänzende Referenzdaten
+> MCP-Server für das Schweizer Handelsregister (Zefix) und das Amtsblattportal (SHAB + kantonale Amtsblätter), verknüpft über die UID
 
 ---
 
 ## Übersicht
 
-`register-mcp` ermöglicht KI-Assistenten den direkten Zugang zum Schweizer Handelsregister via Zefix REST API — ohne Authentifizierung:
+`register-mcp` ermöglicht KI-Assistenten den direkten Zugang zu **zwei** eidgenössischen Datenquellen, verknüpft über die UID — ohne Authentifizierung:
 
 | Quelle | Daten | API |
 |--------|-------|-----|
-| **Zefix (Handelsregister)** | Schweizer Firmen, Rechtsformen, SHAB-Mutationen | ZefixREST v1 |
-| **SHAB** | Schweizerisches Handelsamtsblatt — Mutationspublikationen | In Zefix eingebettet |
+| **Zefix (Handelsregister)** | Schweizer Firmen, Rechtsformen, Sitzangaben | ZefixREST v1 |
+| **Amtsblattportal** | SHAB **und** kantonale Amtsblätter — 2.79 Mio. Publikationen (HR-Mutationen, Schuldenrufe, Submissionen, Konkurse …) | amtsblattportal.ch v1 |
+
+Beide Quellen teilen einen Schlüssel — die **UID**. Der Mehrwert liegt im Join: **Zefix sagt, ob eine Firma existiert. Das Amtsblatt sagt, was sie tut.**
 
 Entwickelt für den Einsatz in der öffentlichen Verwaltung: Lieferantenprüfung, Vertragspartner-Due-Diligence, Beschaffungs-Screening und Lieferanten-Onboarding — alles via natürlichsprachliche Abfragen.
 
-**Anker-Demo-Abfrage:** *«Wir möchten mit dem Lehrmittelverlag Zürich AG einen Rahmenvertrag abschliessen. Ist die Firma im Handelsregister aktiv eingetragen, welchen Gesellschaftszweck hat sie, und gab es in den letzten zwei Jahren SHAB-Mutationen?»*
+**Anker-Demo-Abfrage:** *«Wir wollen mit der Lehrmittelverlag Zürich AG einen Rahmenvertrag abschliessen. Ist die Firma im Handelsregister aktiv, was ist ihr Zweck, welche SHAB-Mutationen gab es in den letzten zwei Jahren — und ist sie in Submissionspublikationen aufgetaucht?»*
+
+Diese eine Frage durchläuft die ganze Tool-Kette über beide Quellen:
+
+```
+zefix_search_company  →  zefix_verify_company  →  gazette_company_publications(uid=…)  →  gazette_get_publication(id=…)
+```
 
 ---
 
 ## Funktionen
 
-- 🏛️ **6 Tools** für Firmensuche, Verifizierung und Referenzdaten
+- 🏛️ **11 Tools** über zwei Quellen — Firmensuche & Verifizierung (Zefix) + Amtsblatt-Publikationen (SHAB/kantonal)
+- 🔗 **`gazette_company_publications`** — der UID-Join: alles, was über eine Firma publiziert wurde
 - 🔍 **`zefix_verify_company`** — Schnell-Check: aktiv oder gelöscht?
-- 🌐 **Zweisprachige Ausgabe** (Markdown / JSON)
-- 🔓 **Kein API-Schlüssel erforderlich** — offene Daten von zefix.admin.ch
+- 🌐 **Zweisprachige Ausgabe** (Markdown / JSON) mit Quellenangabe je Datenquelle + `provenance`
+- 🔓 **Kein API-Schlüssel erforderlich** — offene Daten von zefix.admin.ch und amtsblattportal.ch
 - ☁️ **Dualer Transport** — stdio (Claude Desktop) + SSE (Cloud)
 
 ---
@@ -94,10 +103,17 @@ Beim Betrieb mit `MCP_TRANSPORT=sse` erzwingt der Server:
   WARNING-Level geloggt. Verbosität via `LOG_LEVEL` (Standard `INFO`) konfigurieren.
 - **Referenzdaten-Cache** — Zefix-Rechtsformen werden 24h gecacht
   (`LEGAL_FORMS_TTL` Sekunden), um einen zusätzlichen Upstream-Aufruf pro Tool-Aufruf zu vermeiden.
-- **Egress-Allow-List** — ausgehendes HTTP ist auf `www.zefix.admin.ch` beschränkt
-  via einen `httpx`-Request-Hook, der auch bei Redirects greift. Ein `Location`-Header,
-  der woanders hinzeigt, löst `EgressDenied` aus und wird nie befolgt. Überschreibbar via
+- **Egress-Allow-List** — ausgehendes HTTP ist auf `www.zefix.admin.ch` und
+  `amtsblattportal.ch` beschränkt via einen `httpx`-Request-Hook, der auch bei
+  Redirects greift. Ein `Location`-Header, der woanders hinzeigt, löst
+  `EgressDenied` aus und wird nie befolgt. Überschreibbar via
   `MCP_ALLOWED_HOSTS=host1,host2` (kommagetrennt, klein geschrieben).
+
+  > ⚠️ **Upgrade-Hinweis (0.2.x → 0.3.0):** `amtsblattportal.ch` wurde beim Start
+  > der Amtsblatt-Tools zur **Default**-Allow-List hinzugefügt. Falls dein
+  > Deployment `MCP_ALLOWED_HOSTS` **fest gesetzt** hat, überschreibt dieser Wert
+  > den Default vollständig — ergänze `amtsblattportal.ch`, sonst wirft jeder
+  > `gazette_*`-Aufruf `EgressDenied`.
 - **Optionales OpenTelemetry-Tracing** — Installation via `pip install register-mcp[otel]`
   und Setzen von `OTEL_EXPORTER_OTLP_ENDPOINT` (z.B. `http://otel-collector:4318/v1/traces`).
   Ohne das Extra oder ohne die Umgebungsvariable bleibt der Server still — keine harte
@@ -190,6 +206,8 @@ Für den Einsatz via **claude.ai im Browser** (z.B. auf verwalteten Arbeitsplät
 
 ## Verfügbare Tools
 
+**Zefix — Handelsregister (6):**
+
 | Tool | Beschreibung |
 |------|-------------|
 | `zefix_search_companies` | Firmen nach Name, Kanton, Rechtsform suchen |
@@ -199,6 +217,18 @@ Für den Einsatz via **claude.ai im Browser** (z.B. auf verwalteten Arbeitsplät
 | `zefix_list_legal_forms` | Alle Schweizer Rechtsformen mit IDs |
 | `zefix_list_municipalities` | Schweizer Gemeinden mit BFS-IDs |
 
+**Amtsblattportal — SHAB + kantonale Amtsblätter (5):**
+
+| Tool | Beschreibung |
+|------|-------------|
+| `gazette_company_publications` | **Der UID-Join.** Alle Amtsblatt-Publikationen zu einer UID, neueste zuerst, optionale Rubrik-/Zeitfilter |
+| `gazette_search_publications` | Volltextsuche (`keyword`) + Filter `rubrics`/`subRubrics`/`cantons`/Zeitraum |
+| `gazette_get_publication` | Einzelpublikation inkl. XML-Volltext, defensiv geparst |
+| `gazette_list_rubrics` | Rubrik-/Subrubrik-Taxonomie — Voraussetzung für gültige Filter |
+| `gazette_source_status` | Erreichbarkeit beider Quellen + Cache-Alter (Rubriken, Rechtsformen) |
+
+Der Prefix ist `gazette_` und nicht `shab_`, weil die Quelle SHAB **und** die kantonalen Amtsblätter umfasst.
+
 ### Beispiel-Abfragen
 
 | Abfrage | Tool |
@@ -206,31 +236,52 @@ Für den Einsatz via **claude.ai im Browser** (z.B. auf verwalteten Arbeitsplät
 | *«Ist der Lehrmittelverlag Zürich AG aktiv?»* | `zefix_verify_company` |
 | *«Suche CHE-108.954.978»* | `zefix_get_company_by_uid` |
 | *«Finde Firmen namens Migros im Kanton ZH»* | `zefix_search_companies` |
-| *«Liste alle Schweizer Rechtsformen»* | `zefix_list_legal_forms` |
-| *«Zeige Gemeinden im Kanton Bern»* | `zefix_list_municipalities` |
+| *«Was wurde über CHE-116.115.052 publiziert?»* | `gazette_company_publications` |
+| *«Finde Amtsblatt-Publikationen mit ‹Schulhaus› im Kanton ZH»* | `gazette_search_publications` |
+| *«Welche Submissions-Subrubriken (SB) gibt es?»* | `gazette_list_rubrics` |
 
 ---
 
 ## Architektur
 
 ```
-┌─────────────────┐     ┌──────────────────────────────┐     ┌──────────────────────────┐
-│   Claude / KI   │────▶│       register-mcp            │────▶│  Zefix (Handelsregister)  │
-│   (MCP Host)    │◀────│       (MCP Server)            │◀────│  ZefixREST/api/v1        │
-└─────────────────┘     │                              │     └──────────────────────────┘
-                        │  6 Tools                     │
-                        │  Stdio | SSE                 │
-                        │  Keine Authentifizierung     │
+                                                          ┌──────────────────────────────┐
+                                                    ┌────▶│  Zefix (Handelsregister)     │
+                                                    │     │  www.zefix.admin.ch          │
+┌─────────────────┐     ┌──────────────────────────┴─┐   │  ZefixREST/api/v1            │
+│   Claude / KI   │────▶│       register-mcp           │   └──────────────────────────────┘
+│   (MCP Host)    │◀────│       (MCP Server)           │   ┌──────────────────────────────┐
+└─────────────────┘     │  11 Tools (zefix_ + gazette_)├──▶│  Amtsblattportal             │
+                        │  Stdio | SSE                 │   │  amtsblattportal.ch/api/v1   │
+                        │  Egress-Allow-List           │   │  SHAB + kantonale Amtsblätter │
+                        │  Keine Authentifizierung     │   └──────────────────────────────┘
                         └──────────────────────────────┘
+                              Join-Schlüssel: UID (CHE-XXX.XXX.XXX)
 ```
 
 ### Datenquellen-Übersicht
 
 | Quelle | Protokoll | Umfang | Auth |
 |--------|-----------|--------|------|
-| Zefix (Phase 1) | REST/JSON | Schweizer Firmen, Rechtsformen, SHAB | Keine |
-| ZefixPublicREST (Phase 2) | REST/JSON | Zeichnungsberechtigte, Kapital, Historie | Basic Auth (kostenlos) |
-| UID-Register (Phase 3) | SOAP | MWST, NOGA-Codes, registerübergreifend | Öffentlich (20 Req/min) |
+| Zefix | REST/JSON | Schweizer Firmen, Rechtsformen, Sitzangaben | Keine |
+| Amtsblattportal | REST/JSON (Liste) + XML (Volltext) | SHAB + kantonale Amtsblätter, 2.79 Mio. Publikationen | Keine |
+| ZefixPublicREST (geplant) | REST/JSON | Zeichnungsberechtigte, Kapital, Historie | Basic Auth (kostenlos) |
+| UID-Register (geplant) | SOAP | MWST, NOGA-Codes, registerübergreifend | Öffentlich (20 Req/min) |
+
+---
+
+## Architektur-Entscheid
+
+**ARCH A — Live-API-only**, konsistent zur bestehenden Zefix-Anbindung
+(entschieden am 18.07.2026).
+
+Das Amtsblattportal wird bei jedem Aufruf live abgefragt. Alle Endpoints
+antworten in 0.2–2.0 s, und der Anwendungsfall — gezielte Firmen- und
+Themenrecherche — braucht keine lokale Kopie. Ein Bulk-Dump würde bedeuten,
+2.79 Mio. Records zu spiegeln, mit laufendem Sync-Aufwand und Staleness-Risiko,
+ohne Mehrwert für den Join-über-UID-Workflow. Gecacht werden nur die Taxonomie
+(`/rubrics`) und die Zefix-Rechtsformen — je 24 h in-memory —, weil sie sich
+höchstens ein paar Mal pro Jahr ändern und jeder gefilterte Aufruf sie braucht.
 
 ---
 
@@ -253,9 +304,11 @@ Phase 3 ergänzt: MWST-Status, NOGA-Branchencodes, registerübergreifende Validi
 register-mcp/
 ├── src/register_mcp/
 │   ├── __init__.py              # Package
-│   └── server.py                # 6 Tools (Zefix + Referenzdaten)
+│   └── server.py                # 11 Tools (Zefix + Amtsblatt)
 ├── tests/
-│   └── test_server.py           # Unit + Integrationstests (gemockt)
+│   ├── test_server.py           # Zefix Unit + Integrationstests (gemockt)
+│   ├── test_gazette.py          # Amtsblatt-Tools + die drei Quirks (gemockt)
+│   └── test_egress.py           # Egress-Allow-List
 ├── docs/demo/
 │   ├── demo.tape                # vhs-Aufnahme-Script → demo.gif
 │   ├── demo.py                  # Standalone CLI-Demo (Live Zefix API)
@@ -274,9 +327,43 @@ register-mcp/
 ## Bekannte Einschränkungen
 
 - Suche nach Kanton ohne Namensfilter kann zu API-Fehlern führen (Zefix-Limitation)
-- SHAB-Publikationstexte enthalten XML-Markup (`<FT TYPE="F">...`)
-- Phase-1-API kann bei hoher Last gedrosselt werden; kurz warten und erneut versuchen
+- Phase-1-Zefix-API kann bei hoher Last gedrosselt werden; kurz warten und erneut versuchen
 - ZefixPublicREST (neue API) erfordert Registrierung: E-Mail an zefix@bj.admin.ch
+
+### Amtsblattportal — verifiziertes Verhalten (live geprüft am 18.07.2026)
+
+| Aufruf | HTTP | Status | Records | Bemerkung |
+|---|---|---|---|---|
+| `/publications?publicationStates=PUBLISHED` | 200 | OK | 2 790 323 | Baseline (voller Korpus) |
+| `?uids=CHE-116.115.052` | 200 | **OK** | 4 | **der Join — Kernfeature** |
+| `?keyword=Lehrmittelverlag` | 200 | OK | 34 | Volltextsuche |
+| `?keyword=Schulhaus&cantons=ZH` | 200 | OK | 157 | Filter kombinierbar |
+| `?rubrics=SB` | 200 | OK | 22 511 | Submissionen/Beschaffung |
+| `?subRubrics=HR01` | 200 | OK | 398 036 | ohne `rubrics` nutzbar |
+| `?publicationDate.start=…&.end=…` | 200 | OK | 28 482 | Zeitraumfilter |
+| `/publications/{id}/xml` | 200 | OK | – | Volltext, rubrikspezifisches Schema |
+| `/rubrics` | 200 | OK | – | vollständige Rubrik/Subrubrik-Taxonomie |
+| `?rubrics=ZZZZ` (ungültig) | **200** | **Silent Empty** | 0, `total: null` | Quirk 2 |
+| `?uid=…` (falscher Parametername) | **200** | **Silent Ignore** | **2 790 323** | Quirk 1 |
+| `?text=Schule` (falscher Parametername) | **200** | **Silent Ignore** | **2 790 323** | Quirk 1 |
+
+**Drei Quirks werden im Code abgefangen** (Details im [CHANGELOG](CHANGELOG.md)
+unter *Known findings*):
+
+- **Quirk 1 — Silent Ignore (kritisch).** Unbekannte Query-Parameter werden
+  kommentarlos verworfen und liefern den vollen Korpus von 2.79 Mio. Records mit
+  HTTP 200. Gegenmassnahme: Query-Strings werden ausschliesslich aus einer
+  Allow-List `ALLOWED_GAZETTE_PARAMS` gebaut, und jede gefilterte Response wird
+  plausibilisiert — ein `total` über 2 000 000 wird verworfen mit
+  «Filter wurde vom Upstream ignoriert — Ergebnis nicht vertrauenswürdig».
+- **Quirk 2 — Silent Empty.** Ein ungültiger Rubrik-Code liefert HTTP 200 mit
+  leerem Ergebnis. Gegenmassnahme: Die `/rubrics`-Taxonomie wird 24 h gecacht,
+  jeder Code wird **vor** dem Call validiert; ein ungültiger Code scheitert mit
+  den fünf nächstliegenden gültigen Codes.
+- **Quirk 3 — Zweistufiger Abruf.** Die JSON-Liste trägt nur `meta`; der Inhalt
+  steht nur im rubrikspezifisch namespaced XML. Gegenmassnahme:
+  namespace-agnostisches, defensives Parsen (`meta` + `publicationText` Pflicht,
+  HR-`company` falls vorhanden, alles Übrige in `additional_fields`).
 
 ---
 
@@ -385,7 +472,7 @@ Hayal Oezkan · [malkreide](https://github.com/malkreide)
 ## Credits & Verwandte Projekte
 
 - **Zefix:** [zefix.admin.ch](https://www.zefix.admin.ch/) — Eidg. Handelsregister (BJ)
-- **SHAB:** Schweizerisches Handelsamtsblatt — Mutationspublikationen
+- **Amtsblattportal:** [amtsblattportal.ch](https://amtsblattportal.ch/) — SHAB und kantonale Amtsblätter (SECO / Eidgenossenschaft)
 - **Protokoll:** [Model Context Protocol](https://modelcontextprotocol.io/) — Anthropic / Linux Foundation
 - **Verwandt:** [fedlex-mcp](https://github.com/malkreide/fedlex-mcp) — Handelsregisterverordnung (HRegV)
 - **Verwandt:** [zurich-opendata-mcp](https://github.com/malkreide/zurich-opendata-mcp) — Firmensitz + Geodaten

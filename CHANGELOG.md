@@ -6,6 +6,68 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.0] - 2026-07-18
+### Added
+- **Second data source — the Amtsblattportal (SHAB + cantonal gazettes),
+  `amtsblattportal.ch/api/v1`, no authentication.** Five new tools (prefix
+  `gazette_`, 11 tools total), joined to Zefix on the UID:
+  - `gazette_company_publications` — the UID join (core feature). All gazette
+    publications for a `CHE-XXX.XXX.XXX` UID via `uids=`, newest first,
+    optional rubric/time filters.
+  - `gazette_search_publications` — full-text search via `keyword=` plus
+    `rubrics`, `subRubrics`, `cantons`, and a `publicationDate` range. Rejects a
+    call with no effective filter instead of paginating the 2.79M-record corpus.
+  - `gazette_get_publication` — single publication incl. the XML full text,
+    defensively parsed (rubric-specific schema).
+  - `gazette_list_rubrics` — the rubric/subRubric taxonomy (prerequisite for
+    valid filters), cached 24h in memory (`RUBRICS_TTL`, mirrors
+    `LEGAL_FORMS_TTL`).
+  - `gazette_source_status` — reachability of both upstreams and cache ages.
+- Per-source attribution in every response envelope (`ATTRIBUTION_ZEFIX`,
+  `ATTRIBUTION_GAZETTE`) so provenance is never ambiguous in a mixed answer;
+  every `gazette_*` response also carries `provenance: "live_api" | "cached"`.
+  The gazette liability disclaimer is mandatory (operator excludes liability
+  for the content of individual publications).
+- Guardrails: UID regex-validated before any call; `limit` hard-capped at 100
+  (`pageRequest.size`); transient-5xx retry (502/503/504); all new tools
+  `readOnlyHint=True`, `destructiveHint=False`, `idempotentHint=True`.
+- New test module `tests/test_gazette.py` (happy path per tool, 503 retry,
+  timeout/network error, the three quirks, gazette egress) plus `@live` tests.
+
+### Security
+- **Egress allow-list default widened** from `{www.zefix.admin.ch}` to
+  `{www.zefix.admin.ch, amtsblattportal.ch}`. The httpx request hook is
+  unchanged and stays strict — it still fires on the initial request **and on
+  every redirect**, so a `Location` to an unlisted host raises `EgressDenied`.
+  This widening is called out explicitly rather than shipped silently.
+  **Upgrade note:** deployments that pin `MCP_ALLOWED_HOSTS` override the
+  default entirely and MUST add `amtsblattportal.ch`, or every `gazette_*`
+  call raises `EgressDenied`.
+
+### Known findings
+Three upstream quirks were verified live on 2026-07-18 and are defended in code:
+- **Quirk 1 — Silent Ignore (critical).** Unknown query parameters are dropped
+  without error: `uid=` (instead of `uids=`) or `text=` (instead of `keyword=`)
+  both return HTTP 200 with the **full 2.79M-record corpus**. Defences: query
+  strings are built exclusively from the `ALLOWED_GAZETTE_PARAMS` allow-list
+  (no dynamic pass-through of user input), and every filtered response is
+  plausibility-checked — a `total` above 2,000,000 is rejected as
+  «Filter wurde vom Upstream ignoriert — Ergebnis nicht vertrauenswürdig». This
+  check is the only defence against a silent provider-side parameter rename.
+- **Quirk 2 — Silent Empty.** An invalid rubric code returns HTTP 200 with an
+  empty result and `total: 0/null`, indistinguishable from a real no-hit.
+  Defence: the `/rubrics` taxonomy is cached 24h and every rubric/subRubric code
+  is validated **before** any call; an invalid code fails with the five closest
+  valid codes via `difflib.get_close_matches`.
+- **Quirk 3 — Two-step fetch.** The JSON list carries only `meta`; the actual
+  content lives only in the XML at `/publications/{id}/xml`, under a
+  rubric-specific, namespaced schema (`HR03-export`, `SB01-export`, …). Defence:
+  namespace-agnostic, defensive parsing — `meta` and `content/publicationText`
+  are mandatory, `commonsActual/company/*` is read for HR rubrics, and
+  everything else falls best-effort into `additional_fields`; rubric-specific
+  paths are never hard-coded.
+
 ## [0.2.0] - 2026-05-21
 ### Added
 - **Defence-in-depth (Sprint 3 of mcp-audit-skill remediation):**

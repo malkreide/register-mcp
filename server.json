@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.malkreide/register-mcp",
-  "description": "Zefix commercial register and UID lookup",
-  "version": "0.2.3",
+  "description": "Zefix commercial register plus amtsblattportal.ch (SHAB + cantonal gazettes), joined on the UID",
+  "version": "0.3.0",
   "repository": {
     "url": "https://github.com/malkreide/register-mcp",
     "source": "github"
@@ -12,7 +12,7 @@
     {
       "registryType": "pypi",
       "identifier": "register-mcp",
-      "version": "0.2.3",
+      "version": "0.3.0",
       "transport": {
         "type": "stdio"
       },
