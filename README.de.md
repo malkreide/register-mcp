@@ -28,7 +28,7 @@ Beide Quellen teilen einen Schlüssel — die **UID**. Der Mehrwert liegt im Joi
 
 Entwickelt für den Einsatz in der öffentlichen Verwaltung: Lieferantenprüfung, Vertragspartner-Due-Diligence, Beschaffungs-Screening und Lieferanten-Onboarding — alles via natürlichsprachliche Abfragen.
 
-**Anker-Demo-Abfrage:** *«Wir wollen mit der Lehrmittelverlag Zürich AG einen Rahmenvertrag abschliessen. Ist die Firma im Handelsregister aktiv, was ist ihr Zweck, welche SHAB-Mutationen gab es in den letzten zwei Jahren — und ist sie in Submissionspublikationen aufgetaucht?»*
+**Anker-Demo-Abfrage:** *«Bevor wir mit der Lehrmittelverlag Zürich AG einen Rahmenvertrag abschliessen: Ist die Firma im Handelsregister aktiv, wie lautet ihre UID und ihr Zweck — und was hat das Amtsblatt über genau diese UID publiziert (HR-Mutationen, Schuldenrufe, allfällige Konkurse)?»*
 
 Diese eine Frage durchläuft die ganze Tool-Kette über beide Quellen:
 
