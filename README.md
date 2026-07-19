@@ -28,7 +28,7 @@ The two sources share one key — the **UID**. The value is in the join: **Zefix
 
 Designed for Swiss public administration use cases: vendor verification, contract partner due diligence, procurement screening, and supplier onboarding — all via natural language queries.
 
-**Anchor demo query:** *"We want to sign a framework agreement with Lehrmittelverlag Zürich AG. Is the company active in the commercial register, what is its stated corporate purpose, what SHAB mutations were there in the past two years — and has it appeared in any procurement (Submissions) publications?"*
+**Anchor demo query:** *"Before we sign a framework agreement with Lehrmittelverlag Zürich AG: is the company active in the commercial register, what is its UID and stated purpose — and, via that UID, what has the official gazette published about it (HR mutations, calls to creditors, any bankruptcy)?"*
 
 That single question walks the whole tool chain across both sources:
 
