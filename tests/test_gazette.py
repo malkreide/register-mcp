@@ -15,6 +15,7 @@ from register_mcp.server import (
     GAZETTE_BASE,
     ZEFIX_BASE,
     EgressDenied,
+    GazetteProcurementInput,
     GazettePublicationInput,
     GazettePublicationsInput,
     GazetteRubricsInput,
@@ -26,6 +27,7 @@ from register_mcp.server import (
     gazette_company_publications,
     gazette_get_publication,
     gazette_list_rubrics,
+    gazette_search_procurement,
     gazette_search_publications,
     gazette_source_status,
 )
@@ -44,15 +46,23 @@ MOCK_RUBRICS = [
         ],
     },
     {
+        # SB is Schuldbetreibungen (debt collection) — NOT Submissionen.
+        # Public procurement lives in the cantonal OB-* rubrics below.
         "code": "SB",
-        "name": {"de": "Submissionen", "en": "Procurement"},
-        "subRubrics": [{"code": "SB01", "name": {"de": "Ausschreibung"}}],
+        "name": {"de": "Schuldbetreibungen", "en": "Debt collection"},
+        "subRubrics": [{"code": "SB01", "name": {"de": "Zahlungsbefehl"}}],
     },
     {
         "code": "LS",
         "name": {"de": "Schuldenrufe"},
         "subRubrics": [{"code": "LS01", "name": {"de": "Liquidationsschuldenruf"}}],
     },
+    # Cantonal procurement rubrics (öffentliches Beschaffungswesen), needed so
+    # gazette_search_procurement passes code validation. Active: AR/BS/TI/ZG.
+    {"code": "OB-AR", "name": {"de": "Öffentliches Beschaffungswesen"}, "subRubrics": []},
+    {"code": "OB-BS", "name": {"de": "Öffentliches Beschaffungswesen"}, "subRubrics": []},
+    {"code": "OB-TI", "name": {"de": "Öffentliches Beschaffungswesen"}, "subRubrics": []},
+    {"code": "OB-ZG", "name": {"de": "Öffentliches Beschaffungswesen"}, "subRubrics": []},
 ]
 
 
@@ -251,6 +261,97 @@ async def test_search_publications_combined_filter():
 
 
 @pytest.mark.asyncio
+async def test_procurement_canton_happy_path():
+    _seed_rubrics()
+    with respx.mock:
+        route = respx.get(f"{GAZETTE_BASE}/publications").mock(
+            return_value=httpx.Response(200, json=MOCK_SEARCH)
+        )
+        result = await gazette_search_procurement(
+            GazetteProcurementInput(canton="BS", keyword="Informatik")
+        )
+    assert route.call_count == 1
+    # the OB-BS rubric was the one queried
+    assert route.calls[0].request.url.params.get("rubrics") == "OB-BS"
+    assert "Ausschreibungen" in result
+    assert "provenance: live_api" in result
+
+
+@pytest.mark.asyncio
+async def test_procurement_zurich_has_no_rubric():
+    """ZH has no OB-ZH rubric — the tool must explain simap.ch, not call the API."""
+    _seed_rubrics()
+    with respx.mock:
+        route = respx.get(f"{GAZETTE_BASE}/publications").mock(
+            return_value=httpx.Response(200, json=MOCK_SEARCH)
+        )
+        result = await gazette_search_procurement(
+            GazetteProcurementInput(canton="ZH", keyword="Schulinformatik")
+        )
+    assert route.call_count == 0  # no request made
+    assert "simap.ch" in result
+    assert "keine Beschaffungsrubrik" in result
+
+
+@pytest.mark.asyncio
+async def test_procurement_no_canton_searches_all_active():
+    _seed_rubrics()
+    with respx.mock:
+        route = respx.get(f"{GAZETTE_BASE}/publications").mock(
+            return_value=httpx.Response(200, json=MOCK_SEARCH)
+        )
+        result = await gazette_search_procurement(GazetteProcurementInput(keyword="Reinigung"))
+    assert route.call_count == 1
+    # all four active OB rubrics sent as repeated params
+    rubrics = route.calls[0].request.url.params.get_list("rubrics")
+    assert set(rubrics) == {"OB-AR", "OB-BS", "OB-TI", "OB-ZG"}
+    assert "alle aktiven Rubriken" in result
+
+
+@pytest.mark.asyncio
+async def test_procurement_inactive_canton_needs_optin():
+    """BL is inactive — without include_inactive the tool warns and makes no call."""
+    _seed_rubrics()
+    with respx.mock:
+        route = respx.get(f"{GAZETTE_BASE}/publications").mock(
+            return_value=httpx.Response(200, json=MOCK_SEARCH)
+        )
+        result = await gazette_search_procurement(GazetteProcurementInput(canton="BL"))
+    assert route.call_count == 0
+    assert "inaktiv" in result
+    assert "include_inactive" in result
+
+
+@pytest.mark.asyncio
+async def test_procurement_cpv_code_warns():
+    _seed_rubrics()
+    with respx.mock:
+        respx.get(f"{GAZETTE_BASE}/publications").mock(
+            return_value=httpx.Response(200, json=MOCK_SEARCH_EMPTY)
+        )
+        result = await gazette_search_procurement(
+            GazetteProcurementInput(canton="BS", keyword="72000000")
+        )
+    assert "CPV" in result
+
+
+@pytest.mark.asyncio
+async def test_procurement_json_envelope():
+    _seed_rubrics()
+    with respx.mock:
+        respx.get(f"{GAZETTE_BASE}/publications").mock(
+            return_value=httpx.Response(200, json=MOCK_SEARCH)
+        )
+        result = await gazette_search_procurement(
+            GazetteProcurementInput(canton="BS", response_format="json")
+        )
+    data = json.loads(result)
+    assert data["rubrics"] == ["OB-BS"]
+    assert data["provenance"] == "live_api"
+    assert data["canton"] == "BS"
+
+
+@pytest.mark.asyncio
 async def test_get_publication_hr_full_text():
     with respx.mock:
         respx.get(f"{GAZETTE_BASE}/publications/abc-1234-xyz/xml").mock(
@@ -285,7 +386,8 @@ async def test_list_rubrics_happy_path():
         result = await gazette_list_rubrics(GazetteRubricsInput())
     assert "Handelsregister" in result
     assert "`HR03`" in result
-    assert "Submissionen" in result
+    assert "Schuldbetreibungen" in result
+    assert "Beschaffungswesen" in result
 
 
 @pytest.mark.asyncio

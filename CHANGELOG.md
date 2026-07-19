@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-19
+### Added
+- **`gazette_search_procurement` — public procurement / Submissionen search**
+  (12 tools total). Searches the cantonal `OB-<canton>` rubrics by `canton`,
+  free-text `keyword` and date range, newest first. Backed by the Phase-1 live
+  probe (`docs/probe-shab.md`):
+  - Procurement is **cantonal only** — active in AR, BS, TI, ZG; inactive in
+    BL, VS (opt in via `include_inactive=True`). A canton without an `OB-*`
+    rubric — **including Zürich** — returns an explanatory message pointing at
+    **simap.ch** (a separate platform this server does not cover) instead of a
+    misleading empty list.
+  - The source carries **no CPV classification**; a keyword that looks like a
+    CPV code (8 digits) triggers a warning. Filtering is free-text + canton +
+    date only.
+- README (EN + DE): new **"The UID join"** section documenting the
+  Zefix ↔ Amtsblatt join path (bulk list has no company UID → single fetch
+  carries `meta.uid`/`<uid>`), and a **procurement coverage** table.
+
+### Fixed / Known findings
+- **`SB` is *Schuldbetreibungen* (debt collection), not *Submissionen*.** The
+  plural spelling had mislabelled `SB` as procurement in the tool description,
+  the README probe tables and the test fixtures. Procurement is the cantonal
+  `OB-*` family. Corrected across code, docs and tests.
+
 ## [0.3.0] - 2026-07-18
 ### Added
 - **Second data source — the Amtsblattportal (SHAB + cantonal gazettes),

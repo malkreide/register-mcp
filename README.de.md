@@ -4,7 +4,7 @@
 
 # 🏛️ register-mcp
 
-![Version](https://img.shields.io/badge/version-0.3.0-blue)
+![Version](https://img.shields.io/badge/version-0.4.0-blue)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
@@ -40,8 +40,9 @@ zefix_search_company  →  zefix_verify_company  →  gazette_company_publicatio
 
 ## Funktionen
 
-- 🏛️ **11 Tools** über zwei Quellen — Firmensuche & Verifizierung (Zefix) + Amtsblatt-Publikationen (SHAB/kantonal)
+- 🏛️ **12 Tools** über zwei Quellen — Firmensuche & Verifizierung (Zefix) + Amtsblatt-Publikationen (SHAB/kantonal)
 - 🔗 **`gazette_company_publications`** — der UID-Join: alles, was über eine Firma publiziert wurde
+- 🏗️ **`gazette_search_procurement`** — öffentliche Ausschreibungen (Submissionen) nach Kanton, Stichwort und Datum
 - 🔍 **`zefix_verify_company`** — Schnell-Check: aktiv oder gelöscht?
 - 🌐 **Zweisprachige Ausgabe** (Markdown / JSON) mit Quellenangabe je Datenquelle + `provenance`
 - 🔓 **Kein API-Schlüssel erforderlich** — offene Daten von zefix.admin.ch und amtsblattportal.ch
@@ -217,12 +218,13 @@ Für den Einsatz via **claude.ai im Browser** (z.B. auf verwalteten Arbeitsplät
 | `zefix_list_legal_forms` | Alle Schweizer Rechtsformen mit IDs |
 | `zefix_list_municipalities` | Schweizer Gemeinden mit BFS-IDs |
 
-**Amtsblattportal — SHAB + kantonale Amtsblätter (5):**
+**Amtsblattportal — SHAB + kantonale Amtsblätter (6):**
 
 | Tool | Beschreibung |
 |------|-------------|
 | `gazette_company_publications` | **Der UID-Join.** Alle Amtsblatt-Publikationen zu einer UID, neueste zuerst, optionale Rubrik-/Zeitfilter |
 | `gazette_search_publications` | Volltextsuche (`keyword`) + Filter `rubrics`/`subRubrics`/`cantons`/Zeitraum |
+| `gazette_search_procurement` | Öffentliche Ausschreibungen (Submissionen) — kantonale `OB-*`-Rubriken nach `canton`, `keyword`, Zeitraum |
 | `gazette_get_publication` | Einzelpublikation inkl. XML-Volltext, defensiv geparst |
 | `gazette_list_rubrics` | Rubrik-/Subrubrik-Taxonomie — Voraussetzung für gültige Filter |
 | `gazette_source_status` | Erreichbarkeit beider Quellen + Cache-Alter (Rubriken, Rechtsformen) |
@@ -238,7 +240,8 @@ Der Prefix ist `gazette_` und nicht `shab_`, weil die Quelle SHAB **und** die ka
 | *«Finde Firmen namens Migros im Kanton ZH»* | `zefix_search_companies` |
 | *«Was wurde über CHE-116.115.052 publiziert?»* | `gazette_company_publications` |
 | *«Finde Amtsblatt-Publikationen mit ‹Schulhaus› im Kanton ZH»* | `gazette_search_publications` |
-| *«Welche Submissions-Subrubriken (SB) gibt es?»* | `gazette_list_rubrics` |
+| *«Welche IT-Ausschreibungen wurden im Kanton Basel-Stadt in den letzten 3 Monaten publiziert?»* | `gazette_search_procurement` |
+| *«Welche Rubriken und Subrubriken gibt es?»* | `gazette_list_rubrics` |
 
 ---
 
@@ -251,7 +254,7 @@ Der Prefix ist `gazette_` und nicht `shab_`, weil die Quelle SHAB **und** die ka
 ┌─────────────────┐     ┌──────────────────────────┴─┐   │  ZefixREST/api/v1            │
 │   Claude / KI   │────▶│       register-mcp           │   └──────────────────────────────┘
 │   (MCP Host)    │◀────│       (MCP Server)           │   ┌──────────────────────────────┐
-└─────────────────┘     │  11 Tools (zefix_ + gazette_)├──▶│  Amtsblattportal             │
+└─────────────────┘     │  12 Tools (zefix_ + gazette_)├──▶│  Amtsblattportal             │
                         │  Stdio | SSE                 │   │  amtsblattportal.ch/api/v1   │
                         │  Egress-Allow-List           │   │  SHAB + kantonale Amtsblätter │
                         │  Keine Authentifizierung     │   └──────────────────────────────┘
@@ -267,6 +270,57 @@ Der Prefix ist `gazette_` und nicht `shab_`, weil die Quelle SHAB **und** die ka
 | Amtsblattportal | REST/JSON (Liste) + XML (Volltext) | SHAB + kantonale Amtsblätter, 2.79 Mio. Publikationen | Keine |
 | ZefixPublicREST (geplant) | REST/JSON | Zeichnungsberechtigte, Kapital, Historie | Basic Auth (kostenlos) |
 | UID-Register (geplant) | SOAP | MWST, NOGA-Codes, registerübergreifend | Öffentlich (20 Req/min) |
+
+### Der UID-Join — Zefix ↔ Amtsblatt
+
+Beide Quellen teilen genau einen Schlüssel: die **UID** (`CHE-XXX.XXX.XXX`).
+Erst dadurch werden aus zwei Datensätzen ein Arbeitsablauf.
+
+```
+zefix_get_company_by_uid(uid)        # Zefix: existiert die Firma? Status, Zweck, Rechtsform
+        │  UID
+        ▼
+gazette_company_publications(uid)    # Amtsblatt: alles Publizierte (HR, KK, SB, LS, …)
+        │  Publikations-ID
+        ▼
+gazette_get_publication(id)          # Amtlicher Volltext aus dem rubrikspezifischen XML
+```
+
+Zwei Eigenschaften der Quelle prägen diesen Pfad (beide belegt in
+[`docs/probe-shab.md`](docs/probe-shab.md)):
+
+- Die **Bulk-Liste enthält keine Firmen-UID** (`meta.uid` ist `null`). Die
+  Firmen-UID steht erst im **Einzelabruf** — `meta.uid` im Einzel-JSON bzw.
+  `<uid>` im XML (das auch den Volltext trägt). Der Join läuft also
+  *Liste → Einzelabruf je Treffer → Abgleich mit der Zefix-UID*.
+- `gazette_company_publications` filtert direkt per `uids=<UID>`, liefert die
+  Publikationen einer Firma also in einem Aufruf, ohne jeden Datensatz zu
+  durchlaufen.
+
+### Beschaffung (Submissionen) — vor jedem leeren Ergebnis lesen
+
+Öffentliche Beschaffung ist **keine** föderale SHAB-Rubrik. Sie existiert nur
+als **kantonale** Rubrik mit dem Code-Muster `OB-<Kanton>`, und nur wenige
+Kantone publizieren sie überhaupt in diesem Portal — die meisten (inklusive
+**Zürich**) laufen über **[simap.ch](https://www.simap.ch/)**, eine separate
+Plattform, die dieser Server nicht abdeckt.
+
+| Kanton | Rubrik | Status | Bemerkung |
+|--------|--------|--------|-----------|
+| AR, BS, TI | `OB-AR`, `OB-BS`, `OB-TI` | ✅ aktiv | — |
+| ZG | `OB-ZG` | ✅ aktiv | simap.ch-Import bis Feb 2024 |
+| BL, VS | `OB-BL`, `OB-VS` | ⛔ inaktiv | nur historische Daten (`include_inactive=True`) |
+| **ZH** und alle übrigen | — | ❌ keine | Ausschreibungen via **simap.ch**, nicht hier |
+
+`gazette_search_procurement` kodiert diese Zuordnung: Bei einem Kanton ohne
+`OB-*`-Rubrik gibt das Tool eine erklärende Meldung (mit Verweis auf simap.ch)
+zurück statt einer irreführend leeren Liste. Zudem kennt die Quelle **keine
+CPV-Codes** — Beschaffung lässt sich nur per Freitext, Kanton und Datum
+eingrenzen.
+
+> **`SB` ≠ Submissionen.** `SB` steht für *Schuldbetreibungen*. Die
+> Mehrzahlform verleitet zur Verwechslung; Beschaffung ist die `OB-*`-Familie
+> oben.
 
 ---
 
@@ -304,7 +358,7 @@ Phase 3 ergänzt: MWST-Status, NOGA-Branchencodes, registerübergreifende Validi
 register-mcp/
 ├── src/register_mcp/
 │   ├── __init__.py              # Package
-│   └── server.py                # 11 Tools (Zefix + Amtsblatt)
+│   └── server.py                # 12 Tools (Zefix + Amtsblatt)
 ├── tests/
 │   ├── test_server.py           # Zefix Unit + Integrationstests (gemockt)
 │   ├── test_gazette.py          # Amtsblatt-Tools + die drei Quirks (gemockt)
@@ -338,7 +392,8 @@ register-mcp/
 | `?uids=CHE-116.115.052` | 200 | **OK** | 4 | **der Join — Kernfeature** |
 | `?keyword=Lehrmittelverlag` | 200 | OK | 34 | Volltextsuche |
 | `?keyword=Schulhaus&cantons=ZH` | 200 | OK | 157 | Filter kombinierbar |
-| `?rubrics=SB` | 200 | OK | 22 511 | Submissionen/Beschaffung |
+| `?rubrics=SB` | 200 | OK | 22 511 | **Schuldbetreibungen** — *nicht* Beschaffung |
+| `?rubrics=OB-BS` | 200 | OK | 3 065 | Submissionen/Beschaffung (kantonal `OB-*`, siehe unten) |
 | `?subRubrics=HR01` | 200 | OK | 398 036 | ohne `rubrics` nutzbar |
 | `?publicationDate.start=…&.end=…` | 200 | OK | 28 482 | Zeitraumfilter |
 | `/publications/{id}/xml` | 200 | OK | – | Volltext, rubrikspezifisches Schema |
