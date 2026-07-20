@@ -2,14 +2,14 @@
 
 # 🏛️ register-mcp
 
-![Version](https://img.shields.io/badge/version-0.4.0-blue)
+![Version](https://img.shields.io/badge/version-0.5.0-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
 [![No Auth Required](https://img.shields.io/badge/auth-none%20required-brightgreen)](https://github.com/malkreide/register-mcp)
 ![CI](https://github.com/malkreide/register-mcp/actions/workflows/ci.yml/badge.svg)
 
-> MCP Server for the Swiss Federal Commercial Register (Zefix/Handelsregister) and the official gazettes portal (SHAB + cantonal Amtsblätter), joined on the UID
+> MCP Server for the Swiss Federal Commercial Register (Zefix/Handelsregister), with a **company-UID join** to the official gazettes (SHAB + cantonal Amtsblätter)
 
 [🇩🇪 Deutsche Version](README.de.md)
 
@@ -22,11 +22,13 @@
 | Source | Data | API |
 |--------|------|-----|
 | **Zefix (Handelsregister)** | Swiss companies, legal forms, registered-office data | ZefixREST v1 |
-| **Amtsblattportal** | SHAB **and** cantonal gazettes — 2.79M publications (HR mutations, calls to creditors, procurement, bankruptcies, …) | amtsblattportal.ch v1 |
+| **Amtsblattportal** | Everything published **about a specific company** (by its UID): HR mutations, calls to creditors, bankruptcy | amtsblattportal.ch v1 |
 
-The two sources share one key — the **UID**. The value is in the join: **Zefix tells you whether a company exists; the gazette tells you what it does.**
+The two sources share one key — the **UID**. The value is in the join: **Zefix tells you whether a company exists; the gazette tells you what has been published about it.**
 
-Designed for Swiss public administration use cases: vendor verification, contract partner due diligence, procurement screening, and supplier onboarding — all via natural language queries.
+The gazette access here is deliberately **company-scoped only** — keyed on a company UID or a specific publication id. There is **no free-text / person-name gazette search** in this server; that would be a profiling tool over the gazette's person-data rubrics (bankruptcy, debt-collection, inheritance). Broad Amtsblatt platform search (procurement, cantonal notices, full-text) is proposed as a separate `amtsblatt-mcp` — see [`docs/amtsblatt-mcp-proposal.md`](docs/amtsblatt-mcp-proposal.md) and the **Data Protection & Scope** section below.
+
+Designed for Swiss public administration use cases: vendor verification, contract partner due diligence, and supplier onboarding — all via natural language queries.
 
 **Anchor demo query:** *"Before we sign a framework agreement with Lehrmittelverlag Zürich AG: is the company active in the commercial register, what is its UID and stated purpose — and, via that UID, what has the official gazette published about it (HR mutations, calls to creditors, any bankruptcy)?"*
 
@@ -40,9 +42,9 @@ zefix_search_company  →  zefix_verify_company  →  gazette_company_publicatio
 
 ## Features
 
-- 🏛️ **12 tools** across two sources — company search & verification (Zefix) + gazette publications (SHAB/cantonal)
+- 🏛️ **9 tools** across two sources — company search & verification (Zefix) + the company-scoped gazette join (SHAB/cantonal)
 - 🔗 **`gazette_company_publications`** — the UID join: everything published about a company
-- 🏗️ **`gazette_search_procurement`** — public tenders (Submissionen) by canton, keyword and date
+- 🛡️ **Data-protection-safe by construction** — the only gazette entry points are UID- or id-scoped; no person-name search entry exists (see *Data Protection & Scope*)
 - 🔍 **`zefix_verify_company`** — quick active/dissolved status check
 - 🌐 **Bilingual output** (Markdown / JSON) with per-source attribution + `provenance`
 - 🔓 **No API key required** — open data from zefix.admin.ch and amtsblattportal.ch
@@ -218,18 +220,15 @@ For use via **claude.ai in the browser** (e.g. on managed workstations without l
 | `zefix_list_legal_forms` | All Swiss legal forms with IDs |
 | `zefix_list_municipalities` | Swiss municipalities with BFS IDs |
 
-**Amtsblattportal — SHAB + cantonal gazettes (6):**
+**Amtsblattportal — the company-scoped gazette join (3):**
 
 | Tool | Description |
 |------|-------------|
-| `gazette_company_publications` | **The UID join.** All gazette publications for a UID, newest first, optional rubric/time filters |
-| `gazette_search_publications` | Full-text search (`keyword`) + `rubrics`/`subRubrics`/`cantons`/date-range filters |
-| `gazette_search_procurement` | Public tenders (Submissionen) — cantonal `OB-*` rubrics by `canton`, `keyword`, date range |
-| `gazette_get_publication` | Single publication incl. XML full text, defensively parsed |
-| `gazette_list_rubrics` | Rubric/subRubric taxonomy — prerequisite for valid filters |
+| `gazette_company_publications` | **The UID join.** All gazette publications for a company **UID**, newest first, optional (validated) rubric/time filters |
+| `gazette_get_publication` | Single publication incl. XML full text, defensively parsed (by publication id) |
 | `gazette_source_status` | Reachability of both sources + cache ages (rubrics, legal forms) |
 
-The prefix is `gazette_`, not `shab_`, because the source covers SHAB **and** the cantonal gazettes.
+The prefix is `gazette_`, not `shab_`, because the source covers SHAB **and** the cantonal gazettes. Every entry point is UID- or id-scoped — see **Data Protection & Scope**. Broad, non-company gazette search (procurement, cantonal full-text) is scoped to the separate [`amtsblatt-mcp`](docs/amtsblatt-mcp-proposal.md).
 
 ### Example Use Cases
 
@@ -239,9 +238,8 @@ The prefix is `gazette_`, not `shab_`, because the source covers SHAB **and** th
 | *"Look up CHE-108.954.978"* | `zefix_get_company_by_uid` |
 | *"Find companies named Migros in canton ZH"* | `zefix_search_companies` |
 | *"What has been published about CHE-116.115.052?"* | `gazette_company_publications` |
-| *"Find gazette publications mentioning 'Schulhaus' in canton ZH"* | `gazette_search_publications` |
-| *"Which IT tenders were published in canton Basel-Stadt in the last 3 months?"* | `gazette_search_procurement` |
-| *"Which rubrics and sub-rubrics exist?"* | `gazette_list_rubrics` |
+| *"Show the full official text of that HR deletion notice"* | `gazette_get_publication` |
+| *"Are both data sources reachable right now?"* | `gazette_source_status` |
 
 ---
 
@@ -254,7 +252,7 @@ The prefix is `gazette_`, not `shab_`, because the source covers SHAB **and** th
 ┌─────────────────┐     ┌──────────────────────────┴─┐   │  ZefixREST/api/v1            │
 │   Claude / AI   │────▶│       register-mcp           │   └──────────────────────────────┘
 │   (MCP Host)    │◀────│       (MCP Server)           │   ┌──────────────────────────────┐
-└─────────────────┘     │  12 Tools (zefix_ + gazette_)├──▶│  Amtsblattportal             │
+└─────────────────┘     │  9 Tools (zefix_ + gazette_) ├──▶│  Amtsblattportal             │
                         │  Stdio | SSE                 │   │  amtsblattportal.ch/api/v1   │
                         │  Egress allow-list           │   │  SHAB + cantonal gazettes    │
                         │  No authentication required  │   └──────────────────────────────┘
@@ -297,28 +295,55 @@ Two properties of the source shape this path (both verified in
   in practice you get the company's publications in one call without walking
   every record.
 
-### Procurement (Submissionen) coverage — read before you trust an empty result
+### Procurement lives in the separate `amtsblatt-mcp`
 
-Public procurement is **not** a federal SHAB rubric. It exists only as a
-**cantonal** rubric with the code pattern `OB-<canton>`, and only a few cantons
-publish it in this portal at all — most (including **Zürich**) route tenders
-through **[simap.ch](https://www.simap.ch/)**, a separate platform this server
-does not cover.
+Public procurement (Submissionen) is **not** a federal SHAB rubric and is **not**
+covered by this server. It exists only as a **cantonal** `OB-<canton>` rubric,
+only a few cantons publish it in this portal, and most — including **Zürich** —
+route tenders through **[simap.ch](https://www.simap.ch/)**, a separate platform.
+Procurement, cantonal notices, and broad full-text search are scoped to the
+proposed [`amtsblatt-mcp`](docs/amtsblatt-mcp-proposal.md) server, which applies
+a fail-closed **green-rubric allow-list**. See that proposal for the full
+`OB-*` coverage map and the rubric traffic-light table.
 
-| Canton | Rubric | State | Note |
-|--------|--------|-------|------|
-| AR, BS, TI | `OB-AR`, `OB-BS`, `OB-TI` | ✅ active | — |
-| ZG | `OB-ZG` | ✅ active | simap.ch import ended Feb 2024 |
-| BL, VS | `OB-BL`, `OB-VS` | ⛔ inactive | historical data only (`include_inactive=True`) |
-| **ZH** and all others | — | ❌ none | tenders published via **simap.ch**, not here |
+> **`SB` ≠ Submissionen.** `SB` is *Schuldbetreibungen* (debt collection), a
+> person-data-heavy rubric this server never exposes as a search entry.
 
-`gazette_search_procurement` encodes this map: given a canton without an `OB-*`
-rubric it returns an explanatory message (pointing at simap.ch) instead of a
-misleading empty list. Note also that the source has **no CPV classification** —
-procurement can only be narrowed by free-text keyword, canton and date.
+---
 
-> **`SB` ≠ Submissionen.** `SB` is *Schuldbetreibungen* (debt collection). The
-> plural spelling is a frequent trap; procurement is the `OB-*` family above.
+## Data Protection & Scope
+
+This section is **not** a footnote — it is the reason the server is shaped the
+way it is.
+
+The Amtsblattportal systematically publishes rubrics containing personal data of
+**natural** persons: bankruptcies (`KK`), debt-collection (`SB`), calls to
+creditors (`LS`/`SR`), inheritance/estate calls (`ES`, `TE-*`), and building
+applications with owner names. Those publications are public — but making them
+*systematically queryable by name* through an AI agent is a repurposing the
+publication never intended, and under the revised Swiss Federal Act on Data
+Protection (**revDSG**) a "show me every debt-collection entry for person X" tool
+is a profiling instrument. Deliberate design choices follow:
+
+- **No person-based search entry.** No tool takes a natural person's name, birth
+  date or address. The only gazette entry points are keyed on a **company UID**
+  (`gazette_company_publications`) or an opaque **publication id**
+  (`gazette_get_publication`). A firm's own bankruptcy *is* returned via its UID —
+  that is corporate data about a legal person, not name-based profiling.
+- **No free-text gazette search here.** `keyword` and `cantons` are not even on
+  the internal query-parameter allow-list, so no future code change can smuggle a
+  corpus-wide keyword search in. Broad search lives in `amtsblatt-mcp` behind a
+  fail-closed green allow-list (procurement, HR, official notices only).
+- **No persistence of publication content.** The server is a pass-through; only
+  the rubric taxonomy and Zefix legal-forms list are cached in memory (24 h).
+  Official publications carry statutory deletion periods — a store that outlived
+  them would actively undermine those periods.
+- **Fail closed.** Rubric codes are validated against the live taxonomy before
+  any call; an unknown code is refused, not silently widened.
+
+The broad-platform counterpart, its green/yellow/red rubric classification and
+its fail-closed design are specified in
+[`docs/amtsblatt-mcp-proposal.md`](docs/amtsblatt-mcp-proposal.md).
 
 ---
 
@@ -356,15 +381,15 @@ Phase 3 will add: MwSt status, NOGA industry codes, cross-register validation.
 register-mcp/
 ├── src/register_mcp/
 │   ├── __init__.py              # Package
-│   └── server.py                # 12 tools (Zefix + gazette)
+│   └── server.py                # 9 tools (Zefix + company-scoped gazette join)
 ├── tests/
 │   ├── test_server.py           # Zefix unit + integration tests (mocked HTTP)
 │   ├── test_gazette.py          # Gazette tools + the three quirks (mocked HTTP)
 │   └── test_egress.py           # Egress allow-list
-├── docs/demo/
-│   ├── demo.tape                # vhs recording script → demo.gif
-│   ├── demo.py                  # Standalone CLI demo (live Zefix API)
-│   └── README.md                # How to generate the demo GIF
+├── docs/
+│   ├── probe-shab.md            # Phase-1 live probe of amtsblattportal.ch
+│   ├── amtsblatt-mcp-proposal.md# Spec for the separate broad-platform server
+│   └── demo/                    # vhs demo script + standalone CLI demo
 ├── .github/workflows/ci.yml     # GitHub Actions (Python 3.11/3.12/3.13)
 ├── pyproject.toml
 ├── CHANGELOG.md
@@ -386,19 +411,17 @@ register-mcp/
 
 | Call | HTTP | Status | Records | Note |
 |---|---|---|---|---|
-| `/publications?publicationStates=PUBLISHED` | 200 | OK | 2,790,323 | baseline (full corpus) |
-| `?uids=CHE-116.115.052` | 200 | **OK** | 4 | **the join — core feature** |
-| `?keyword=Lehrmittelverlag` | 200 | OK | 34 | full-text search |
-| `?keyword=Schulhaus&cantons=ZH` | 200 | OK | 157 | filters combine |
-| `?rubrics=SB` | 200 | OK | 22,511 | **Schuldbetreibungen** (debt collection) — *not* procurement |
-| `?rubrics=OB-BS` | 200 | OK | 3,065 | procurement / Submissionen (cantonal `OB-*`, see below) |
-| `?subRubrics=HR01` | 200 | OK | 398,036 | usable without `rubrics` |
-| `?publicationDate.start=…&.end=…` | 200 | OK | 28,482 | date-range filter |
+| `/publications?publicationStates=PUBLISHED` | 200 | OK | 2,790,323 | baseline (full corpus) — never queried unfiltered |
+| `?uids=CHE-116.115.052` | 200 | **OK** | 4 | **the join — core (and only) gazette entry** |
+| `?uids=…&rubrics=HR` | 200 | OK | – | optional, validated rubric narrowing on the join |
 | `/publications/{id}/xml` | 200 | OK | – | full text, rubric-specific schema |
-| `/rubrics` | 200 | OK | – | full rubric/subRubric taxonomy |
+| `/rubrics` | 200 | OK | – | taxonomy (for code validation) |
 | `?rubrics=ZZZZ` (invalid) | **200** | **Silent Empty** | 0, `total: null` | Quirk 2 |
 | `?uid=…` (wrong param name) | **200** | **Silent Ignore** | **2,790,323** | Quirk 1 |
-| `?text=Schule` (wrong param name) | **200** | **Silent Ignore** | **2,790,323** | Quirk 1 |
+
+> Free-text (`keyword`) and broad `cantons` search are **not** performed by this
+> server — those probe results live in [`docs/probe-shab.md`](docs/probe-shab.md)
+> and inform the separate `amtsblatt-mcp`.
 
 **Three quirks are defended in code** (details in the [CHANGELOG](CHANGELOG.md)
 under *Known findings*):
@@ -431,9 +454,10 @@ under *Known findings*):
 ### Data Privacy
 
 - **Read-only access** — all tools carry `readOnlyHint: True`; the server performs no write, delete, or mutation operations against any API
-- **No data storage** — the server acts as a stateless proxy; no company data is persisted, cached, or logged beyond the current request
-- **Public register data only** — the Zefix Handelsregister is a public federal register (HRegV); data returned is legally public information, not personal data in the sense of DSG/GDPR
-- **No personal tracking** — the server does not transmit user identity, query history, or session data to zefix.admin.ch
+- **No person-based search entry** — no tool accepts a natural person's name, birth date or address; gazette access is UID- or publication-id-scoped only (see **Data Protection & Scope**). This is a deliberate revDSG-driven design choice, not an accident of the API
+- **No persistence of publication content** — the server is a stateless pass-through; only the rubric taxonomy and Zefix legal-forms list are cached in memory (24 h), never publication bodies, so statutory deletion periods are respected
+- **Public register data only** — the Zefix Handelsregister is a public federal register (HRegV); gazette data returned is likewise legally public, retrieved per company UID
+- **No personal tracking** — the server does not transmit user identity, query history, or session data to the upstream sources
 
 ### Terms of Service & Data Sources
 

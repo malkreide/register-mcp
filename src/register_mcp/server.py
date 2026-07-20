@@ -1,16 +1,31 @@
 """
-register-mcp: MCP server for Swiss commercial registers and official gazettes.
+register-mcp: MCP server for the Swiss commercial register, with a UID join to
+the official gazettes portal.
 
-Provides access to two data sources, joined on the UID:
+Provides access to two data sources, joined on the company UID:
   - Zefix (Handelsregister): Swiss Federal Commercial Register via ZefixREST API
     (tools prefixed `zefix_`)
   - Amtsblattportal: SHAB + cantonal official gazettes via amtsblattportal.ch/api/v1
     (tools prefixed `gazette_`)
 
 Both sources are open (no authentication). Zefix tells you whether a company
-exists; the gazette tells you what it does. See the README "Known limitations"
-table and the CHANGELOG "Known findings" section for the three verified
-amtsblattportal quirks (Silent Ignore, Silent Empty, two-step XML fetch).
+exists; the gazette tells you what has been published about it.
+
+SCOPE (deliberate — see README "Data Protection & Scope"): the gazette surface
+here is intentionally narrow and **company-centric**. The only gazette entry
+points are keyed on a company UID (`gazette_company_publications`) or an opaque
+publication id (`gazette_get_publication`), plus a health probe
+(`gazette_source_status`). There is NO free-text / person-name search entry and
+NO broad cantonal-gazette browsing in this server — that would turn the tool
+into a profiling instrument over the person-data-heavy gazette rubrics
+(bankruptcies, debt-collection, calls to creditors, inheritance). Broad
+platform coverage of the Amtsblattportal (procurement, cantonal notices,
+full-text search) is proposed as a *separate* server, `amtsblatt-mcp`
+(see docs/amtsblatt-mcp-proposal.md), so that this register server stays
+coherent and data-protection-safe by construction.
+
+See the CHANGELOG "Known findings" section for the verified amtsblattportal
+quirks (Silent Ignore, Silent Empty, two-step XML fetch).
 
 Use cases:
   - Lieferantenprüfung (vendor verification before procurement)
@@ -106,13 +121,16 @@ GAZETTE_IGNORED_FILTER_THRESHOLD = 2_000_000
 # ever passed through into the query string dynamically — a typo like `uid=`
 # instead of `uids=` would otherwise be dropped silently and return all
 # 2.79M records with HTTP 200 (Quirk 1).
+# NOTE: `keyword` and `cantons` are deliberately NOT allow-listed. This server
+# only performs UID-scoped gazette lookups; a free-text `keyword` or broad
+# `cantons` filter is exactly the person-profiling entry point that Option C
+# moved out to the separate `amtsblatt-mcp`. Keeping them off the allow-list is
+# a fail-closed guarantee: even a future code change cannot smuggle them in.
 ALLOWED_GAZETTE_PARAMS: frozenset[str] = frozenset({
     "publicationStates",
     "uids",
-    "keyword",
     "rubrics",
     "subRubrics",
-    "cantons",
     "publicationDate.start",
     "publicationDate.end",
     "pageRequest.size",
@@ -146,49 +164,25 @@ CANTON_CODES = [
 ]
 
 # ---------------------------------------------------------------------------
-# Public procurement (öffentliches Beschaffungswesen / Submissionen) mapping.
-#
-# Live-verified in the Phase-1 probe (docs/probe-shab.md, 2026-07-19): unlike
-# Handelsregister (HR) or Konkurse (KK), procurement is NOT a federal SHAB
-# rubric. It exists ONLY as a per-canton rubric with the code pattern
-# `OB-<canton>`, and only a handful of cantons publish it in this portal at
-# all — most (incl. Zürich) route procurement through simap.ch, which is a
-# SEPARATE platform outside amtsblattportal.ch.
-#
-# `SB` (Schuldbetreibungen) is DEBT COLLECTION, not Submissionen — a common
-# confusion this map exists to prevent.
-#
-# The gazette also carries no CPV classification: procurement can only be
-# narrowed by free-text keyword + rubric + canton + date, never by CPV code.
-PROCUREMENT_RUBRICS: dict[str, dict[str, Any]] = {
-    "AR": {"rubric": "OB-AR", "active": True, "note": ""},
-    "BS": {"rubric": "OB-BS", "active": True, "note": ""},
-    "TI": {"rubric": "OB-TI", "active": True, "note": ""},
-    "ZG": {"rubric": "OB-ZG", "active": True, "note": "simap.ch-Import bis Ende Februar 2024"},
-    "BL": {"rubric": "OB-BL", "active": False, "note": "inaktiv — nur historische Daten"},
-    "VS": {"rubric": "OB-VS", "active": False, "note": "inaktiv seit Ende 2023 (simap.ch)"},
-}
-PROCUREMENT_ACTIVE_CANTONS = [c for c, v in PROCUREMENT_RUBRICS.items() if v["active"]]
-# A CPV code is exactly 8 digits (optionally with a check digit suffix). Used
-# only to warn the user that CPV filtering is unsupported by this source.
-CPV_RE = re.compile(r"^\d{8}(-\d)?$")
-
-# ---------------------------------------------------------------------------
 # MCP Server
 # ---------------------------------------------------------------------------
 
 mcp = FastMCP(
     "register_mcp",
     instructions=(
-        "Provides read-only access to two Swiss federal data sources, joined on the UID: "
-        "(1) the Federal Commercial Register (Zefix/Handelsregister, tools prefixed `zefix_`) "
-        "to verify companies, check registration status and look up UID numbers; and "
-        "(2) the official gazettes portal (amtsblattportal.ch — SHAB and cantonal gazettes, "
-        "tools prefixed `gazette_`) to retrieve everything published about a company (HR "
-        "mutations, calls to creditors, procurement/Submissionen, bankruptcies). Start from "
-        "`gazette_company_publications(uid=...)` for the join. Ideal for procurement due "
-        "diligence, vendor screening and contract-partner verification in Swiss public "
-        "administration contexts."
+        "Provides read-only access to two Swiss federal data sources, joined on the company "
+        "UID: (1) the Federal Commercial Register (Zefix/Handelsregister, tools prefixed "
+        "`zefix_`) to verify companies, check registration status and look up UID numbers; "
+        "and (2) the official gazettes portal (amtsblattportal.ch — SHAB and cantonal "
+        "gazettes, tools prefixed `gazette_`) to retrieve what has been published ABOUT A "
+        "SPECIFIC COMPANY. Start from `zefix_get_company_by_uid` / `zefix_verify_company` "
+        "to establish the UID, then `gazette_company_publications(uid=...)` for the join and "
+        "`gazette_get_publication(id=...)` to read one publication's full text. "
+        "The gazette entry points are UID- or id-scoped only — there is no free-text or "
+        "person-name gazette search here (that would be a profiling tool over the "
+        "person-data-heavy rubrics); broad Amtsblatt platform search lives in the separate "
+        "`amtsblatt-mcp`. Ideal for vendor screening and contract-partner verification in "
+        "Swiss public administration contexts."
     ),
 )
 
@@ -1285,7 +1279,7 @@ async def _validate_rubric_code(code: str, kind: str) -> None:
     if code in valid:
         return
     suggestions = difflib.get_close_matches(code, sorted(valid), n=5, cutoff=0.0)
-    hint = ", ".join(suggestions) if suggestions else "— (Taxonomie via gazette_list_rubrics)"
+    hint = ", ".join(suggestions) if suggestions else "— (z.B. HR, BH, KK, SB)"
     raise GazetteInvalidCode(
         f"Ungültiger {kind}-Code «{code}». Nächstliegende gültige Codes: {hint}."
     )
@@ -1451,155 +1445,17 @@ class GazettePublicationsInput(BaseModel):
     )
 
 
-class GazetteSearchInput(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
-
-    keyword: str | None = Field(
-        default=None,
-        description="Volltextsuche (z.B. 'Lehrmittelverlag', 'Schulhaus').",
-        min_length=2,
-        max_length=200,
-    )
-    uid: str | None = Field(
-        default=None,
-        description="UID-Filter (CHE-XXX.XXX.XXX). Wird vorab per Regex validiert.",
-        min_length=9,
-        max_length=20,
-    )
-    rubric: str | None = Field(
-        default=None,
-        description=(
-            "Rubrik-Code, z.B. 'HR' (Handelsregister), 'KK' (Konkurse) oder "
-            "'OB-BS' (Beschaffung Basel-Stadt). Für Beschaffung besser das Tool "
-            "gazette_search_procurement nutzen. Wird vorab validiert."
-        ),
-        max_length=12,
-    )
-    sub_rubric: str | None = Field(
-        default=None,
-        description="Subrubrik-Code (z.B. 'HR01'). Wird vorab validiert.",
-        max_length=12,
-    )
-    canton: str | None = Field(
-        default=None,
-        description="Kantonskürzel (z.B. 'ZH').",
-        min_length=2,
-        max_length=2,
-    )
-    date_start: str | None = Field(
-        default=None,
-        description="Zeitraum-Start (YYYY-MM-DD).",
-        pattern=r"^\d{4}-\d{2}-\d{2}$",
-    )
-    date_end: str | None = Field(
-        default=None,
-        description="Zeitraum-Ende (YYYY-MM-DD).",
-        pattern=r"^\d{4}-\d{2}-\d{2}$",
-    )
-    limit: int = Field(
-        default=20,
-        description="Maximale Anzahl Ergebnisse (1–100). Standard: 20.",
-        ge=1,
-        le=GAZETTE_MAX_LIMIT,
-    )
-    response_format: ResponseFormat = Field(
-        default=ResponseFormat.MARKDOWN,
-        description="Ausgabeformat: 'markdown' oder 'json'",
-    )
-
-    @field_validator("canton")
-    @classmethod
-    def validate_canton(cls, v: str | None) -> str | None:
-        if v and v.upper() not in CANTON_CODES:
-            raise ValueError(f"Ungültiges Kantonskürzel '{v}'. Gültig: {', '.join(CANTON_CODES)}")
-        return v.upper() if v else v
-
-
-class GazetteProcurementInput(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
-
-    keyword: str | None = Field(
-        default=None,
-        description=(
-            "Freitext-Suchbegriff, z.B. 'Informatik', 'Schulmobiliar', 'Reinigung'. "
-            "HINWEIS: Die Quelle kennt KEINE CPV-Codes — nur Volltextsuche. "
-            "Ein reiner CPV-Code liefert daher keine sinnvollen Treffer."
-        ),
-        min_length=2,
-        max_length=200,
-    )
-    canton: str | None = Field(
-        default=None,
-        description=(
-            "Kantonskürzel (z.B. 'BS'). Beschaffungsrubriken gibt es nur für "
-            "AR, BS, TI, ZG (aktiv) sowie BL, VS (inaktiv). Andere Kantone — "
-            "inkl. ZH — publizieren Ausschreibungen über simap.ch (nicht hier). "
-            "Ohne Kanton wird über alle aktiven Beschaffungsrubriken gesucht."
-        ),
-        min_length=2,
-        max_length=2,
-    )
-    date_start: str | None = Field(
-        default=None,
-        description="Zeitraum-Start / date_from (YYYY-MM-DD).",
-        pattern=r"^\d{4}-\d{2}-\d{2}$",
-    )
-    date_end: str | None = Field(
-        default=None,
-        description="Zeitraum-Ende (YYYY-MM-DD).",
-        pattern=r"^\d{4}-\d{2}-\d{2}$",
-    )
-    include_inactive: bool = Field(
-        default=False,
-        description=(
-            "Auch inaktive Beschaffungsrubriken (BL, VS) einbeziehen — nur "
-            "historische Daten. Standard: False."
-        ),
-    )
-    limit: int = Field(
-        default=20,
-        description="Maximale Anzahl Ergebnisse (1–100). Standard: 20.",
-        ge=1,
-        le=GAZETTE_MAX_LIMIT,
-    )
-    response_format: ResponseFormat = Field(
-        default=ResponseFormat.MARKDOWN,
-        description="Ausgabeformat: 'markdown' oder 'json'",
-    )
-
-    @field_validator("canton")
-    @classmethod
-    def validate_canton(cls, v: str | None) -> str | None:
-        if v and v.upper() not in CANTON_CODES:
-            raise ValueError(f"Ungültiges Kantonskürzel '{v}'. Gültig: {', '.join(CANTON_CODES)}")
-        return v.upper() if v else v
-
-
 class GazettePublicationInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
 
     id: str = Field(
         ...,
         description=(
-            "System-ID der Publikation (aus gazette_search_publications oder "
-            "gazette_company_publications). Beispiel: '1611620c-ff25-4043-bf0d-395b0352d35b'."
+            "System-ID der Publikation (aus gazette_company_publications). "
+            "Beispiel: '1611620c-ff25-4043-bf0d-395b0352d35b'."
         ),
         min_length=8,
         max_length=64,
-    )
-    response_format: ResponseFormat = Field(
-        default=ResponseFormat.MARKDOWN,
-        description="Ausgabeformat: 'markdown' oder 'json'",
-    )
-
-
-class GazetteRubricsInput(BaseModel):
-    model_config = ConfigDict(validate_assignment=True, extra="forbid")
-
-    language: str = Field(
-        default="de",
-        description="Sprache der Rubrik-Namen: 'de', 'fr', 'it', 'en'. Standard: 'de'.",
-        pattern=r"^(de|fr|it|en)$",
     )
     response_format: ResponseFormat = Field(
         default=ResponseFormat.MARKDOWN,
@@ -1635,8 +1491,11 @@ async def gazette_company_publications(params: GazettePublicationsInput) -> str:
     """Alle Amtsblatt-Publikationen (SHAB + kantonal) zu einer Firmen-UID.
 
     Das Kernfeature: der Join zwischen Handelsregister und Amtsblatt über die
-    UID. Zefix sagt, ob eine Firma existiert — das Amtsblatt sagt, was sie tut
-    (HR-Mutationen, Schuldenrufe, Submissionen, Konkurse …).
+    UID. Zefix sagt, ob eine Firma existiert — das Amtsblatt sagt, was über sie
+    publiziert wurde (HR-Mutationen, Schuldenrufe, Konkurse, Schuldbetreibungen …).
+    Der Einstieg ist ausschliesslich die Firmen-UID (juristische Person); ein
+    Personen-Sucheinstieg existiert bewusst nicht (siehe README «Data Protection
+    & Scope»).
 
     Args:
         params (GazettePublicationsInput):
@@ -1702,258 +1561,6 @@ async def gazette_company_publications(params: GazettePublicationsInput) -> str:
             f"- **Publ.-Nr.:** {s.get('publicationNumber') or '—'} | **ID:** `{s.get('id')}`",
             "",
         ]
-    lines.append("_Detail-Volltext via `gazette_get_publication(id=…)`._")
-    return _gazette_md(lines, "live_api")
-
-
-# ---------------------------------------------------------------------------
-# Tool: gazette_search_publications (full-text + filters)
-# ---------------------------------------------------------------------------
-
-@mcp.tool(
-    name="gazette_search_publications",
-    annotations={
-        "title": "Amtsblatt-Volltextsuche mit Filtern",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": True,
-    },
-)
-@logged_tool("gazette_search_publications")
-async def gazette_search_publications(params: GazetteSearchInput) -> str:
-    """Volltextsuche im Amtsblattportal (SHAB + kantonale Amtsblätter).
-
-    Filter kombinierbar: keyword, uid, rubric, sub_rubric, canton, Zeitraum.
-    Mindestens EIN wirksamer Filter ist Pflicht — ein Aufruf ganz ohne Filter
-    würde den vollständigen Korpus (2.79 Mio.) paginieren und wird abgewiesen.
-
-    Args:
-        params (GazetteSearchInput):
-            - keyword (Optional[str]): Volltext
-            - uid (Optional[str]): UID-Filter (Regex-validiert)
-            - rubric / sub_rubric (Optional[str]): validierte Codes
-            - canton (Optional[str]): Kantonskürzel
-            - date_start / date_end (Optional[str]): YYYY-MM-DD
-            - limit (int): 1–100 (Standard 20)
-            - response_format (str): 'markdown' oder 'json'
-
-    Returns:
-        str: Trefferliste (meta) mit Datum, Rubrik, Titel, ID.
-    """
-    uid = _uid_format(params.uid) if params.uid else None
-    if params.uid and not UID_RE.match(uid or ""):
-        return (
-            f"Fehler: Ungültige UID «{params.uid}». Erwartet: CHE-XXX.XXX.XXX."
-        )
-
-    # Guardrail: at least one effective filter, else we would paginate the corpus.
-    if not any([params.keyword, uid, params.rubric, params.sub_rubric, params.canton,
-                params.date_start, params.date_end]):
-        return (
-            "Fehler: Mindestens ein wirksamer Filter ist erforderlich "
-            "(keyword, uid, rubric, sub_rubric, canton oder Zeitraum). "
-            "Ein Aufruf ohne Filter würde den gesamten Korpus (2.79 Mio.) durchblättern."
-        )
-
-    try:
-        if params.rubric:
-            await _validate_rubric_code(params.rubric, "rubric")
-        if params.sub_rubric:
-            await _validate_rubric_code(params.sub_rubric, "subRubric")
-        data = await _gazette_search({
-            "keyword": params.keyword,
-            "uids": uid,
-            "rubrics": params.rubric,
-            "subRubrics": params.sub_rubric,
-            "cantons": params.canton,
-            "publicationDate.start": params.date_start,
-            "publicationDate.end": params.date_end,
-            "pageRequest.size": min(params.limit, GAZETTE_MAX_LIMIT),
-        })
-    except Exception as e:
-        return _handle_http_error(e)
-
-    content = data.get("content", []) or []
-    total = data.get("total")
-    summaries = [_gazette_meta_summary(i) for i in content]
-
-    if params.response_format == ResponseFormat.JSON:
-        return _gazette_json(
-            {"count": len(summaries), "total": total, "results": summaries},
-            "live_api",
-        )
-
-    lines = [
-        "## Amtsblatt-Suche",
-        f"Gefunden: **{len(summaries)}** (total: {total})",
-        "",
-    ]
-    if not summaries:
-        lines.append("_Keine Treffer. Filter anpassen oder Rubrik-Code prüfen._")
-    for s in summaries:
-        title = s.get("title") or "—"
-        lines += [
-            f"- **{s.get('publicationDate') or '—'}** | {s.get('rubric') or '?'}/{s.get('subRubric') or '?'} "
-            f"| {title}",
-            f"  ↳ ID: `{s.get('id')}` | Nr.: {s.get('publicationNumber') or '—'} "
-            f"| Amt: {s.get('registrationOffice') or '—'}",
-        ]
-    return _gazette_md(lines, "live_api")
-
-
-# ---------------------------------------------------------------------------
-# Tool: gazette_search_procurement (public procurement / Submissionen)
-# ---------------------------------------------------------------------------
-
-def _procurement_rubrics(canton: str | None, include_inactive: bool) -> tuple[list[str], list[str]]:
-    """Resolve the OB-* rubric codes for a procurement search.
-
-    Returns (rubric_codes, warnings). An empty rubric list means the request
-    cannot be served — the warnings then explain why (e.g. the canton has no
-    procurement rubric in this portal).
-    """
-    warnings: list[str] = []
-    if canton:
-        entry = PROCUREMENT_RUBRICS.get(canton)
-        if not entry:
-            warnings.append(
-                f"Kanton {canton} führt keine Beschaffungsrubrik im Amtsblattportal. "
-                f"Öffentliche Ausschreibungen des Kantons {canton} laufen in der Regel "
-                "über simap.ch — eine separate Plattform ausserhalb dieser Quelle. "
-                f"Beschaffungsrubriken existieren nur für: {', '.join(PROCUREMENT_ACTIVE_CANTONS)} "
-                "(aktiv) sowie BL, VS (inaktiv)."
-            )
-            return [], warnings
-        if not entry["active"] and not include_inactive:
-            warnings.append(
-                f"Beschaffungsrubrik {entry['rubric']} ({canton}) ist inaktiv "
-                f"({entry['note']}). Nur historische Daten. "
-                "Mit include_inactive=True dennoch durchsuchen."
-            )
-            return [], warnings
-        if entry["note"]:
-            warnings.append(f"{entry['rubric']}: {entry['note']}.")
-        return [entry["rubric"]], warnings
-    # No canton → all active procurement rubrics (optionally incl. inactive).
-    codes = [
-        v["rubric"]
-        for v in PROCUREMENT_RUBRICS.values()
-        if v["active"] or include_inactive
-    ]
-    return codes, warnings
-
-
-@mcp.tool(
-    name="gazette_search_procurement",
-    annotations={
-        "title": "Öffentliche Ausschreibungen / Submissionen suchen",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": True,
-    },
-)
-@logged_tool("gazette_search_procurement")
-async def gazette_search_procurement(params: GazetteProcurementInput) -> str:
-    """Sucht öffentliche Ausschreibungen (Beschaffungswesen/Submissionen) im Amtsblattportal.
-
-    Beschaffung ist ausschliesslich eine KANTONALE Rubrik (`OB-<Kanton>`), nicht
-    föderal. Nur wenige Kantone publizieren sie hier: AR, BS, TI, ZG (aktiv)
-    sowie BL, VS (inaktiv). Die meisten Kantone — inklusive **Zürich** —
-    publizieren Ausschreibungen über simap.ch, das NICHT Teil dieser Quelle ist.
-    Die Quelle kennt keine CPV-Codes; gefiltert wird per Freitext + Kanton + Datum.
-
-    Args:
-        params (GazetteProcurementInput):
-            - keyword (Optional[str]): Freitext (kein CPV-Code)
-            - canton (Optional[str]): Kantonskürzel; ohne Angabe alle aktiven Rubriken
-            - date_start / date_end (Optional[str]): Zeitraum YYYY-MM-DD
-            - include_inactive (bool): inaktive Rubriken (BL, VS) einbeziehen
-            - limit (int): 1–100 (Standard 20)
-            - response_format (str): 'markdown' oder 'json'
-
-    Returns:
-        str: Ausschreibungen (neueste zuerst) mit Datum, Kanton/Rubrik, Titel, ID.
-    """
-    rubrics, warnings = _procurement_rubrics(params.canton, params.include_inactive)
-
-    cpv_warning = None
-    if params.keyword and CPV_RE.match(params.keyword):
-        cpv_warning = (
-            f"«{params.keyword}» sieht wie ein CPV-Code aus. Das Amtsblattportal "
-            "unterstützt keine CPV-Filterung — der Wert wird als Freitext gesucht "
-            "und liefert vermutlich keine Treffer. Bitte ein Stichwort verwenden."
-        )
-
-    if not rubrics:
-        # Cannot serve the request (e.g. canton without a procurement rubric).
-        lines = ["## Öffentliche Ausschreibungen", ""]
-        lines += [f"⚠️ {w}" for w in warnings]
-        if params.response_format == ResponseFormat.JSON:
-            return _gazette_json(
-                {"count": 0, "total": 0, "rubrics": [], "warnings": warnings, "results": []},
-                "live_api",
-            )
-        return _gazette_md(lines, "live_api")
-
-    try:
-        for code in rubrics:
-            await _validate_rubric_code(code, "rubric")
-        data = await _gazette_search({
-            "rubrics": rubrics if len(rubrics) > 1 else rubrics[0],
-            "keyword": params.keyword,
-            "publicationDate.start": params.date_start,
-            "publicationDate.end": params.date_end,
-            "pageRequest.size": min(params.limit, GAZETTE_MAX_LIMIT),
-        })
-    except Exception as e:
-        return _handle_http_error(e)
-
-    content = data.get("content", []) or []
-    total = data.get("total")
-    summaries = [_gazette_meta_summary(i) for i in content]
-    summaries.sort(key=lambda s: s.get("publicationDate") or "", reverse=True)
-
-    all_warnings = warnings + ([cpv_warning] if cpv_warning else [])
-
-    if params.response_format == ResponseFormat.JSON:
-        return _gazette_json(
-            {
-                "count": len(summaries),
-                "total": total,
-                "rubrics": rubrics,
-                "canton": params.canton,
-                "keyword": params.keyword,
-                "warnings": all_warnings,
-                "results": summaries,
-            },
-            "live_api",
-        )
-
-    scope = params.canton or f"alle aktiven Rubriken ({', '.join(rubrics)})"
-    lines = [
-        f"## Öffentliche Ausschreibungen · {scope}",
-        f"Gefunden: **{len(summaries)}** (total: {total})"
-        + (f" | Stichwort: «{params.keyword}»" if params.keyword else ""),
-        "",
-    ]
-    for w in all_warnings:
-        lines.append(f"> ⚠️ {w}")
-    if all_warnings:
-        lines.append("")
-    if not summaries:
-        lines.append("_Keine Ausschreibungen für diese Filter. Zeitraum/Stichwort anpassen._")
-    for s in summaries:
-        title = s.get("title") or "—"
-        cantons = s.get("cantons")
-        canton_str = ", ".join(cantons) if isinstance(cantons, list) else (cantons or "—")
-        lines += [
-            f"- **{s.get('publicationDate') or '—'}** | {canton_str} · {s.get('rubric') or '?'} | {title}",
-            f"  ↳ ID: `{s.get('id')}` | Nr.: {s.get('publicationNumber') or '—'} "
-            f"| Amt: {s.get('registrationOffice') or '—'}",
-        ]
-    lines.append("")
     lines.append("_Detail-Volltext via `gazette_get_publication(id=…)`._")
     return _gazette_md(lines, "live_api")
 
@@ -2046,79 +1653,6 @@ async def gazette_get_publication(params: GazettePublicationInput) -> str:
         lines += [f"_Zusatzfelder (additional_fields): {extra_keys}_"]
 
     return _gazette_md(lines, "live_api")
-
-
-# ---------------------------------------------------------------------------
-# Tool: gazette_list_rubrics (taxonomy — prerequisite for valid filters)
-# ---------------------------------------------------------------------------
-
-@mcp.tool(
-    name="gazette_list_rubrics",
-    annotations={
-        "title": "Amtsblatt-Rubriken und Subrubriken auflisten",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": False,
-    },
-)
-@logged_tool("gazette_list_rubrics")
-async def gazette_list_rubrics(params: GazetteRubricsInput) -> str:
-    """Vollständige Rubrik-/Subrubrik-Taxonomie des Amtsblattportals.
-
-    Voraussetzung für gültige Filter: Rubrik- und Subrubrik-Codes werden in den
-    Such-Tools gegen diese Taxonomie validiert (Quirk 2, Silent Empty).
-
-    Args:
-        params (GazetteRubricsInput):
-            - language (str): 'de', 'fr', 'it', 'en'
-            - response_format (str): 'markdown' oder 'json'
-
-    Returns:
-        str: Rubriken mit Code, Name und zugehörigen Subrubriken.
-    """
-    try:
-        rubrics_data, from_cache = await _fetch_rubrics()
-    except Exception as e:
-        return _handle_http_error(e)
-
-    provenance = "cached" if from_cache else "live_api"
-    lang = params.language
-
-    def _name(obj: dict) -> str:
-        n = obj.get("name")
-        if isinstance(n, dict):
-            return n.get(lang) or n.get("de") or ""
-        return n or ""
-
-    if params.response_format == ResponseFormat.JSON:
-        result = [
-            {
-                "code": r.get("code"),
-                "name": _name(r),
-                "subRubrics": [
-                    {"code": s.get("code"), "name": _name(s)}
-                    for s in (r.get("subRubrics") or [])
-                    if isinstance(s, dict)
-                ],
-            }
-            for r in rubrics_data
-            if isinstance(r, dict)
-        ]
-        return _gazette_json({"count": len(result), "rubrics": result}, provenance)
-
-    lines = [
-        "## Amtsblatt-Rubriken",
-        f"Total: **{len(rubrics_data)}** Rubriken",
-        "",
-    ]
-    for r in sorted((x for x in rubrics_data if isinstance(x, dict)), key=lambda x: x.get("code") or ""):
-        subs = [s for s in (r.get("subRubrics") or []) if isinstance(s, dict)]
-        lines.append(f"### `{r.get('code')}` — {_name(r)}")
-        for s in sorted(subs, key=lambda x: x.get("code") or ""):
-            lines.append(f"- `{s.get('code')}` — {_name(s)}")
-        lines.append("")
-    return _gazette_md(lines, provenance)
 
 
 # ---------------------------------------------------------------------------

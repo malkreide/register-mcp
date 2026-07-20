@@ -11,24 +11,19 @@ import respx
 
 from register_mcp import server
 from register_mcp.server import (
+    ALLOWED_GAZETTE_PARAMS,
     ALLOWED_HOSTS,
     GAZETTE_BASE,
     ZEFIX_BASE,
     EgressDenied,
-    GazetteProcurementInput,
     GazettePublicationInput,
     GazettePublicationsInput,
-    GazetteRubricsInput,
-    GazetteSearchInput,
     GazetteStatusInput,
     _make_client,
     _parse_publication_xml,
     _reset_rubrics_cache,
     gazette_company_publications,
     gazette_get_publication,
-    gazette_list_rubrics,
-    gazette_search_procurement,
-    gazette_search_publications,
     gazette_source_status,
 )
 
@@ -57,8 +52,8 @@ MOCK_RUBRICS = [
         "name": {"de": "Schuldenrufe"},
         "subRubrics": [{"code": "LS01", "name": {"de": "Liquidationsschuldenruf"}}],
     },
-    # Cantonal procurement rubrics (öffentliches Beschaffungswesen), needed so
-    # gazette_search_procurement passes code validation. Active: AR/BS/TI/ZG.
+    # A couple of cantonal rubrics so the optional rubric filter on the UID join
+    # has more than one valid code to validate against.
     {"code": "OB-AR", "name": {"de": "Öffentliches Beschaffungswesen"}, "subRubrics": []},
     {"code": "OB-BS", "name": {"de": "Öffentliches Beschaffungswesen"}, "subRubrics": []},
     {"code": "OB-TI", "name": {"de": "Öffentliches Beschaffungswesen"}, "subRubrics": []},
@@ -228,127 +223,28 @@ async def test_company_publications_rejects_bad_uid():
 
 
 @pytest.mark.asyncio
-async def test_search_publications_happy_path():
+async def test_company_publications_optional_rubric_filter():
+    """The UID join accepts an optional (validated) rubric filter — still UID-scoped."""
     _seed_rubrics()
     with respx.mock:
-        respx.get(f"{GAZETTE_BASE}/publications").mock(
+        route = respx.get(f"{GAZETTE_BASE}/publications").mock(
             return_value=httpx.Response(200, json=MOCK_SEARCH)
         )
-        result = await gazette_search_publications(
-            GazetteSearchInput(keyword="E-smog-free")
+        result = await gazette_company_publications(
+            GazettePublicationsInput(uid="CHE-116.115.052", rubric="HR")
         )
+    # the query is always keyed on the UID — never a free-text/person search
+    assert route.calls[0].request.url.params.get("uids") == "CHE-116.115.052"
+    assert route.calls[0].request.url.params.get("rubrics") == "HR"
     assert "E-smog-free" in result
-    assert "provenance: live_api" in result
 
 
-@pytest.mark.asyncio
-async def test_search_publications_requires_a_filter():
-    result = await gazette_search_publications(GazetteSearchInput())
-    assert "Mindestens ein wirksamer Filter" in result
-
-
-@pytest.mark.asyncio
-async def test_search_publications_combined_filter():
-    _seed_rubrics()
-    with respx.mock:
-        respx.get(f"{GAZETTE_BASE}/publications").mock(
-            return_value=httpx.Response(200, json=MOCK_SEARCH)
-        )
-        result = await gazette_search_publications(
-            GazetteSearchInput(keyword="Schulhaus", canton="ZH", rubric="SB")
-        )
-    assert "Amtsblatt-Suche" in result
-
-
-@pytest.mark.asyncio
-async def test_procurement_canton_happy_path():
-    _seed_rubrics()
-    with respx.mock:
-        route = respx.get(f"{GAZETTE_BASE}/publications").mock(
-            return_value=httpx.Response(200, json=MOCK_SEARCH)
-        )
-        result = await gazette_search_procurement(
-            GazetteProcurementInput(canton="BS", keyword="Informatik")
-        )
-    assert route.call_count == 1
-    # the OB-BS rubric was the one queried
-    assert route.calls[0].request.url.params.get("rubrics") == "OB-BS"
-    assert "Ausschreibungen" in result
-    assert "provenance: live_api" in result
-
-
-@pytest.mark.asyncio
-async def test_procurement_zurich_has_no_rubric():
-    """ZH has no OB-ZH rubric — the tool must explain simap.ch, not call the API."""
-    _seed_rubrics()
-    with respx.mock:
-        route = respx.get(f"{GAZETTE_BASE}/publications").mock(
-            return_value=httpx.Response(200, json=MOCK_SEARCH)
-        )
-        result = await gazette_search_procurement(
-            GazetteProcurementInput(canton="ZH", keyword="Schulinformatik")
-        )
-    assert route.call_count == 0  # no request made
-    assert "simap.ch" in result
-    assert "keine Beschaffungsrubrik" in result
-
-
-@pytest.mark.asyncio
-async def test_procurement_no_canton_searches_all_active():
-    _seed_rubrics()
-    with respx.mock:
-        route = respx.get(f"{GAZETTE_BASE}/publications").mock(
-            return_value=httpx.Response(200, json=MOCK_SEARCH)
-        )
-        result = await gazette_search_procurement(GazetteProcurementInput(keyword="Reinigung"))
-    assert route.call_count == 1
-    # all four active OB rubrics sent as repeated params
-    rubrics = route.calls[0].request.url.params.get_list("rubrics")
-    assert set(rubrics) == {"OB-AR", "OB-BS", "OB-TI", "OB-ZG"}
-    assert "alle aktiven Rubriken" in result
-
-
-@pytest.mark.asyncio
-async def test_procurement_inactive_canton_needs_optin():
-    """BL is inactive — without include_inactive the tool warns and makes no call."""
-    _seed_rubrics()
-    with respx.mock:
-        route = respx.get(f"{GAZETTE_BASE}/publications").mock(
-            return_value=httpx.Response(200, json=MOCK_SEARCH)
-        )
-        result = await gazette_search_procurement(GazetteProcurementInput(canton="BL"))
-    assert route.call_count == 0
-    assert "inaktiv" in result
-    assert "include_inactive" in result
-
-
-@pytest.mark.asyncio
-async def test_procurement_cpv_code_warns():
-    _seed_rubrics()
-    with respx.mock:
-        respx.get(f"{GAZETTE_BASE}/publications").mock(
-            return_value=httpx.Response(200, json=MOCK_SEARCH_EMPTY)
-        )
-        result = await gazette_search_procurement(
-            GazetteProcurementInput(canton="BS", keyword="72000000")
-        )
-    assert "CPV" in result
-
-
-@pytest.mark.asyncio
-async def test_procurement_json_envelope():
-    _seed_rubrics()
-    with respx.mock:
-        respx.get(f"{GAZETTE_BASE}/publications").mock(
-            return_value=httpx.Response(200, json=MOCK_SEARCH)
-        )
-        result = await gazette_search_procurement(
-            GazetteProcurementInput(canton="BS", response_format="json")
-        )
-    data = json.loads(result)
-    assert data["rubrics"] == ["OB-BS"]
-    assert data["provenance"] == "live_api"
-    assert data["canton"] == "BS"
+def test_keyword_and_cantons_are_not_allow_listed():
+    """Fail-closed: the person-profiling params can never reach the query string."""
+    assert "keyword" not in ALLOWED_GAZETTE_PARAMS
+    assert "cantons" not in ALLOWED_GAZETTE_PARAMS
+    # the UID-scoped params the join actually needs are present
+    assert {"uids", "rubrics", "subRubrics"} <= ALLOWED_GAZETTE_PARAMS
 
 
 @pytest.mark.asyncio
@@ -377,26 +273,6 @@ async def test_get_publication_json():
     assert data["company"]["uid"] == "CHE-116.115.052"
     assert "publicationText" in data
     assert data["provenance"] == "live_api"
-
-
-@pytest.mark.asyncio
-async def test_list_rubrics_happy_path():
-    with respx.mock:
-        _mock_rubrics()
-        result = await gazette_list_rubrics(GazetteRubricsInput())
-    assert "Handelsregister" in result
-    assert "`HR03`" in result
-    assert "Schuldbetreibungen" in result
-    assert "Beschaffungswesen" in result
-
-
-@pytest.mark.asyncio
-async def test_list_rubrics_cached_provenance():
-    _seed_rubrics()
-    with respx.mock:
-        # No /rubrics route registered — a call would raise, proving cache use.
-        result = await gazette_list_rubrics(GazetteRubricsInput())
-    assert "provenance: cached" in result
 
 
 @pytest.mark.asyncio
@@ -454,7 +330,9 @@ async def test_network_error_is_clean_error():
         respx.get(f"{GAZETTE_BASE}/publications").mock(
             side_effect=httpx.ConnectError("no route")
         )
-        result = await gazette_search_publications(GazetteSearchInput(keyword="Test"))
+        result = await gazette_company_publications(
+            GazettePublicationsInput(uid="CHE-116.115.052")
+        )
     assert "Verbindungsfehler" in result
 
 
@@ -487,8 +365,8 @@ async def test_quirk2_invalid_rubric_suggests_no_http():
         pub_route = respx.get(f"{GAZETTE_BASE}/publications").mock(
             return_value=httpx.Response(200, json=MOCK_SEARCH)
         )
-        result = await gazette_search_publications(
-            GazetteSearchInput(keyword="xx", rubric="ZZZZ")
+        result = await gazette_company_publications(
+            GazettePublicationsInput(uid="CHE-116.115.052", rubric="ZZZZ")
         )
     assert "Ungültiger rubric-Code" in result
     # closest valid codes suggested
@@ -587,18 +465,15 @@ async def test_live_company_publications_join():
 
 @pytest.mark.live
 @pytest.mark.asyncio
-async def test_live_search_keyword():
-    """Live: full-text search for a known term."""
-    result = await gazette_search_publications(
-        GazetteSearchInput(keyword="Lehrmittelverlag", limit=5)
-    )
-    assert "Amtsblatt-Suche" in result
-
-
-@pytest.mark.live
-@pytest.mark.asyncio
-async def test_live_list_rubrics():
-    """Live: the rubric taxonomy loads and contains HR."""
+async def test_live_get_publication_reads_full_text():
+    """Live: reading a single HR publication returns its full official text."""
     _reset_rubrics_cache()
-    result = await gazette_list_rubrics(GazetteRubricsInput())
-    assert "HR" in result
+    listing = await gazette_company_publications(
+        GazettePublicationsInput(uid="CHE-116.115.052", rubric="HR", response_format="json")
+    )
+    data = json.loads(listing)
+    pubs = data.get("publications") or []
+    if not pubs:
+        pytest.skip("no HR publications for this UID at test time")
+    result = await gazette_get_publication(GazettePublicationInput(id=pubs[0]["id"]))
+    assert "amtsblattportal.ch" in result

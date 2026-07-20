@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-20
+### Changed — scope decision (Option C): register-mcp reduced to the UID join
+- **The gazette surface is now company-scoped only (9 tools, down from 12).**
+  Following an explicit scope review, `register-mcp` keeps exactly the three
+  gazette tools that complement the commercial register via the company UID:
+  - `gazette_company_publications` — the UID join (keeps full firm-scoped rubric
+    access; a firm's own `KK`/`SB` is corporate data about a legal person).
+  - `gazette_get_publication` — read one publication's XML full text (by id).
+  - `gazette_source_status` — reachability of both sources + cache ages.
+- **Removed** `gazette_search_publications`, `gazette_search_procurement` and
+  `gazette_list_rubrics`. These are broad, non-company **platform** features
+  (corpus-wide full-text search, cantonal procurement, taxonomy browsing) that
+  do not belong in a commercial-register server. They are specified for a
+  separate `amtsblatt-mcp` in `docs/amtsblatt-mcp-proposal.md`.
+- **Data protection by construction (revDSG).** Every remaining gazette entry
+  point is keyed on a company UID or an opaque publication id — there is no
+  free-text / person-name search entry, so the server cannot be used to profile
+  natural persons across the person-data-heavy rubrics (bankruptcy,
+  debt-collection, calls to creditors, inheritance). `keyword` and `cantons`
+  were removed from `ALLOWED_GAZETTE_PARAMS` so no future change can smuggle a
+  corpus-wide keyword search in (fail-closed). New **"Data Protection & Scope"**
+  section added to both READMEs.
+- Zefix behaviour is unchanged. The three verified amtsblattportal quirks and
+  their guardrails (Silent Ignore, Silent Empty, two-step XML fetch) are
+  retained for the UID-scoped calls.
+
 ## [0.4.0] - 2026-07-19
 ### Added
 - **`gazette_search_procurement` — public procurement / Submissionen search**
