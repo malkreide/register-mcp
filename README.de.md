@@ -4,14 +4,14 @@
 
 # 🏛️ register-mcp
 
-![Version](https://img.shields.io/badge/version-0.4.0-blue)
+![Version](https://img.shields.io/badge/version-0.5.0-blue)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
 [![Kein API-Schlüssel](https://img.shields.io/badge/Auth-keiner%20erforderlich-brightgreen)](https://github.com/malkreide/register-mcp)
 ![CI](https://github.com/malkreide/register-mcp/actions/workflows/ci.yml/badge.svg)
 
-> MCP-Server für das Schweizer Handelsregister (Zefix) und das Amtsblattportal (SHAB + kantonale Amtsblätter), verknüpft über die UID
+> MCP-Server für das Schweizer Handelsregister (Zefix), mit einem **Firmen-UID-Join** zum Amtsblattportal (SHAB + kantonale Amtsblätter)
 
 ---
 
@@ -22,11 +22,13 @@
 | Quelle | Daten | API |
 |--------|-------|-----|
 | **Zefix (Handelsregister)** | Schweizer Firmen, Rechtsformen, Sitzangaben | ZefixREST v1 |
-| **Amtsblattportal** | SHAB **und** kantonale Amtsblätter — 2.79 Mio. Publikationen (HR-Mutationen, Schuldenrufe, Submissionen, Konkurse …) | amtsblattportal.ch v1 |
+| **Amtsblattportal** | Alles, was **über eine bestimmte Firma** (per UID) publiziert wurde: HR-Mutationen, Schuldenrufe, Konkurse | amtsblattportal.ch v1 |
 
-Beide Quellen teilen einen Schlüssel — die **UID**. Der Mehrwert liegt im Join: **Zefix sagt, ob eine Firma existiert. Das Amtsblatt sagt, was sie tut.**
+Beide Quellen teilen einen Schlüssel — die **UID**. Der Mehrwert liegt im Join: **Zefix sagt, ob eine Firma existiert. Das Amtsblatt sagt, was über sie publiziert wurde.**
 
-Entwickelt für den Einsatz in der öffentlichen Verwaltung: Lieferantenprüfung, Vertragspartner-Due-Diligence, Beschaffungs-Screening und Lieferanten-Onboarding — alles via natürlichsprachliche Abfragen.
+Der Amtsblatt-Zugang ist hier bewusst **firmenbezogen** — der Einstieg erfolgt ausschliesslich über eine Firmen-UID oder eine konkrete Publikations-ID. Es gibt **keinen Volltext- oder Personen-Sucheinstieg** in diesem Server; ein solcher wäre ein Profiling-Werkzeug über die personendatenlastigen Rubriken des Amtsblatts (Konkurse, Schuldbetreibungen, Erbschaft). Die breite Amtsblatt-Plattformsuche (Beschaffung, kantonale Bekanntmachungen, Volltext) ist als eigener `amtsblatt-mcp` vorgeschlagen — siehe [`docs/amtsblatt-mcp-proposal.md`](docs/amtsblatt-mcp-proposal.md) und den Abschnitt **Datenschutz & Scope** unten.
+
+Entwickelt für den Einsatz in der öffentlichen Verwaltung: Lieferantenprüfung, Vertragspartner-Due-Diligence und Lieferanten-Onboarding — alles via natürlichsprachliche Abfragen.
 
 **Anker-Demo-Abfrage:** *«Bevor wir mit der Lehrmittelverlag Zürich AG einen Rahmenvertrag abschliessen: Ist die Firma im Handelsregister aktiv, wie lautet ihre UID und ihr Zweck — und was hat das Amtsblatt über genau diese UID publiziert (HR-Mutationen, Schuldenrufe, allfällige Konkurse)?»*
 
@@ -40,9 +42,9 @@ zefix_search_company  →  zefix_verify_company  →  gazette_company_publicatio
 
 ## Funktionen
 
-- 🏛️ **12 Tools** über zwei Quellen — Firmensuche & Verifizierung (Zefix) + Amtsblatt-Publikationen (SHAB/kantonal)
+- 🏛️ **9 Tools** über zwei Quellen — Firmensuche & Verifizierung (Zefix) + firmenbezogener Amtsblatt-Join (SHAB/kantonal)
 - 🔗 **`gazette_company_publications`** — der UID-Join: alles, was über eine Firma publiziert wurde
-- 🏗️ **`gazette_search_procurement`** — öffentliche Ausschreibungen (Submissionen) nach Kanton, Stichwort und Datum
+- 🛡️ **Datenschutzsicher by design** — die einzigen Amtsblatt-Einstiege sind UID- oder ID-bezogen; kein Personen-Sucheinstieg existiert (siehe *Datenschutz & Scope*)
 - 🔍 **`zefix_verify_company`** — Schnell-Check: aktiv oder gelöscht?
 - 🌐 **Zweisprachige Ausgabe** (Markdown / JSON) mit Quellenangabe je Datenquelle + `provenance`
 - 🔓 **Kein API-Schlüssel erforderlich** — offene Daten von zefix.admin.ch und amtsblattportal.ch
@@ -218,18 +220,15 @@ Für den Einsatz via **claude.ai im Browser** (z.B. auf verwalteten Arbeitsplät
 | `zefix_list_legal_forms` | Alle Schweizer Rechtsformen mit IDs |
 | `zefix_list_municipalities` | Schweizer Gemeinden mit BFS-IDs |
 
-**Amtsblattportal — SHAB + kantonale Amtsblätter (6):**
+**Amtsblattportal — der firmenbezogene Amtsblatt-Join (3):**
 
 | Tool | Beschreibung |
 |------|-------------|
-| `gazette_company_publications` | **Der UID-Join.** Alle Amtsblatt-Publikationen zu einer UID, neueste zuerst, optionale Rubrik-/Zeitfilter |
-| `gazette_search_publications` | Volltextsuche (`keyword`) + Filter `rubrics`/`subRubrics`/`cantons`/Zeitraum |
-| `gazette_search_procurement` | Öffentliche Ausschreibungen (Submissionen) — kantonale `OB-*`-Rubriken nach `canton`, `keyword`, Zeitraum |
-| `gazette_get_publication` | Einzelpublikation inkl. XML-Volltext, defensiv geparst |
-| `gazette_list_rubrics` | Rubrik-/Subrubrik-Taxonomie — Voraussetzung für gültige Filter |
+| `gazette_company_publications` | **Der UID-Join.** Alle Amtsblatt-Publikationen zu einer Firmen-**UID**, neueste zuerst, optionale (validierte) Rubrik-/Zeitfilter |
+| `gazette_get_publication` | Einzelpublikation inkl. XML-Volltext, defensiv geparst (per Publikations-ID) |
 | `gazette_source_status` | Erreichbarkeit beider Quellen + Cache-Alter (Rubriken, Rechtsformen) |
 
-Der Prefix ist `gazette_` und nicht `shab_`, weil die Quelle SHAB **und** die kantonalen Amtsblätter umfasst.
+Der Prefix ist `gazette_` und nicht `shab_`, weil die Quelle SHAB **und** die kantonalen Amtsblätter umfasst. Jeder Einstieg ist UID- oder ID-bezogen — siehe **Datenschutz & Scope**. Die breite, nicht-firmenbezogene Amtsblatt-Suche (Beschaffung, kantonaler Volltext) ist dem separaten [`amtsblatt-mcp`](docs/amtsblatt-mcp-proposal.md) zugeordnet.
 
 ### Beispiel-Abfragen
 
@@ -239,9 +238,8 @@ Der Prefix ist `gazette_` und nicht `shab_`, weil die Quelle SHAB **und** die ka
 | *«Suche CHE-108.954.978»* | `zefix_get_company_by_uid` |
 | *«Finde Firmen namens Migros im Kanton ZH»* | `zefix_search_companies` |
 | *«Was wurde über CHE-116.115.052 publiziert?»* | `gazette_company_publications` |
-| *«Finde Amtsblatt-Publikationen mit ‹Schulhaus› im Kanton ZH»* | `gazette_search_publications` |
-| *«Welche IT-Ausschreibungen wurden im Kanton Basel-Stadt in den letzten 3 Monaten publiziert?»* | `gazette_search_procurement` |
-| *«Welche Rubriken und Subrubriken gibt es?»* | `gazette_list_rubrics` |
+| *«Zeig mir den amtlichen Volltext dieser HR-Löschung»* | `gazette_get_publication` |
+| *«Sind beide Datenquellen gerade erreichbar?»* | `gazette_source_status` |
 
 ---
 
@@ -254,7 +252,7 @@ Der Prefix ist `gazette_` und nicht `shab_`, weil die Quelle SHAB **und** die ka
 ┌─────────────────┐     ┌──────────────────────────┴─┐   │  ZefixREST/api/v1            │
 │   Claude / KI   │────▶│       register-mcp           │   └──────────────────────────────┘
 │   (MCP Host)    │◀────│       (MCP Server)           │   ┌──────────────────────────────┐
-└─────────────────┘     │  12 Tools (zefix_ + gazette_)├──▶│  Amtsblattportal             │
+└─────────────────┘     │  9 Tools (zefix_ + gazette_) ├──▶│  Amtsblattportal             │
                         │  Stdio | SSE                 │   │  amtsblattportal.ch/api/v1   │
                         │  Egress-Allow-List           │   │  SHAB + kantonale Amtsblätter │
                         │  Keine Authentifizierung     │   └──────────────────────────────┘
@@ -297,30 +295,59 @@ Zwei Eigenschaften der Quelle prägen diesen Pfad (beide belegt in
   Publikationen einer Firma also in einem Aufruf, ohne jeden Datensatz zu
   durchlaufen.
 
-### Beschaffung (Submissionen) — vor jedem leeren Ergebnis lesen
+### Beschaffung liegt im separaten `amtsblatt-mcp`
 
-Öffentliche Beschaffung ist **keine** föderale SHAB-Rubrik. Sie existiert nur
-als **kantonale** Rubrik mit dem Code-Muster `OB-<Kanton>`, und nur wenige
-Kantone publizieren sie überhaupt in diesem Portal — die meisten (inklusive
-**Zürich**) laufen über **[simap.ch](https://www.simap.ch/)**, eine separate
-Plattform, die dieser Server nicht abdeckt.
+Öffentliche Beschaffung (Submissionen) ist **keine** föderale SHAB-Rubrik und
+wird von diesem Server **nicht** abgedeckt. Sie existiert nur als **kantonale**
+`OB-<Kanton>`-Rubrik, nur wenige Kantone publizieren sie in diesem Portal, und
+die meisten — inklusive **Zürich** — laufen über
+**[simap.ch](https://www.simap.ch/)**, eine separate Plattform. Beschaffung,
+kantonale Bekanntmachungen und breite Volltextsuche sind dem vorgeschlagenen
+[`amtsblatt-mcp`](docs/amtsblatt-mcp-proposal.md) zugeordnet, der eine
+fail-closed **grüne Rubriken-Allow-List** anwendet. Die vollständige
+`OB-*`-Abdeckungskarte und die Rubriken-Ampeltabelle stehen in jenem Proposal.
 
-| Kanton | Rubrik | Status | Bemerkung |
-|--------|--------|--------|-----------|
-| AR, BS, TI | `OB-AR`, `OB-BS`, `OB-TI` | ✅ aktiv | — |
-| ZG | `OB-ZG` | ✅ aktiv | simap.ch-Import bis Feb 2024 |
-| BL, VS | `OB-BL`, `OB-VS` | ⛔ inaktiv | nur historische Daten (`include_inactive=True`) |
-| **ZH** und alle übrigen | — | ❌ keine | Ausschreibungen via **simap.ch**, nicht hier |
+> **`SB` ≠ Submissionen.** `SB` steht für *Schuldbetreibungen* — eine
+> personendatenlastige Rubrik, die dieser Server nie als Sucheinstieg exponiert.
 
-`gazette_search_procurement` kodiert diese Zuordnung: Bei einem Kanton ohne
-`OB-*`-Rubrik gibt das Tool eine erklärende Meldung (mit Verweis auf simap.ch)
-zurück statt einer irreführend leeren Liste. Zudem kennt die Quelle **keine
-CPV-Codes** — Beschaffung lässt sich nur per Freitext, Kanton und Datum
-eingrenzen.
+---
 
-> **`SB` ≠ Submissionen.** `SB` steht für *Schuldbetreibungen*. Die
-> Mehrzahlform verleitet zur Verwechslung; Beschaffung ist die `OB-*`-Familie
-> oben.
+## Datenschutz & Scope
+
+Dieser Abschnitt ist **keine** Fussnote — er ist der Grund, warum der Server so
+geschnitten ist, wie er ist.
+
+Das Amtsblattportal publiziert systematisch Rubriken mit Personendaten
+**natürlicher** Personen: Konkurse (`KK`), Schuldbetreibungen (`SB`),
+Schuldenrufe (`LS`/`SR`), Erbschafts-/Nachlassaufrufe (`ES`, `TE-*`) und
+Baugesuche mit Eigentümernamen. Diese Publikationen sind öffentlich — sie aber
+über einen KI-Agenten *systematisch nach Namen abfragbar* zu machen, ist eine
+Zweckentfremdung, welche die Publikation nie beabsichtigt hat; unter dem
+revidierten Datenschutzgesetz (**revDSG**) ist ein Werkzeug «zeig mir alle
+Betreibungen zu Person X» ein Profiling-Instrument. Daraus folgen bewusste
+Design-Entscheide:
+
+- **Kein personenbezogener Sucheinstieg.** Kein Tool nimmt Name, Geburtsdatum
+  oder Adresse einer natürlichen Person entgegen. Die einzigen Amtsblatt-
+  Einstiege sind über eine **Firmen-UID** (`gazette_company_publications`) oder
+  eine opake **Publikations-ID** (`gazette_get_publication`) gekeyt. Der Konkurs
+  *einer Firma* wird über deren UID zurückgegeben — das sind Unternehmensdaten
+  einer juristischen Person, kein namensbasiertes Profiling.
+- **Keine Volltext-Amtsblattsuche hier.** `keyword` und `cantons` stehen nicht
+  einmal auf der internen Query-Parameter-Allow-List, sodass keine künftige
+  Code-Änderung eine korpusweite Stichwortsuche einschmuggeln kann. Breite Suche
+  liegt im `amtsblatt-mcp` hinter einer fail-closed grünen Allow-List
+  (nur Beschaffung, HR, amtliche Bekanntmachungen).
+- **Keine Persistenz von Meldungsinhalten.** Der Server ist Pass-through; nur die
+  Rubriken-Taxonomie und die Zefix-Rechtsformen werden 24 h im Speicher gecacht.
+  Amtliche Publikationen haben gesetzliche Löschfristen — ein Speicher, der sie
+  überdauert, würde diese Fristen aktiv unterlaufen.
+- **Fail closed.** Rubrik-Codes werden vor jedem Call gegen die Live-Taxonomie
+  validiert; ein unbekannter Code wird abgewiesen, nicht still ausgeweitet.
+
+Das breite Plattform-Pendant, seine grün/gelb/rot-Rubrikeneinstufung und sein
+fail-closed-Design sind in
+[`docs/amtsblatt-mcp-proposal.md`](docs/amtsblatt-mcp-proposal.md) spezifiziert.
 
 ---
 
@@ -358,15 +385,15 @@ Phase 3 ergänzt: MWST-Status, NOGA-Branchencodes, registerübergreifende Validi
 register-mcp/
 ├── src/register_mcp/
 │   ├── __init__.py              # Package
-│   └── server.py                # 12 Tools (Zefix + Amtsblatt)
+│   └── server.py                # 9 Tools (Zefix + firmenbezogener Amtsblatt-Join)
 ├── tests/
 │   ├── test_server.py           # Zefix Unit + Integrationstests (gemockt)
 │   ├── test_gazette.py          # Amtsblatt-Tools + die drei Quirks (gemockt)
 │   └── test_egress.py           # Egress-Allow-List
-├── docs/demo/
-│   ├── demo.tape                # vhs-Aufnahme-Script → demo.gif
-│   ├── demo.py                  # Standalone CLI-Demo (Live Zefix API)
-│   └── README.md                # Anleitung zur GIF-Generierung
+├── docs/
+│   ├── probe-shab.md            # Phase-1-Live-Probe von amtsblattportal.ch
+│   ├── amtsblatt-mcp-proposal.md# Spezifikation für den separaten Plattform-Server
+│   └── demo/                    # vhs-Demo-Script + Standalone-CLI-Demo
 ├── .github/workflows/ci.yml     # GitHub Actions (Python 3.11/3.12/3.13)
 ├── pyproject.toml
 ├── CHANGELOG.md
@@ -388,19 +415,18 @@ register-mcp/
 
 | Aufruf | HTTP | Status | Records | Bemerkung |
 |---|---|---|---|---|
-| `/publications?publicationStates=PUBLISHED` | 200 | OK | 2 790 323 | Baseline (voller Korpus) |
-| `?uids=CHE-116.115.052` | 200 | **OK** | 4 | **der Join — Kernfeature** |
-| `?keyword=Lehrmittelverlag` | 200 | OK | 34 | Volltextsuche |
-| `?keyword=Schulhaus&cantons=ZH` | 200 | OK | 157 | Filter kombinierbar |
-| `?rubrics=SB` | 200 | OK | 22 511 | **Schuldbetreibungen** — *nicht* Beschaffung |
-| `?rubrics=OB-BS` | 200 | OK | 3 065 | Submissionen/Beschaffung (kantonal `OB-*`, siehe unten) |
-| `?subRubrics=HR01` | 200 | OK | 398 036 | ohne `rubrics` nutzbar |
-| `?publicationDate.start=…&.end=…` | 200 | OK | 28 482 | Zeitraumfilter |
+| `/publications?publicationStates=PUBLISHED` | 200 | OK | 2 790 323 | Baseline (voller Korpus) — nie ungefiltert abgefragt |
+| `?uids=CHE-116.115.052` | 200 | **OK** | 4 | **der Join — der einzige Amtsblatt-Einstieg** |
+| `?uids=…&rubrics=HR` | 200 | OK | – | optionale, validierte Rubrik-Eingrenzung des Joins |
 | `/publications/{id}/xml` | 200 | OK | – | Volltext, rubrikspezifisches Schema |
-| `/rubrics` | 200 | OK | – | vollständige Rubrik/Subrubrik-Taxonomie |
+| `/rubrics` | 200 | OK | – | Taxonomie (zur Code-Validierung) |
 | `?rubrics=ZZZZ` (ungültig) | **200** | **Silent Empty** | 0, `total: null` | Quirk 2 |
 | `?uid=…` (falscher Parametername) | **200** | **Silent Ignore** | **2 790 323** | Quirk 1 |
-| `?text=Schule` (falscher Parametername) | **200** | **Silent Ignore** | **2 790 323** | Quirk 1 |
+
+> Volltext- (`keyword`) und breite `cantons`-Suche werden von diesem Server
+> **nicht** ausgeführt — jene Probe-Ergebnisse stehen in
+> [`docs/probe-shab.md`](docs/probe-shab.md) und fliessen in den separaten
+> `amtsblatt-mcp` ein.
 
 **Drei Quirks werden im Code abgefangen** (Details im [CHANGELOG](CHANGELOG.md)
 unter *Known findings*):
@@ -435,9 +461,10 @@ unter *Known findings*):
 ### Datenschutz
 
 - **Schreibgeschützt** — alle Tools tragen `readOnlyHint: True`; der Server führt keine Schreib-, Lösch- oder Mutationsoperationen gegen eine API durch
-- **Keine Datenspeicherung** — der Server agiert als zustandsloser Proxy; keine Firmendaten werden persistent gespeichert, gecacht oder geloggt
-- **Nur öffentliche Registerdaten** — das Zefix-Handelsregister ist ein öffentliches Bundesregister (HRegV); zurückgegebene Daten sind gesetzlich öffentliche Informationen, keine Personendaten im Sinne des DSG
-- **Kein Nutzer-Tracking** — der Server überträgt keine Nutzeridentität, Abfragehistorie oder Sitzungsdaten an zefix.admin.ch
+- **Kein personenbezogener Sucheinstieg** — kein Tool nimmt Name, Geburtsdatum oder Adresse einer natürlichen Person entgegen; der Amtsblatt-Zugang ist ausschliesslich UID- oder Publikations-ID-bezogen (siehe **Datenschutz & Scope**). Das ist ein bewusster, revDSG-getriebener Design-Entscheid, kein Zufall der API
+- **Keine Persistenz von Meldungsinhalten** — der Server ist ein zustandsloser Pass-through; nur die Rubriken-Taxonomie und die Zefix-Rechtsformen werden 24 h im Speicher gecacht, nie Publikationsinhalte, sodass gesetzliche Löschfristen respektiert werden
+- **Nur öffentliche Registerdaten** — das Zefix-Handelsregister ist ein öffentliches Bundesregister (HRegV); zurückgegebene Amtsblatt-Daten sind ebenfalls gesetzlich öffentlich, abgerufen je Firmen-UID
+- **Kein Nutzer-Tracking** — der Server überträgt keine Nutzeridentität, Abfragehistorie oder Sitzungsdaten an die Upstream-Quellen
 
 ### Nutzungsbedingungen & Datenquellen
 
