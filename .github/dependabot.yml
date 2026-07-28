@@ -1,6 +1,10 @@
 version: 2
 updates:
-  - package-ecosystem: pip
+  # `uv`, not `pip`: the pip ecosystem only rewrites pyproject.toml and leaves
+  # uv.lock untouched, so every dependency PR failed the "Verify uv.lock is in
+  # sync with pyproject.toml" job (PRs #26–#30). The uv ecosystem updates the
+  # manifest and the lockfile in the same commit.
+  - package-ecosystem: uv
     directory: /
     schedule:
       interval: weekly
