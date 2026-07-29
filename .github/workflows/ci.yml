@@ -35,6 +35,9 @@ jobs:
       - name: Lint
         run: ruff check src/ tests/
 
+      - name: Versions-Sync (pyproject ↔ server.json / README / src)
+        run: python scripts/check_version_sync.py
+
   lockfile:
     name: Verify uv.lock is in sync with pyproject.toml
     runs-on: ubuntu-latest
