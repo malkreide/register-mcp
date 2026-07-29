@@ -51,6 +51,7 @@ import httpx
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from . import __version__
 from ._log import configure_logging, log_event, logged_tool
 
 configure_logging()
@@ -228,7 +229,7 @@ def _make_client() -> httpx.AsyncClient:
         headers={
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "register-mcp/1.0 (Swiss Public Data MCP Portfolio)",
+            "User-Agent": f"register-mcp/{__version__} (Swiss Public Data MCP Portfolio)",
         },
         follow_redirects=True,
         event_hooks={"request": [_enforce_egress_allowlist]},
