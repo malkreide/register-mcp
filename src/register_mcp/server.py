@@ -48,7 +48,7 @@ from time import monotonic
 from typing import Any
 
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from . import __version__
@@ -168,7 +168,7 @@ CANTON_CODES = [
 # MCP Server
 # ---------------------------------------------------------------------------
 
-mcp = FastMCP(
+mcp = MCPServer(
     "register_mcp",
     instructions=(
         "Provides read-only access to two Swiss federal data sources, joined on the company "
@@ -192,9 +192,10 @@ mcp = FastMCP(
 # ---------------------------------------------------------------------------
 
 transport = os.environ.get("MCP_TRANSPORT", "stdio")
-if transport == "sse":
-    mcp.settings.host = "0.0.0.0"
-    mcp.settings.port = int(os.environ.get("PORT", "8000"))
+# mcp 2.x: MCPServer.settings no longer carries host/port, so the bind address
+# lives here and is handed to uvicorn directly in main().
+BIND_HOST = "0.0.0.0"  # noqa: S104 — SSE deployment target is a container
+BIND_PORT = int(os.environ.get("PORT", "8000"))
 
 # ---------------------------------------------------------------------------
 # Shared HTTP client
@@ -1785,8 +1786,8 @@ def main() -> None:
         import uvicorn
 
         app = _build_sse_app()
-        host = mcp.settings.host
-        port = mcp.settings.port
+        host = BIND_HOST
+        port = BIND_PORT
         log_event(logging.INFO, "starting", transport="sse", host=host, port=port)
         uvicorn.run(app, host=host, port=port, log_level=mcp.settings.log_level.lower())
         return
