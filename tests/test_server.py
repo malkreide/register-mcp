@@ -7,6 +7,7 @@ import json
 import httpx
 import pytest
 import respx
+from pydantic import ValidationError
 
 from register_mcp.server import (
     ZEFIX_BASE,
@@ -165,8 +166,15 @@ async def test_search_companies_requires_name_or_canton():
 
 @pytest.mark.asyncio
 async def test_search_companies_invalid_canton():
-    with pytest.raises(Exception):
+    # `ValidationError` allein pinnt das nicht: ein Tippfehler in `name=` wuerde
+    # als `extra_forbidden` denselben Typ werfen und der Test bliebe gruen.
+    # Geprueft wird deshalb auf Fehlertyp und Feld — nicht auf den Meldungstext,
+    # der deutsch ist und die Kantonsliste enthaelt.
+    with pytest.raises(ValidationError) as excinfo:
         CompanySearchInput(name="Test", canton="XX")
+    assert [(e["type"], e["loc"]) for e in excinfo.value.errors()] == [
+        ("value_error", ("canton",))
+    ]
 
 
 @pytest.mark.asyncio
