@@ -44,7 +44,15 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
     "respx>=0.23.1",
-    "ruff>=0.15.22",
+    # Obergrenze: ruff ist pre-1.0, seine Minors sind die Stelle, an der
+    # Regelverhalten und neue Checks innerhalb der gewaehlten Familien landen.
+    # Ohne Cap wird die CI ohne Codeaenderung rot.
+    #
+    # Der Cap liegt ueber der Version, die uv.lock bereits aufloest (0.16.0) —
+    # ein `<0.16` haette die Obergrenze zwar gesetzt, dabei aber still auf
+    # 0.15.22 zurueckgedreht. Eine Schranke soll den Stand einfrieren, nicht
+    # nebenbei ein Downgrade ausloesen.
+    "ruff>=0.15.22,<0.17",
 ]
 otel = [
     "opentelemetry-api>=1.27.0",
