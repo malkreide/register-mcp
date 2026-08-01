@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`ruff` mit Obergrenze gepinnt (`>=0.15.22,<0.17`).** ruff ist pre-1.0; seine
+  Minors sind die Stelle, an der Regelverhalten und neue Checks innerhalb der
+  gewählten Familien landen. Ohne Cap installiert die CI die jeweils neuste
+  Version und wird ohne Codeänderung rot.
+
+  Der Cap liegt bewusst über der Version, die `uv.lock` bereits auflöst
+  (`0.16.0`). Ein `<0.16` hätte die Schranke zwar gesetzt, dabei aber still auf
+  `0.15.22` zurückgedreht — eine Obergrenze soll den Stand einfrieren, nicht
+  nebenbei ein Downgrade auslösen. `uv.lock` ist mitgezogen; die Änderung dort
+  beschränkt sich auf die eine `specifier`-Zeile.
+
+- **Emoji aus der H1 beider READMEs entfernt** (`# 🏛️ register-mcp`). Vorher
+  nach Regel E4 geprüft: beide Dateien enthalten null `](#…)`-Anker, es bricht
+  also kein Link. Emoji im Fliesstext bleiben unangetastet.
+
+  Nicht geändert wurde `The UID join — Zefix ↔ Amtsblatt`. Der Validator meldete
+  die Überschrift, das war aber ein Fehlalarm: `↔` ist Typografie, kein Emoji.
+  Die Ursache lag in der Erkennung selbst und ist dort behoben (`E7`).
+
 - **`test_search_companies_invalid_canton` prüfte nicht mehr, was der Name
   behauptet.** `pytest.raises(Exception)` besteht auch dann, wenn der Kanton
   gültig ist und stattdessen ein Feldname vertippt wurde — Pydantic wirft für

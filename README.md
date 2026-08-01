@@ -1,6 +1,6 @@
 > 🇨🇭 **Part of the [Swiss Public Data MCP Portfolio](https://github.com/malkreide)**
 
-# 🏛️ register-mcp
+# register-mcp
 
 ![Version](https://img.shields.io/badge/version-0.5.0-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
