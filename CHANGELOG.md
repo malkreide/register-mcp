@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`test_search_companies_invalid_canton` prüfte nicht mehr, was der Name
+  behauptet.** `pytest.raises(Exception)` besteht auch dann, wenn der Kanton
+  gültig ist und stattdessen ein Feldname vertippt wurde — Pydantic wirft für
+  `extra_forbidden` denselben Typ. Gegengeprüft: mit `nam=` statt `name=` und
+  `canton="ZH"` blieb der Test grün, ohne die Kantonsprüfung noch zu berühren.
+
+  Erwartet wird jetzt die strukturierte Fehlerliste, `("value_error",
+  ("canton",))`. Nicht per `match=` auf dem Meldungstext: der ist deutsch und
+  zählt die gültigen Kürzel auf, wäre als Testanker also unnötig beweglich.
+
 - **Capped `mcp` at `<2`.** `mcp` 2.0.0, published 2026-07-28, removed
   `mcp.server.fastmcp` — the module this server imports. With the previous
   unbounded `>=1.28.1` every fresh resolve picked 2.0.0 and failed at import
