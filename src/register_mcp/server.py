@@ -41,8 +41,11 @@ import difflib
 import json
 import logging
 import os
+import random
 import re
 import xml.etree.ElementTree as ET
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from enum import StrEnum
 from time import monotonic
 from typing import Any
@@ -153,6 +156,82 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _TRANSIENT_STATUS = frozenset({502, 503, 504})
 GAZETTE_MAX_RETRIES = int(os.environ.get("GAZETTE_MAX_RETRIES", "3"))
 GAZETTE_RETRY_BACKOFF = float(os.environ.get("GAZETTE_RETRY_BACKOFF", "0.5"))
+
+# --- Retry policy (ARCH-014) -------------------------------------------------
+# `_TRANSIENT_STATUS` settles *what* is retried. These settle *how fast* and
+# *how long*.
+
+# Ceiling on a single wait — against a ladder that grows without bound and
+# against a `Retry-After` the gazette may send but that we need not sit through.
+GAZETTE_MAX_DELAY_S = 20.0
+
+# Jitter. Without it every client that hit the same outage retries in lockstep,
+# and the load returns as a wave exactly when the gazette recovers — the retry
+# storm extends the outage it was meant to bridge.
+GAZETTE_JITTER_SPREAD = 0.5  # linear delays land in [0.5x, 1.5x]
+
+# On a `Retry-After` the spread is one-sided: the gazette said when to come
+# back, so later is polite and earlier ignores the value we just read.
+GAZETTE_RETRY_AFTER_JITTER = 0.25  # lands in [1.0x, 1.25x]
+
+# Statuses carrying a meaningful `Retry-After` (RFC 9110 §10.2.3). 503 is
+# already in `_TRANSIENT_STATUS`; 429 is not retried here and is listed only so
+# a rate-limit answer is still read correctly if it ever reaches this path.
+GAZETTE_RETRY_AFTER_STATUSES = frozenset({429, 503})
+
+# Ceiling on the *whole* call — every attempt, every wait, together.
+#
+# An attempt count is not a bound: three attempts at a 15s timeout plus backoff
+# are close to a minute, and `GAZETTE_MAX_RETRIES` never says so. The limit that
+# matters is not ours either: the caller has its own timeout, and past it nobody
+# receives the answer — the work continues, the load lands on the gazette, and
+# the result goes nowhere.
+#
+# Anchored on the Python MCP SDK's `MCP_DEFAULT_TIMEOUT = 30.0`. 25s leaves
+# headroom for MCP framing and the tool layer.
+GAZETTE_TOTAL_BUDGET_S = float(os.environ.get("GAZETTE_TOTAL_BUDGET", "25.0"))
+
+
+def parse_retry_after(resp: httpx.Response | None) -> float | None:
+    """Seconds to wait per the response's ``Retry-After``, or None.
+
+    RFC 9110 §10.2.3 allows delta-seconds and an HTTP-date; both occur, both are
+    read. Anything unparseable yields None and the caller falls back to its own
+    curve — a malformed header must not become a crash on the error path.
+    """
+    if resp is None or resp.status_code not in GAZETTE_RETRY_AFTER_STATUSES:
+        return None
+    raw = (resp.headers.get("Retry-After") or "").strip()
+    if not raw:
+        return None
+    if raw.isdigit():
+        return float(raw)
+    try:
+        when = parsedate_to_datetime(raw)
+    except (TypeError, ValueError):
+        return None
+    if when is None:
+        return None
+    if when.tzinfo is None:  # RFC 9110 dates are GMT; a naive one means UTC
+        when = when.replace(tzinfo=UTC)
+    return max(0.0, (when - datetime.now(UTC)).total_seconds())
+
+
+def gazette_retry_delay(attempt: int, resp: httpx.Response | None) -> float:
+    """Seconds to wait after the failed ``attempt`` (1-based).
+
+    The gazette's own answer beats our guess: a ``Retry-After`` wins over the
+    linear curve, which is guessing at the same question.
+    """
+    hinted = parse_retry_after(resp)
+    if hinted is not None:
+        jittered = hinted * (1.0 + random.random() * GAZETTE_RETRY_AFTER_JITTER)
+    else:
+        jittered = (GAZETTE_RETRY_BACKOFF * attempt) * (
+            1.0 - GAZETTE_JITTER_SPREAD + random.random() * 2 * GAZETTE_JITTER_SPREAD
+        )
+    # Cap *after* jitter — the other order made the cap not a bound at all.
+    return min(jittered, GAZETTE_MAX_DELAY_S)
 
 
 class GazetteFilterIgnored(RuntimeError):
@@ -1183,42 +1262,64 @@ async def zefix_list_municipalities(params: MunicipalitiesInput) -> str:
 # ---------------------------------------------------------------------------
 
 
-async def _gazette_get_json(path: str, params: dict | None = None) -> Any:
-    """GET a gazette JSON endpoint with retry on transient 5xx (502/503/504)."""
+async def _gazette_get(
+    path: str,
+    params: dict | None = None,
+    *,
+    total_budget: float = GAZETTE_TOTAL_BUDGET_S,
+) -> httpx.Response:
+    """GET a gazette endpoint with retry on transient 5xx (502/503/504).
+
+    The shared core of :func:`_gazette_get_json` and :func:`_gazette_get_text`.
+    Both used to carry their own copy of this loop, which meant the retry
+    policy — and now the budget — would have had to be maintained twice.
+
+    ARCH-014: a jittered linear backoff capped at ``GAZETTE_MAX_DELAY_S``, a
+    ``Retry-After`` from the gazette overriding that curve, and
+    ``total_budget`` bounding the whole call.
+    """
+    # Monotonic, so an NTP step cannot hand out or revoke budget.
+    deadline = monotonic() + total_budget
     async with _make_client() as client:
         for attempt in range(1, GAZETTE_MAX_RETRIES + 1):
-            r = await client.get(f"{GAZETTE_BASE}{path}", params=params)
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                break
+            # httpx applies its timeout per operation (connect/read/write/pool)
+            # and the read timeout restarts with every chunk — that bounds each
+            # step, not the call. `asyncio.timeout` is the wall-clock deadline
+            # the budget actually promises.
+            async with asyncio.timeout(remaining):
+                r = await client.get(f"{GAZETTE_BASE}{path}", params=params, timeout=remaining)
             if r.status_code in _TRANSIENT_STATUS and attempt < GAZETTE_MAX_RETRIES:
+                delay = gazette_retry_delay(attempt, r)
+                # A wait that outlasts the budget is a wait for nobody: the
+                # caller has given up by the time it ends.
+                if delay >= deadline - monotonic():
+                    r.raise_for_status()
                 log_event(
                     logging.WARNING,
                     "gazette_retry",
                     path=path,
                     status=r.status_code,
                     attempt=attempt,
+                    delay=round(delay, 2),
                 )
-                await asyncio.sleep(GAZETTE_RETRY_BACKOFF * attempt)
+                await asyncio.sleep(delay)
                 continue
             r.raise_for_status()
-            return r.json()
+            return r
+    raise TimeoutError(f"gazette budget of {total_budget:g}s spent before a usable answer ({path})")
+
+
+async def _gazette_get_json(path: str, params: dict | None = None) -> Any:
+    """GET a gazette JSON endpoint with retry on transient 5xx (502/503/504)."""
+    return (await _gazette_get(path, params)).json()
 
 
 async def _gazette_get_text(path: str, params: dict | None = None) -> str:
     """GET a gazette endpoint returning raw text (XML), with the same retry."""
-    async with _make_client() as client:
-        for attempt in range(1, GAZETTE_MAX_RETRIES + 1):
-            r = await client.get(f"{GAZETTE_BASE}{path}", params=params)
-            if r.status_code in _TRANSIENT_STATUS and attempt < GAZETTE_MAX_RETRIES:
-                log_event(
-                    logging.WARNING,
-                    "gazette_retry",
-                    path=path,
-                    status=r.status_code,
-                    attempt=attempt,
-                )
-                await asyncio.sleep(GAZETTE_RETRY_BACKOFF * attempt)
-                continue
-            r.raise_for_status()
-            return r.text
+    return (await _gazette_get(path, params)).text
 
 
 def _build_gazette_params(raw: dict[str, Any]) -> dict[str, Any]:

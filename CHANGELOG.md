@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Retry-Politik gegenueber dem Amtsblattportal** (ARCH-014): `Retry-After`
+  wird gelesen und schlaegt die lineare Kurve, der Backoff ist gestreut, und ein
+  Gesamtbudget von 25 s begrenzt den ganzen Aufruf.
+
+  `Retry-After` bei 429/503 in beiden Formen der RFC 9110 §10.2.3. Ein
+  unbrauchbarer Header fuehrt zurueck auf die Kurve statt zum Absturz.
+
+  Jitter: `GAZETTE_RETRY_BACKOFF * attempt` war deterministisch, alle Clients
+  retryen im Gleichtakt. Neu [0.5x, 1.5x]; auf einem `Retry-After` einseitig
+  [1.0x, 1.25x]. Gedeckelt bei 20 s **nach** dem Jittern, damit der Deckel eine
+  echte Schranke ist. Das Log-Event `gazette_retry` nennt neu die tatsaechliche
+  Wartezeit.
+
+  Gesamtbudget verankert an `MCP_DEFAULT_TIMEOUT = 30.0` des Python-SDK, per
+  `GAZETTE_TOTAL_BUDGET` konfigurierbar wie die uebrigen Gazette-Knoepfe. Der
+  Request liegt in einer `asyncio.timeout`-Deadline, weil httpx' Timeout pro
+  Operation gilt und den Aufruf nicht begrenzen kann.
+
+### Changed
+
+- **`_gazette_get_json` und `_gazette_get_text` teilen sich einen Retry-Kern.**
+  Beide trugen eine wortgleiche Kopie derselben Schleife; die Retry-Politik —
+  und jetzt auch das Budget — haette an zwei Orten gepflegt werden muessen, und
+  die zweite waere beim naechsten Refactoring die vergessene gewesen. Neu rufen
+  beide `_gazette_get` auf und unterscheiden sich nur noch in `.json()` gegen
+  `.text`.
+
+
 ### Fixed
 
 - **`ruff` mit Obergrenze gepinnt (`>=0.15.22,<0.17`).** ruff ist pre-1.0; seine
