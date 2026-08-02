@@ -81,7 +81,9 @@ REQUEST_TIMEOUT = 15.0
 _DEFAULT_ALLOWED_HOSTS = frozenset({"www.zefix.admin.ch", "amtsblattportal.ch"})
 ALLOWED_HOSTS: frozenset[str] = frozenset(
     h.strip().lower()
-    for h in os.environ.get("MCP_ALLOWED_HOSTS", ",".join(sorted(_DEFAULT_ALLOWED_HOSTS))).split(",")
+    for h in os.environ.get("MCP_ALLOWED_HOSTS", ",".join(sorted(_DEFAULT_ALLOWED_HOSTS))).split(
+        ","
+    )
     if h.strip()
 )
 
@@ -127,16 +129,18 @@ GAZETTE_IGNORED_FILTER_THRESHOLD = 2_000_000
 # `cantons` filter is exactly the person-profiling entry point that Option C
 # moved out to the separate `amtsblatt-mcp`. Keeping them off the allow-list is
 # a fail-closed guarantee: even a future code change cannot smuggle them in.
-ALLOWED_GAZETTE_PARAMS: frozenset[str] = frozenset({
-    "publicationStates",
-    "uids",
-    "rubrics",
-    "subRubrics",
-    "publicationDate.start",
-    "publicationDate.end",
-    "pageRequest.size",
-    "pageRequest.page",
-})
+ALLOWED_GAZETTE_PARAMS: frozenset[str] = frozenset(
+    {
+        "publicationStates",
+        "uids",
+        "rubrics",
+        "subRubrics",
+        "publicationDate.start",
+        "publicationDate.end",
+        "pageRequest.size",
+        "pageRequest.page",
+    }
+)
 
 # Hard page-size cap for every gazette search tool (pageRequest.size).
 GAZETTE_MAX_LIMIT = 100
@@ -158,10 +162,34 @@ class GazetteFilterIgnored(RuntimeError):
 class GazetteInvalidCode(ValueError):
     """Raised when a rubric/subRubric code is not in the taxonomy (Quirk 2)."""
 
+
 CANTON_CODES = [
-    "AG", "AI", "AR", "BE", "BL", "BS", "FR", "GE", "GL", "GR",
-    "JU", "LU", "NE", "NW", "OW", "SG", "SH", "SO", "SZ", "TG",
-    "TI", "UR", "VD", "VS", "ZG", "ZH",
+    "AG",
+    "AI",
+    "AR",
+    "BE",
+    "BL",
+    "BS",
+    "FR",
+    "GE",
+    "GL",
+    "GR",
+    "JU",
+    "LU",
+    "NE",
+    "NW",
+    "OW",
+    "SG",
+    "SH",
+    "SO",
+    "SZ",
+    "TG",
+    "TI",
+    "UR",
+    "VD",
+    "VS",
+    "ZG",
+    "ZH",
 ]
 
 # ---------------------------------------------------------------------------
@@ -200,6 +228,7 @@ BIND_PORT = int(os.environ.get("PORT", "8000"))
 # ---------------------------------------------------------------------------
 # Shared HTTP client
 # ---------------------------------------------------------------------------
+
 
 async def _enforce_egress_allowlist(request: httpx.Request) -> None:
     """httpx event hook: reject requests to hosts outside ALLOWED_HOSTS.
@@ -240,6 +269,7 @@ def _make_client() -> httpx.AsyncClient:
 # ---------------------------------------------------------------------------
 # Error helpers
 # ---------------------------------------------------------------------------
+
 
 def _handle_http_error(e: Exception) -> str:
     """Return an actionable, human-readable error message."""
@@ -283,6 +313,7 @@ def _zefix_error_to_str(data: dict) -> str | None:
 # ---------------------------------------------------------------------------
 # Formatting helpers
 # ---------------------------------------------------------------------------
+
 
 def _uid_format(raw: str) -> str:
     """Ensure UID is in CHE-xxx.xxx.xxx format."""
@@ -339,6 +370,7 @@ def _format_company_detail(firm: dict, legal_forms: list[dict] | None = None) ->
 # ---------------------------------------------------------------------------
 # Pydantic input models
 # ---------------------------------------------------------------------------
+
 
 class SearchType(StrEnum):
     STARTS_WITH = "STARTS_WITH"
@@ -554,6 +586,7 @@ def _reset_legal_forms_cache() -> None:
 # Tool: Search Companies
 # ---------------------------------------------------------------------------
 
+
 @mcp.tool(
     name="zefix_search_companies",
     annotations={
@@ -624,13 +657,17 @@ async def zefix_search_companies(params: CompanySearchInput) -> str:
     summaries = [_format_company_summary(f, legal_forms) for f in firms]
 
     if params.response_format == ResponseFormat.JSON:
-        return json.dumps({
-            "results": summaries,
-            "count": len(summaries),
-            "offset": params.offset,
-            "hasMoreResults": has_more,
-            "totalApproximate": total,
-        }, ensure_ascii=False, indent=2)
+        return json.dumps(
+            {
+                "results": summaries,
+                "count": len(summaries),
+                "offset": params.offset,
+                "hasMoreResults": has_more,
+                "totalApproximate": total,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
 
     # Markdown output
     lines = [
@@ -658,6 +695,7 @@ async def zefix_search_companies(params: CompanySearchInput) -> str:
 # ---------------------------------------------------------------------------
 # Tool: Get Company by EHRAID
 # ---------------------------------------------------------------------------
+
 
 @mcp.tool(
     name="zefix_get_company",
@@ -741,6 +779,7 @@ async def zefix_get_company(params: CompanyByEhraIdInput) -> str:
 # ---------------------------------------------------------------------------
 # Tool: Get Company by UID
 # ---------------------------------------------------------------------------
+
 
 @mcp.tool(
     name="zefix_get_company_by_uid",
@@ -864,6 +903,7 @@ async def zefix_get_company_by_uid(params: CompanyByUidInput) -> str:
 # Tool: Verify Company (quick check)
 # ---------------------------------------------------------------------------
 
+
 @mcp.tool(
     name="zefix_verify_company",
     annotations={
@@ -981,6 +1021,7 @@ async def zefix_verify_company(params: VerifyCompanyInput) -> str:
 # Tool: List Legal Forms
 # ---------------------------------------------------------------------------
 
+
 @mcp.tool(
     name="zefix_list_legal_forms",
     annotations={
@@ -1048,6 +1089,7 @@ async def zefix_list_legal_forms(params: LegalFormsInput) -> str:
 # ---------------------------------------------------------------------------
 # Tool: List Municipalities
 # ---------------------------------------------------------------------------
+
 
 @mcp.tool(
     name="zefix_list_municipalities",
@@ -1139,6 +1181,7 @@ async def zefix_list_municipalities(params: MunicipalitiesInput) -> str:
 # ---------------------------------------------------------------------------
 # Gazette HTTP core (retry on transient 5xx)
 # ---------------------------------------------------------------------------
+
 
 async def _gazette_get_json(path: str, params: dict | None = None) -> Any:
     """GET a gazette JSON endpoint with retry on transient 5xx (502/503/504)."""
@@ -1291,6 +1334,7 @@ async def _validate_rubric_code(code: str, kind: str) -> None:
 # Formatting / parsing helpers
 # ---------------------------------------------------------------------------
 
+
 def _gazette_meta_summary(item: dict) -> dict:
     """Normalise a publication list item (meta only, Quirk 3) into a summary."""
     meta = item.get("meta") if isinstance(item, dict) else None
@@ -1403,6 +1447,7 @@ def _gazette_json(payload: dict, provenance: str) -> str:
 # Gazette input models
 # ---------------------------------------------------------------------------
 
+
 class GazettePublicationsInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
 
@@ -1478,6 +1523,7 @@ class GazetteStatusInput(BaseModel):
 # Tool: gazette_company_publications (the UID join — core feature)
 # ---------------------------------------------------------------------------
 
+
 @mcp.tool(
     name="gazette_company_publications",
     annotations={
@@ -1524,14 +1570,16 @@ async def gazette_company_publications(params: GazettePublicationsInput) -> str:
             await _validate_rubric_code(params.rubric, "rubric")
         if params.sub_rubric:
             await _validate_rubric_code(params.sub_rubric, "subRubric")
-        data = await _gazette_search({
-            "uids": uid,
-            "rubrics": params.rubric,
-            "subRubrics": params.sub_rubric,
-            "publicationDate.start": params.date_start,
-            "publicationDate.end": params.date_end,
-            "pageRequest.size": min(params.limit, GAZETTE_MAX_LIMIT),
-        })
+        data = await _gazette_search(
+            {
+                "uids": uid,
+                "rubrics": params.rubric,
+                "subRubrics": params.sub_rubric,
+                "publicationDate.start": params.date_start,
+                "publicationDate.end": params.date_end,
+                "pageRequest.size": min(params.limit, GAZETTE_MAX_LIMIT),
+            }
+        )
     except Exception as e:
         return _handle_http_error(e)
 
@@ -1570,6 +1618,7 @@ async def gazette_company_publications(params: GazettePublicationsInput) -> str:
 # ---------------------------------------------------------------------------
 # Tool: gazette_get_publication (single publication incl. XML full text)
 # ---------------------------------------------------------------------------
+
 
 @mcp.tool(
     name="gazette_get_publication",
@@ -1661,6 +1710,7 @@ async def gazette_get_publication(params: GazettePublicationInput) -> str:
 # Tool: gazette_source_status (reachability + cache ages)
 # ---------------------------------------------------------------------------
 
+
 async def _probe_endpoint(url: str) -> dict:
     """Lightweight reachability probe: reports reachable/status/latency."""
     start = monotonic()
@@ -1668,9 +1718,17 @@ async def _probe_endpoint(url: str) -> dict:
         async with _make_client() as client:
             r = await client.get(url)
             r.raise_for_status()
-        return {"reachable": True, "status": r.status_code, "latency_ms": int((monotonic() - start) * 1000)}
+        return {
+            "reachable": True,
+            "status": r.status_code,
+            "latency_ms": int((monotonic() - start) * 1000),
+        }
     except Exception as e:
-        return {"reachable": False, "error": type(e).__name__, "latency_ms": int((monotonic() - start) * 1000)}
+        return {
+            "reachable": False,
+            "error": type(e).__name__,
+            "latency_ms": int((monotonic() - start) * 1000),
+        }
 
 
 def _cache_age(cache: tuple[float, Any] | None) -> str:

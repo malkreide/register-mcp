@@ -45,7 +45,9 @@ def log_event(level: int, msg: str, **fields: Any) -> None:
     logger.log(level, msg, extra={"extra_fields": fields})
 
 
-def logged_tool(tool_name: str) -> Callable[[Callable[..., Awaitable[str]]], Callable[..., Awaitable[str]]]:
+def logged_tool(
+    tool_name: str,
+) -> Callable[[Callable[..., Awaitable[str]]], Callable[..., Awaitable[str]]]:
     """Decorator: emits a single INFO event per tool call with latency + status."""
 
     def wrap(fn: Callable[..., Awaitable[str]]) -> Callable[..., Awaitable[str]]:

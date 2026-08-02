@@ -83,10 +83,20 @@ def _pub_item(pub_id: str, rubric: str, sub: str, date: str, title: str) -> dict
 
 MOCK_SEARCH = {
     "content": [
-        _pub_item("1611620c-ff25-4043-bf0d-395b0352d35b", "HR", "HR03", "2026-07-07",
-                  "Löschung E-smog-free AG in Liquidation, Hünenberg"),
-        _pub_item("68a62f77-8c13-4325-8e32-e3b11b33aa09", "LS", "LS01", "2024-11-11",
-                  "Liquidationsschuldenruf E-smog-free AG in Liquidation"),
+        _pub_item(
+            "1611620c-ff25-4043-bf0d-395b0352d35b",
+            "HR",
+            "HR03",
+            "2026-07-07",
+            "Löschung E-smog-free AG in Liquidation, Hünenberg",
+        ),
+        _pub_item(
+            "68a62f77-8c13-4325-8e32-e3b11b33aa09",
+            "LS",
+            "LS01",
+            "2024-11-11",
+            "Liquidationsschuldenruf E-smog-free AG in Liquidation",
+        ),
     ],
     "total": 4,
     "pageRequest": {"page": 0, "size": 50},
@@ -169,14 +179,13 @@ def _seed_rubrics():
 
 
 def _mock_rubrics():
-    respx.get(f"{GAZETTE_BASE}/rubrics").mock(
-        return_value=httpx.Response(200, json=MOCK_RUBRICS)
-    )
+    respx.get(f"{GAZETTE_BASE}/rubrics").mock(return_value=httpx.Response(200, json=MOCK_RUBRICS))
 
 
 # ---------------------------------------------------------------------------
 # Happy paths
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_company_publications_happy_path():
@@ -185,9 +194,7 @@ async def test_company_publications_happy_path():
         respx.get(f"{GAZETTE_BASE}/publications").mock(
             return_value=httpx.Response(200, json=MOCK_SEARCH)
         )
-        result = await gazette_company_publications(
-            GazettePublicationsInput(uid="CHE-116.115.052")
-        )
+        result = await gazette_company_publications(GazettePublicationsInput(uid="CHE-116.115.052"))
     assert "CHE-116.115.052" in result
     assert "E-smog-free" in result
     # newest first
@@ -216,9 +223,7 @@ async def test_company_publications_json_envelope():
 @pytest.mark.asyncio
 async def test_company_publications_rejects_bad_uid():
     # Regex guard fires BEFORE any HTTP call — 2 digits is not a valid UID.
-    result = await gazette_company_publications(
-        GazettePublicationsInput(uid="CHE-1.2.3")
-    )
+    result = await gazette_company_publications(GazettePublicationsInput(uid="CHE-1.2.3"))
     assert "Ungültige UID" in result
 
 
@@ -290,6 +295,7 @@ async def test_source_status_reports_both():
 # Resilience: retry, timeout
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_retry_on_503_then_success(monkeypatch):
     monkeypatch.setattr(server, "GAZETTE_RETRY_BACKOFF", 0.0)
@@ -301,9 +307,7 @@ async def test_retry_on_503_then_success(monkeypatch):
                 httpx.Response(200, json=MOCK_SEARCH),
             ]
         )
-        result = await gazette_company_publications(
-            GazettePublicationsInput(uid="CHE-116.115.052")
-        )
+        result = await gazette_company_publications(GazettePublicationsInput(uid="CHE-116.115.052"))
     assert route.call_count == 2
     assert "E-smog-free" in result
 
@@ -312,12 +316,8 @@ async def test_retry_on_503_then_success(monkeypatch):
 async def test_timeout_is_clean_error():
     _seed_rubrics()
     with respx.mock:
-        respx.get(f"{GAZETTE_BASE}/publications").mock(
-            side_effect=httpx.ConnectTimeout("boom")
-        )
-        result = await gazette_company_publications(
-            GazettePublicationsInput(uid="CHE-116.115.052")
-        )
+        respx.get(f"{GAZETTE_BASE}/publications").mock(side_effect=httpx.ConnectTimeout("boom"))
+        result = await gazette_company_publications(GazettePublicationsInput(uid="CHE-116.115.052"))
     assert isinstance(result, str)
     assert "Timeout" in result
     assert "Traceback" not in result
@@ -327,18 +327,15 @@ async def test_timeout_is_clean_error():
 async def test_network_error_is_clean_error():
     _seed_rubrics()
     with respx.mock:
-        respx.get(f"{GAZETTE_BASE}/publications").mock(
-            side_effect=httpx.ConnectError("no route")
-        )
-        result = await gazette_company_publications(
-            GazettePublicationsInput(uid="CHE-116.115.052")
-        )
+        respx.get(f"{GAZETTE_BASE}/publications").mock(side_effect=httpx.ConnectError("no route"))
+        result = await gazette_company_publications(GazettePublicationsInput(uid="CHE-116.115.052"))
     assert "Verbindungsfehler" in result
 
 
 # ---------------------------------------------------------------------------
 # Quirk 1 — Silent Ignore
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_quirk1_filter_ignored_is_rejected():
@@ -347,9 +344,7 @@ async def test_quirk1_filter_ignored_is_rejected():
         respx.get(f"{GAZETTE_BASE}/publications").mock(
             return_value=httpx.Response(200, json=MOCK_SEARCH_CORPUS)
         )
-        result = await gazette_company_publications(
-            GazettePublicationsInput(uid="CHE-116.115.052")
-        )
+        result = await gazette_company_publications(GazettePublicationsInput(uid="CHE-116.115.052"))
     assert "ignoriert" in result
     assert "nicht vertrauenswürdig" in result
 
@@ -357,6 +352,7 @@ async def test_quirk1_filter_ignored_is_rejected():
 # ---------------------------------------------------------------------------
 # Quirk 2 — Silent Empty (invalid rubric, validated before any call)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_quirk2_invalid_rubric_suggests_no_http():
@@ -393,6 +389,7 @@ async def test_quirk2_invalid_subrubric():
 # Quirk 3 — defensive XML parsing
 # ---------------------------------------------------------------------------
 
+
 def test_quirk3_unknown_rubric_xml_falls_back():
     parsed = _parse_publication_xml(MOCK_XML_UNKNOWN)
     # mandatory publicationText survived
@@ -426,6 +423,7 @@ async def test_get_publication_malformed_xml():
 # Egress — the new host is allowed; redirects to unlisted hosts are blocked
 # ---------------------------------------------------------------------------
 
+
 def test_amtsblattportal_in_default_allowlist():
     assert "amtsblattportal.ch" in ALLOWED_HOSTS
 
@@ -452,14 +450,13 @@ async def test_gazette_redirect_to_evil_blocked():
 # Live tests (excluded from CI with -m "not live")
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.live
 @pytest.mark.asyncio
 async def test_live_company_publications_join():
     """Live: the UID join — CHE-116.115.052 has publications."""
     _reset_rubrics_cache()
-    result = await gazette_company_publications(
-        GazettePublicationsInput(uid="CHE-116.115.052")
-    )
+    result = await gazette_company_publications(GazettePublicationsInput(uid="CHE-116.115.052"))
     assert "CHE-116.115.052" in result
 
 

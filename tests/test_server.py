@@ -30,10 +30,30 @@ from register_mcp.server import (
 # ---------------------------------------------------------------------------
 
 MOCK_LEGAL_FORMS = [
-    {"id": 3, "name": {"de": "Aktiengesellschaft", "en": "Corporation"}, "kurzform": {"de": "AG"}, "sort": 300},
-    {"id": 4, "name": {"de": "Gesellschaft mit beschränkter Haftung", "en": "LLC"}, "kurzform": {"de": "GmbH"}, "sort": 400},
-    {"id": 7, "name": {"de": "Stiftung", "en": "Foundation"}, "kurzform": {"de": "Stiftung"}, "sort": 700},
-    {"id": 8, "name": {"de": "Öffentlich-rechtliche Körperschaft", "en": "Public entity"}, "kurzform": {"de": "Körperschaft"}, "sort": 800},
+    {
+        "id": 3,
+        "name": {"de": "Aktiengesellschaft", "en": "Corporation"},
+        "kurzform": {"de": "AG"},
+        "sort": 300,
+    },
+    {
+        "id": 4,
+        "name": {"de": "Gesellschaft mit beschränkter Haftung", "en": "LLC"},
+        "kurzform": {"de": "GmbH"},
+        "sort": 400,
+    },
+    {
+        "id": 7,
+        "name": {"de": "Stiftung", "en": "Foundation"},
+        "kurzform": {"de": "Stiftung"},
+        "sort": 700,
+    },
+    {
+        "id": 8,
+        "name": {"de": "Öffentlich-rechtliche Körperschaft", "en": "Public entity"},
+        "kurzform": {"de": "Körperschaft"},
+        "sort": 800,
+    },
 ]
 
 MOCK_FIRM_SEARCH_RESULT = {
@@ -90,13 +110,20 @@ MOCK_COMMUNITIES = [
 ]
 
 MOCK_NO_RESULT = {
-    "error": {"code": "API.ZFR.SEARCH.NORESULT", "title": "NORESULT", "message": None, "suggestion": "", "internal_message": None}
+    "error": {
+        "code": "API.ZFR.SEARCH.NORESULT",
+        "title": "NORESULT",
+        "message": None,
+        "suggestion": "",
+        "internal_message": None,
+    }
 }
 
 
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
+
 
 def _mock_legal_forms(route_mock):
     """Helper to add legal forms mock to respx router."""
@@ -108,6 +135,7 @@ def _mock_legal_forms(route_mock):
 # ---------------------------------------------------------------------------
 # zefix_search_companies
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_search_companies_by_name_markdown():
@@ -150,9 +178,7 @@ async def test_search_companies_no_results():
         respx.post(f"{ZEFIX_BASE}/firm/search.json").mock(
             return_value=httpx.Response(200, json=MOCK_NO_RESULT)
         )
-        result = await zefix_search_companies(
-            CompanySearchInput(name="XxXxNichtExistentXxXx")
-        )
+        result = await zefix_search_companies(CompanySearchInput(name="XxXxNichtExistentXxXx"))
     assert "Keine Ergebnisse" in result
 
 
@@ -172,9 +198,7 @@ async def test_search_companies_invalid_canton():
     # der deutsch ist und die Kantonsliste enthaelt.
     with pytest.raises(ValidationError) as excinfo:
         CompanySearchInput(name="Test", canton="XX")
-    assert [(e["type"], e["loc"]) for e in excinfo.value.errors()] == [
-        ("value_error", ("canton",))
-    ]
+    assert [(e["type"], e["loc"]) for e in excinfo.value.errors()] == [("value_error", ("canton",))]
 
 
 @pytest.mark.asyncio
@@ -193,6 +217,7 @@ async def test_search_companies_with_legal_form_filter():
 # ---------------------------------------------------------------------------
 # zefix_get_company
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_get_company_markdown():
@@ -228,9 +253,7 @@ async def test_get_company_json():
 async def test_get_company_not_found():
     with respx.mock:
         _mock_legal_forms(respx)
-        respx.get(f"{ZEFIX_BASE}/firm/999999.json").mock(
-            return_value=httpx.Response(404)
-        )
+        respx.get(f"{ZEFIX_BASE}/firm/999999.json").mock(return_value=httpx.Response(404))
         result = await zefix_get_company(CompanyByEhraIdInput(ehraid=999999))
     assert "Fehler 404" in result
 
@@ -238,6 +261,7 @@ async def test_get_company_not_found():
 # ---------------------------------------------------------------------------
 # zefix_get_company_by_uid
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_get_company_by_uid_formatted():
@@ -249,9 +273,7 @@ async def test_get_company_by_uid_formatted():
         respx.get(f"{ZEFIX_BASE}/firm/123456.json").mock(
             return_value=httpx.Response(200, json=MOCK_FIRM_DETAIL)
         )
-        result = await zefix_get_company_by_uid(
-            CompanyByUidInput(uid="CHE-123.456.789")
-        )
+        result = await zefix_get_company_by_uid(CompanyByUidInput(uid="CHE-123.456.789"))
     assert "Lehrmittelverlag Zürich AG" in result
     assert "CHE-123.456.789" in result
 
@@ -266,9 +288,7 @@ async def test_get_company_by_uid_unformatted():
         respx.get(f"{ZEFIX_BASE}/firm/123456.json").mock(
             return_value=httpx.Response(200, json=MOCK_FIRM_DETAIL)
         )
-        result = await zefix_get_company_by_uid(
-            CompanyByUidInput(uid="CHE123456789")
-        )
+        result = await zefix_get_company_by_uid(CompanyByUidInput(uid="CHE123456789"))
     assert "Lehrmittelverlag Zürich AG" in result
 
 
@@ -283,6 +303,7 @@ async def test_get_company_by_uid_invalid():
 # zefix_verify_company
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_verify_company_active():
     with respx.mock:
@@ -290,9 +311,7 @@ async def test_verify_company_active():
         respx.post(f"{ZEFIX_BASE}/firm/search.json").mock(
             return_value=httpx.Response(200, json=MOCK_FIRM_SEARCH_RESULT)
         )
-        result = await zefix_verify_company(
-            VerifyCompanyInput(name="Lehrmittelverlag Zürich AG")
-        )
+        result = await zefix_verify_company(VerifyCompanyInput(name="Lehrmittelverlag Zürich AG"))
     assert "✅" in result
     assert "Aktive Einträge" in result
     assert "Lehrmittelverlag Zürich AG" in result
@@ -305,9 +324,7 @@ async def test_verify_company_not_found():
         respx.post(f"{ZEFIX_BASE}/firm/search.json").mock(
             return_value=httpx.Response(200, json=MOCK_NO_RESULT)
         )
-        result = await zefix_verify_company(
-            VerifyCompanyInput(name="FirmaXxNichtExistentXx")
-        )
+        result = await zefix_verify_company(VerifyCompanyInput(name="FirmaXxNichtExistentXx"))
     assert "Nicht im Handelsregister gefunden" in result
 
 
@@ -331,9 +348,7 @@ async def test_verify_company_dissolved():
         respx.post(f"{ZEFIX_BASE}/firm/search.json").mock(
             return_value=httpx.Response(200, json=dissolved_result)
         )
-        result = await zefix_verify_company(
-            VerifyCompanyInput(name="Gelöschte Firma AG")
-        )
+        result = await zefix_verify_company(VerifyCompanyInput(name="Gelöschte Firma AG"))
     assert "❌" in result
     assert "Keine aktiven Einträge" in result
 
@@ -341,6 +356,7 @@ async def test_verify_company_dissolved():
 # ---------------------------------------------------------------------------
 # zefix_list_legal_forms
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_list_legal_forms_markdown():
@@ -380,6 +396,7 @@ async def test_list_legal_forms_english():
 # ---------------------------------------------------------------------------
 # zefix_list_municipalities
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_list_municipalities_all():
@@ -422,13 +439,12 @@ async def test_list_municipalities_json():
 # Live tests (excluded from CI with -m "not live")
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.live
 @pytest.mark.asyncio
 async def test_live_search_migros():
     """Live: Search for Migros in Zefix."""
-    result = await zefix_search_companies(
-        CompanySearchInput(name="Migros", max_results=3)
-    )
+    result = await zefix_search_companies(CompanySearchInput(name="Migros", max_results=3))
     assert "Migros" in result
     assert "CHE-" in result
 
@@ -447,7 +463,5 @@ async def test_live_verify_ewz():
 @pytest.mark.asyncio
 async def test_live_get_company_by_uid_ewz():
     """Live: Lookup EWZ by known UID."""
-    result = await zefix_get_company_by_uid(
-        CompanyByUidInput(uid="CHE-108.954.978")
-    )
+    result = await zefix_get_company_by_uid(CompanyByUidInput(uid="CHE-108.954.978"))
     assert "Elektrizitätswerk" in result

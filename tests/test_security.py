@@ -25,6 +25,7 @@ from register_mcp.server import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 async def _ok(request):
     return JSONResponse({"ok": True})
 
@@ -42,6 +43,7 @@ MOCK_LEGAL_FORMS = [{"id": 3, "name": {"de": "AG"}, "kurzform": {"de": "AG"}, "s
 # ---------------------------------------------------------------------------
 # SEC-AUTH-SSE
 # ---------------------------------------------------------------------------
+
 
 class TestBearerAuth:
     def test_rejects_request_without_header(self):
@@ -69,6 +71,7 @@ class TestBearerAuth:
 # ---------------------------------------------------------------------------
 # SEC-023
 # ---------------------------------------------------------------------------
+
 
 class TestRateLimit:
     def test_blocks_after_limit_exceeded(self):
@@ -98,6 +101,7 @@ class TestRateLimit:
         assert client.get("/", headers=headers).status_code == 200
         assert client.get("/", headers=headers).status_code == 429
         import time
+
         time.sleep(0.25)
         assert client.get("/", headers=headers).status_code == 200
 
@@ -111,6 +115,7 @@ class TestRateLimit:
 # ---------------------------------------------------------------------------
 # ARCH-CACHE
 # ---------------------------------------------------------------------------
+
 
 class TestLegalFormsCache:
     @pytest.fixture(autouse=True)
