@@ -154,6 +154,12 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 # Transient upstream errors that warrant a retry.
 _TRANSIENT_STATUS = frozenset({502, 503, 504})
+
+# 429 belongs here too. It was excluded while `parse_retry_after` already read
+# the `Retry-After` a 429 carries — so the value was parsed and then never
+# used, and a rate-limited call failed outright instead of coming back when
+# the gazette said to. A 429 is the one status that names its own retry time.
+_RETRYABLE_STATUS = _TRANSIENT_STATUS | {429}
 GAZETTE_MAX_RETRIES = int(os.environ.get("GAZETTE_MAX_RETRIES", "3"))
 GAZETTE_RETRY_BACKOFF = float(os.environ.get("GAZETTE_RETRY_BACKOFF", "0.5"))
 
@@ -174,9 +180,9 @@ GAZETTE_JITTER_SPREAD = 0.5  # linear delays land in [0.5x, 1.5x]
 # back, so later is polite and earlier ignores the value we just read.
 GAZETTE_RETRY_AFTER_JITTER = 0.25  # lands in [1.0x, 1.25x]
 
-# Statuses carrying a meaningful `Retry-After` (RFC 9110 §10.2.3). 503 is
-# already in `_TRANSIENT_STATUS`; 429 is not retried here and is listed only so
-# a rate-limit answer is still read correctly if it ever reaches this path.
+# Statuses carrying a meaningful `Retry-After` (RFC 9110 §10.2.3). Both are in
+# `_RETRYABLE_STATUS`, so a hinted delay now actually reaches a wait — which is
+# what a source that answers "not now, come back at T" is entitled to expect.
 GAZETTE_RETRY_AFTER_STATUSES = frozenset({429, 503})
 
 # Ceiling on the *whole* call — every attempt, every wait, together.
@@ -190,6 +196,12 @@ GAZETTE_RETRY_AFTER_STATUSES = frozenset({429, 503})
 # Anchored on the Python MCP SDK's `MCP_DEFAULT_TIMEOUT = 30.0`. 25s leaves
 # headroom for MCP framing and the tool layer.
 GAZETTE_TOTAL_BUDGET_S = float(os.environ.get("GAZETTE_TOTAL_BUDGET", "25.0"))
+
+# Backoff waits go through this alias so a test can skip or fake them by
+# patching *this module attribute*. Patching `asyncio.sleep` itself reaches
+# every module in the process, and a test that uses `asyncio.sleep(0)` to yield
+# to the event loop then stops testing anything while still passing.
+_sleep = asyncio.sleep
 
 
 def parse_retry_after(resp: httpx.Response | None) -> float | None:
@@ -1268,47 +1280,82 @@ async def _gazette_get(
     *,
     total_budget: float = GAZETTE_TOTAL_BUDGET_S,
 ) -> httpx.Response:
-    """GET a gazette endpoint with retry on transient 5xx (502/503/504).
+    """GET a gazette endpoint, retrying what is worth retrying (ARCH-014).
 
     The shared core of :func:`_gazette_get_json` and :func:`_gazette_get_text`.
     Both used to carry their own copy of this loop, which meant the retry
     policy — and now the budget — would have had to be maintained twice.
 
-    ARCH-014: a jittered linear backoff capped at ``GAZETTE_MAX_DELAY_S``, a
-    ``Retry-After`` from the gazette overriding that curve, and
-    ``total_budget`` bounding the whole call.
+    Retried: transient 5xx, 429, and **network errors and timeouts**. The last
+    group is the one an outage actually produces: a refused connection or a
+    read that never completes used to end the call on the first failure, while
+    a 503 from the very same outage got three attempts. That asymmetry made the
+    retry look present and leave the common case uncovered.
+
+    Not retried: any other 4xx — a statement about the request, not about the
+    moment, and it reads the same on the third attempt.
+
+    How fast and how long: a jittered linear backoff capped at
+    ``GAZETTE_MAX_DELAY_S``, a ``Retry-After`` from the gazette overriding that
+    curve, and ``total_budget`` bounding the whole call.
     """
     # Monotonic, so an NTP step cannot hand out or revoke budget.
     deadline = monotonic() + total_budget
+    last_error: Exception | None = None
+
+    async def _wait(attempt: int, resp: httpx.Response | None, why: object) -> bool:
+        """Sleep before the next attempt; False if the budget forbids it."""
+        delay = gazette_retry_delay(attempt, resp)
+        # A wait that outlasts the budget is a wait for nobody: the caller has
+        # given up by the time it ends.
+        if delay >= deadline - monotonic():
+            return False
+        log_event(
+            logging.WARNING,
+            "gazette_retry",
+            path=path,
+            reason=why,
+            attempt=attempt,
+            delay=round(delay, 2),
+        )
+        await _sleep(delay)
+        return True
+
     async with _make_client() as client:
         for attempt in range(1, GAZETTE_MAX_RETRIES + 1):
             remaining = deadline - monotonic()
             if remaining <= 0:
                 break
-            # httpx applies its timeout per operation (connect/read/write/pool)
-            # and the read timeout restarts with every chunk — that bounds each
-            # step, not the call. `asyncio.timeout` is the wall-clock deadline
-            # the budget actually promises.
-            async with asyncio.timeout(remaining):
-                r = await client.get(f"{GAZETTE_BASE}{path}", params=params, timeout=remaining)
-            if r.status_code in _TRANSIENT_STATUS and attempt < GAZETTE_MAX_RETRIES:
-                delay = gazette_retry_delay(attempt, r)
-                # A wait that outlasts the budget is a wait for nobody: the
-                # caller has given up by the time it ends.
-                if delay >= deadline - monotonic():
-                    r.raise_for_status()
-                log_event(
-                    logging.WARNING,
-                    "gazette_retry",
-                    path=path,
-                    status=r.status_code,
-                    attempt=attempt,
-                    delay=round(delay, 2),
-                )
-                await asyncio.sleep(delay)
+            try:
+                # httpx applies its timeout per operation (connect/read/write/
+                # pool) and the read timeout restarts with every chunk — that
+                # bounds each step, not the call. `asyncio.timeout` is the
+                # wall-clock deadline the budget actually promises.
+                async with asyncio.timeout(remaining):
+                    r = await client.get(f"{GAZETTE_BASE}{path}", params=params, timeout=remaining)
+            except TimeoutError as exc:
+                # The deadline fired, so the budget is spent by definition —
+                # say that rather than surfacing a bare TimeoutError whose
+                # message names neither the budget nor the endpoint.
+                raise TimeoutError(
+                    f"gazette budget of {total_budget:g}s spent before a usable answer ({path})"
+                ) from exc
+            except httpx.RequestError as exc:
+                last_error = exc
+                if attempt >= GAZETTE_MAX_RETRIES:
+                    break
+                if not await _wait(attempt, None, type(exc).__name__):
+                    break
                 continue
+
+            if r.status_code in _RETRYABLE_STATUS and attempt < GAZETTE_MAX_RETRIES:
+                if await _wait(attempt, r, r.status_code):
+                    continue
             r.raise_for_status()
             return r
+
+    if last_error is not None:
+        raise last_error
     raise TimeoutError(f"gazette budget of {total_budget:g}s spent before a usable answer ({path})")
 
 

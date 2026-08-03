@@ -101,7 +101,10 @@ def fake_clock(monkeypatch):
         now["t"] += seconds
 
     monkeypatch.setattr(s, "monotonic", lambda: now["t"])
-    monkeypatch.setattr(s.asyncio, "sleep", _sleep)
+    # Patch the module attribute, not ``asyncio.sleep``: the latter reaches
+    # every import in the process, and a test that uses ``asyncio.sleep(0)`` to
+    # yield to the event loop then stops testing anything while still passing.
+    monkeypatch.setattr(s, "_sleep", _sleep)
     return slept
 
 
@@ -179,3 +182,108 @@ def test_default_budget_stays_under_the_mcp_client_default():
     from mcp.shared._httpx_utils import MCP_DEFAULT_TIMEOUT
 
     assert s.GAZETTE_TOTAL_BUDGET_S < MCP_DEFAULT_TIMEOUT
+
+
+# --- Netzwerkfehler und Timeouts (ARCH-014, Nachzug) ------------------------
+#
+# Bisher deckte die Schleife nur Status-Codes ab. Ein 503 aus einem Ausfall
+# bekam drei Versuche, eine abgelehnte Verbindung aus *demselben* Ausfall
+# keinen einzigen — der Retry sah vorhanden aus und liess den haeufigsten Fall
+# ungedeckt. Genau diese Form von Ausfall hat am 1. August in swiss-efv-mcp
+# vier Live-Tests gekippt.
+
+
+class TestNetworkErrorsAreRetried:
+    @respx.mock
+    async def test_a_connect_error_is_retried(self, fake_clock):
+        route = respx.get(URL).mock(
+            side_effect=[httpx.ConnectError(""), httpx.Response(200, json={"ok": 1})]
+        )
+        assert await s._gazette_get_json(PATH) == {"ok": 1}
+        assert route.call_count == 2
+
+    @respx.mock
+    async def test_a_read_timeout_is_retried(self, fake_clock):
+        route = respx.get(URL).mock(
+            side_effect=[httpx.ReadTimeout(""), httpx.Response(200, json={"ok": 1})]
+        )
+        await s._gazette_get_json(PATH)
+        assert route.call_count == 2
+
+    @respx.mock
+    async def test_network_errors_exhaust_the_attempts_and_surface_the_cause(self, fake_clock):
+        """Der letzte Fehler wird durchgereicht, nicht verpackt (OBS-007).
+
+        ``httpx.ConnectError`` traegt ein leeres ``str()`` — der Typ ist das
+        Einzige, was die Meldung noch traegt, und er muss deshalb ueberleben.
+        """
+        route = respx.get(URL).mock(side_effect=httpx.ConnectError(""))
+        with pytest.raises(httpx.ConnectError):
+            await s._gazette_get_json(PATH)
+        assert route.call_count == s.GAZETTE_MAX_RETRIES
+
+    @respx.mock
+    async def test_a_network_error_waits_between_attempts(self, fake_clock):
+        """Ohne Wartezeit waeren drei Versuche bloss drei sofortige Fehlschlaege."""
+        respx.get(URL).mock(side_effect=[httpx.ConnectError(""), httpx.Response(200, json={})])
+        await s._gazette_get_json(PATH)
+        assert len(fake_clock) == 1
+        assert fake_clock[0] > 0.0
+
+
+# --- 429 ---------------------------------------------------------------------
+
+
+class TestRateLimitIsRetried:
+    @respx.mock
+    async def test_a_429_is_retried(self, fake_clock):
+        """Ein 429 nennt seine eigene Wiederkehrzeit — der einzige Status, der das tut."""
+        route = respx.get(URL).mock(side_effect=[_resp(429, "3"), httpx.Response(200, json={})])
+        await s._gazette_get_json(PATH)
+        assert route.call_count == 2
+
+    @respx.mock
+    async def test_the_retry_after_of_a_429_reaches_the_sleep(self, fake_clock):
+        """Vorher wurde der Header gelesen und dann nie benutzt.
+
+        ``parse_retry_after`` kannte 429 bereits, ``_TRANSIENT_STATUS`` nicht —
+        der geparste Wert lief also ins Leere und der Aufruf scheiterte sofort.
+        """
+        respx.get(URL).mock(side_effect=[_resp(429, "6"), httpx.Response(200, json={})])
+        await s._gazette_get_json(PATH)
+        assert len(fake_clock) == 1
+        assert 6.0 <= fake_clock[0] <= 6.0 * (1 + s.GAZETTE_RETRY_AFTER_JITTER)
+
+    @respx.mock
+    async def test_a_400_is_still_not_retried(self, fake_clock):
+        """Die Erweiterung darf 4xx nicht pauschal wiederholbar machen."""
+        route = respx.get(URL).mock(return_value=httpx.Response(400))
+        with pytest.raises(httpx.HTTPStatusError):
+            await s._gazette_get_json(PATH)
+        assert route.call_count == 1
+        assert fake_clock == []
+
+
+# --- Budget bindet auch den Netzwerkpfad ------------------------------------
+
+
+@respx.mock
+async def test_a_network_error_does_not_outlive_the_budget(fake_clock, monkeypatch):
+    """Eine Wartezeit, die das Budget ueberdauert, wird nicht angetreten."""
+    monkeypatch.setattr(s, "GAZETTE_RETRY_BACKOFF", 3600.0)
+    monkeypatch.setattr(s, "GAZETTE_MAX_DELAY_S", 3600.0)
+    route = respx.get(URL).mock(side_effect=httpx.ConnectError(""))
+    with pytest.raises(httpx.ConnectError):
+        await s._gazette_get(PATH, total_budget=1.0)
+    assert route.call_count == 1, "nach dem ersten Fehler blieb keine Zeit mehr"
+    # Der Aufrufzaehler allein trennt die Entwuerfe nicht: Ohne den Check wird
+    # die 3600-s-Wartezeit *angetreten*, die Uhr springt ueber die Deadline und
+    # die Schleife bricht danach genauso nach einem Request ab. Beobachtbar ist
+    # nur, ob ueberhaupt gewartet wurde.
+    assert fake_clock == [], "eine Wartezeit jenseits des Budgets wurde angetreten"
+
+
+async def test_an_exhausted_budget_names_the_budget_and_the_endpoint():
+    """OBS-007: Ein nackter ``TimeoutError`` nennt weder Budget noch Pfad."""
+    with pytest.raises(TimeoutError, match=r"budget of .*publications"):
+        await s._gazette_get(PATH, total_budget=-1.0)
