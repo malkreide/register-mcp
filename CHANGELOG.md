@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Behoben
+
+- **Netzwerkfehler und Timeouts wurden nie wiederholt.** Die Schleife deckte
+  nur Status-Codes ab: Ein 503 aus einem Ausfall bekam drei Versuche, eine
+  abgelehnte Verbindung oder ein haengender Read aus *demselben* Ausfall keinen
+  einzigen. Damit sah der Retry vorhanden aus und liess den haeufigsten Fall
+  ungedeckt — genau diese Form von Ausfall hat am 1. August in `swiss-efv-mcp`
+  vier Live-Tests gekippt und die ganze ARCH-014-Runde ausgeloest.
+
+  `httpx.RequestError` wird jetzt wie ein transienter Status behandelt:
+  dieselbe Versuchszahl, dieselbe gestreute Wartezeit, dasselbe Budget. Der
+  letzte Fehler wird unverpackt durchgereicht, damit sein Typ die Meldung
+  traegt — `httpx.ConnectError` hat ein leeres `str()`, der Typ ist dort das
+  Einzige, was uebrig bleibt (OBS-007).
+
+- **Ein 429 wurde gelesen und dann ignoriert.** `parse_retry_after` kannte 429
+  bereits, `_TRANSIENT_STATUS` nicht — der geparste `Retry-After` lief also ins
+  Leere und der Aufruf scheiterte sofort. Ein 429 ist der einzige Status, der
+  seine eigene Wiederkehrzeit nennt; ihn nicht zu wiederholen heisst, eine
+  ausdrueckliche Angabe der Quelle einzuholen und wegzuwerfen. 4xx im Uebrigen
+  scheitert weiterhin sofort.
+
+- **Ein aufgebrauchtes Budget meldete sich als nackter `TimeoutError`.** Feuert
+  die `asyncio.timeout`-Deadline, ist das Budget definitionsgemaess weg — die
+  Meldung nennt jetzt Budget und Endpunkt statt gar nichts, mit dem
+  urspruenglichen Timeout als `__cause__`.
+
+- **Die `fake_clock`-Fixture patchte `asyncio.sleep` global.** Das trifft jeden
+  Import im Prozess; ein Test, der `asyncio.sleep(0)` benutzt, um dem
+  Event-Loop das Wort zu geben, haette danach still nichts mehr geprueft. Der
+  Backoff laeuft jetzt ueber den Modul-Alias `server._sleep`.
+
 ### Added
 
 - **Retry-Politik gegenueber dem Amtsblattportal** (ARCH-014): `Retry-After`
