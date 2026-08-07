@@ -113,14 +113,31 @@ ATTRIBUTION_GAZETTE = (
 # Gazette (amtsblattportal) constants & guardrails
 # ---------------------------------------------------------------------------
 
-# Total published corpus as verified on 2026-07-18. Used only for the
-# plausibility check below — an exact match is not required.
-GAZETTE_CORPUS_SIZE = 2_790_323
-# If a *filtered* request still reports more than this many records, the
-# upstream silently ignored our filter (Quirk 1) and the result is not
-# trustworthy. Chosen well below the full corpus but far above any plausible
-# single-filter result.
-GAZETTE_IGNORED_FILTER_THRESHOLD = 2_000_000
+# Total published corpus, aufgezeichnet am 2026-08-07 von der Live-Quelle
+# (siehe tests/fixtures/gazette_corpus_total.json und PROVENANCE.md).
+GAZETTE_CORPUS_SIZE = 2_809_194
+# Anteil des Korpus, ab dem ein GEFILTERTES Ergebnis als «Filter wurde
+# ignoriert» gilt (Quirk 1).
+#
+# WARUM ANTEILIG UND NICHT MEHR ABSOLUT. Hier stand `2_000_000`, begruendet mit
+# «weit ueber jedem plausiblen Einzelfilter-Ergebnis». Das war falsch, und zwar
+# fuer die wichtigste Rubrik dieses Servers: Gemessen am 2026-08-07 liefert
+# `rubrics=HR` (Handelsregister) **2_279_587** Treffer — 81 % des Korpus und
+# damit ueber der Schwelle. Eine voellig korrekte HR-Suche brach also mit
+# «Filter wurde vom Upstream ignoriert» ab, obwohl der Filter gewirkt hatte.
+# Zum Vergleich: `SB` 22_872, `LS` 70_330.
+#
+# Aufgefallen ist das erst, als die Fixtures aufgezeichnet statt ausgedacht
+# wurden. Die alte Fixture setzte den Korpus auf 2_790_323 und liess jede
+# gefilterte Suche unter 2 Mio. bleiben — Produktivcode und Mock trugen
+# dieselbe Annahme, also konnte kein Test sie widerlegen.
+#
+# Der Pruefgegenstand ist nicht «viele Treffer», sondern «der GANZE Bestand».
+# Deshalb jetzt relativ zum Korpus. Waechst der Bestand und bleibt die Konstante
+# stehen, wird die Pruefung unschaerfer statt falscher — sie verfehlt dann
+# hoechstens einen echten Fall, statt einen gesunden abzuweisen.
+GAZETTE_IGNORED_FILTER_RATIO = 0.95
+GAZETTE_IGNORED_FILTER_THRESHOLD = int(GAZETTE_CORPUS_SIZE * GAZETTE_IGNORED_FILTER_RATIO)
 
 # Silent Ignore: unbekannte Parameter -> voller Korpus statt 400. Vgl. CHANGELOG.
 # Query parameters are built EXCLUSIVELY from this allow-list. No user input is

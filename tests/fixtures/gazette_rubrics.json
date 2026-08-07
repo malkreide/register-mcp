@@ -1,0 +1,2604 @@
+[
+  {
+    "code": "HR",
+    "id": "2a855b75-f5e8-11e7-acde-0050569d7719",
+    "name": {
+      "code": "rubric.name.2a855b75-f5e8-11e7-acde-0050569d7719",
+      "en": "Commercial Registry entries",
+      "de": "Handelsregistereintragungen",
+      "fr": "Inscriptions au registre du commerce",
+      "it": "Iscrizione al registro di commercio",
+      "version": 0
+    },
+    "active": true,
+    "tenantId": "shab",
+    "allowSecondaryTenants": true,
+    "searchCriteria": [
+      {
+        "attributeName": "content.commonsNew.company.legalForm",
+        "type": "SELECTION",
+        "labels": {
+          "code": "search.criterion.labels.18c137dd-b02e-11e8-a5c0-0050569d3c43",
+          "en": "Undertaking: Legal form",
+          "de": "Unternehmen: Rechtsform",
+          "fr": "Entreprise: Forme juridique",
+          "it": "Impresa: Forma giuridica",
+          "version": 0
+        },
+        "selectionValues": [
+          {
+            "value": "0220",
+            "labels": {
+              "code": "selection.value.labels.18c1851c-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Federal Administration",
+              "de": "Verwaltung Bund",
+              "fr": "Administration de la Confédération",
+              "it": "Amministrazione federale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0117",
+            "labels": {
+              "code": "selection.value.labels.18c18522-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Public institution",
+              "de": "Institut des öffentichen Rechts",
+              "fr": "Institut de droit public",
+              "it": "Istituto di diritto pubblico",
+              "version": 0
+            }
+          },
+          {
+            "value": "0118",
+            "labels": {
+              "code": "selection.value.labels.18c18514-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Nichtkaufmännische Prokuren",
+              "de": "Nichtkaufmännische Prokuren",
+              "fr": "Procurations non commerciales",
+              "it": "Procure non commerciali",
+              "version": 0
+            }
+          },
+          {
+            "value": "0115",
+            "labels": {
+              "code": "selection.value.labels.18c1851a-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Investment company with variable capital (SICAV)",
+              "de": "Investmentgesellschaft mit variablem Kapital (SICAV)",
+              "fr": "Société d’investissement à capital variable (SICAV)",
+              "it": "Capitolo Società di investimento a capitale variabile (SICAV)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0116",
+            "labels": {
+              "code": "selection.value.labels.18c18515-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Investment company with fixed capital (SICAF)",
+              "de": "Investmentgesellschaft mit festem Kapital (SICAF)",
+              "fr": "Société d’investissement à capital fixe (SICAF)",
+              "it": "Società di investimento a capitale fisso (SICAF)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0234",
+            "labels": {
+              "code": "selection.value.labels.18c18506-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Corporate public company",
+              "de": "Öffentliches Unternehmen einer Körperschaft",
+              "fr": "Entreprise publique d'une corporation",
+              "it": "Azienda pubblica di un ente",
+              "version": 0
+            }
+          },
+          {
+            "value": "0113",
+            "labels": {
+              "code": "selection.value.labels.18c18508-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Special legal form",
+              "de": "Besondere Rechtsform",
+              "fr": "Forme juridique particulière",
+              "it": "Forma giuridica particolare",
+              "version": 0
+            }
+          },
+          {
+            "value": "0114",
+            "labels": {
+              "code": "selection.value.labels.18c1851e-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Limited partnership for collective investment (KGK)",
+              "de": "Kommanditgesellschaft für kollektive Kapitalanlagen (KGK)",
+              "fr": "Société en commandite de placements collectifs (SCPC)",
+              "it": "Società in accomandita per investimenti collettivi di capitale (SACol)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0312",
+            "labels": {
+              "code": "selection.value.labels.18c18521-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Foreign branch not listed in the Commercial Register",
+              "de": "Ausländische Niederlassung nicht im Handelsregister eingetragen",
+              "fr": "Succursale étrangère non inscrite au registre du commerce",
+              "it": "Sede straniera iscritta nel registro di commercio",
+              "version": 0
+            }
+          },
+          {
+            "value": "0111",
+            "labels": {
+              "code": "selection.value.labels.18c1851b-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Foreign branch listed in the Commercial Register",
+              "de": "Ausländische Niederlassung im Handelsregister eingetragen",
+              "fr": "Succursale étrangère inscrite au registre du commerce",
+              "it": "Sede straniera iscritta nel registro di commercio",
+              "version": 0
+            }
+          },
+          {
+            "value": "0232",
+            "labels": {
+              "code": "selection.value.labels.18c18523-b02e-11e8-a5c0-0050569d3c43",
+              "en": "District public company",
+              "de": "Öffentliches Unternehmen des Bezirks",
+              "fr": "Entreprise publique de district",
+              "it": "Azienda pubblica del distretto",
+              "version": 0
+            }
+          },
+          {
+            "value": "0233",
+            "labels": {
+              "code": "selection.value.labels.18c18512-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Communal public company",
+              "de": "Öffentliches Unternehmen der Gemeinde",
+              "fr": "Entreprise publique communale",
+              "it": "Azienda pubblica del Comune",
+              "version": 0
+            }
+          },
+          {
+            "value": "0119",
+            "labels": {
+              "code": "selection.value.labels.18c1850a-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Haupt von Gemeinschaften",
+              "de": "Haupt von Gemeinschaften",
+              "fr": "Représentant d’indivision",
+              "it": "Rappresentante d'indivisioni",
+              "version": 0
+            }
+          },
+          {
+            "value": "0230",
+            "labels": {
+              "code": "selection.value.labels.18c1850e-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Federal public company",
+              "de": "Öffentliches Unternehmen des Bundes",
+              "fr": "Entreprise publique fédérale",
+              "it": "Azienda pubblica della Confederazione",
+              "version": 0
+            }
+          },
+          {
+            "value": "0231",
+            "labels": {
+              "code": "selection.value.labels.18c15ef5-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Cantonal public company",
+              "de": "Öffentliches Unternehmen des Kantons",
+              "fr": "Entreprise publique cantonale",
+              "it": "Azienda pubblica del Cantone",
+              "version": 0
+            }
+          },
+          {
+            "value": "0110",
+            "labels": {
+              "code": "selection.value.labels.18c1850c-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Foundation",
+              "de": "Stiftung",
+              "fr": "Fondation",
+              "it": "Fondazione",
+              "version": 0
+            }
+          },
+          {
+            "value": "0151",
+            "labels": {
+              "code": "selection.value.labels.18c1850b-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Swiss branch listed in the Commercial Register",
+              "de": "Schweizerische Zweigniederlassung im Handelsregister eingetragen",
+              "fr": "Succursale suisse enregistrée au registre de commerce",
+              "it": "Succursale svizzera iscritta nel registro di commercio",
+              "version": 0
+            }
+          },
+          {
+            "value": "0106",
+            "labels": {
+              "code": "selection.value.labels.18c18513-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Company limited by shares",
+              "de": "Aktiengesellschaft",
+              "fr": "Société anonyme",
+              "it": "Società anonima",
+              "version": 0
+            }
+          },
+          {
+            "value": "0107",
+            "labels": {
+              "code": "selection.value.labels.18c18519-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Limited liability company (GmbH/Sàrl/S.a.g.l.)",
+              "de": "Gesellschaft mit beschränkter Haftung (GmbH)",
+              "fr": "Société à responsabilité limitée (SARL)",
+              "it": "Società a garanzia limitata (Sagl)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0327",
+            "labels": {
+              "code": "selection.value.labels.18c18520-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Foreign public company",
+              "de": "Ausländisches öffentliches Unternehmen",
+              "fr": "Entreprise publique étrangère",
+              "it": "Azienda pubblica straniera",
+              "version": 0
+            }
+          },
+          {
+            "value": "0302",
+            "labels": {
+              "code": "selection.value.labels.18c1850f-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Simple company",
+              "de": "Einfache Gesellschaft",
+              "fr": "Société simple",
+              "it": "Società semplice",
+              "version": 0
+            }
+          },
+          {
+            "value": "0104",
+            "labels": {
+              "code": "selection.value.labels.18c18510-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Limited partnership",
+              "de": "Kommanditgesellschaft",
+              "fr": "Société en commandite",
+              "it": "Società in accomandita",
+              "version": 0
+            }
+          },
+          {
+            "value": "0105",
+            "labels": {
+              "code": "selection.value.labels.18c18511-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Partnership limited by shares",
+              "de": "Kommanditaktiengesellschaft",
+              "fr": "Société en commandite par action",
+              "it": "Società in accomandita per azioni",
+              "version": 0
+            }
+          },
+          {
+            "value": "0223",
+            "labels": {
+              "code": "selection.value.labels.18c1851f-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Communal Administration",
+              "de": "Verwaltung Gemeinde",
+              "fr": "Administration communale",
+              "it": "Amministrazione comunale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0103",
+            "labels": {
+              "code": "selection.value.labels.18c15ef4-b02e-11e8-a5c0-0050569d3c43",
+              "en": "General partnership",
+              "de": "Kollektivgesellschaft",
+              "fr": "Société en nom collectif",
+              "it": "Società in nome collettivo",
+              "version": 0
+            }
+          },
+          {
+            "value": "0224",
+            "labels": {
+              "code": "selection.value.labels.18c18518-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Public corporation administration",
+              "de": "Öffentlich-rechtliche Körperschaft Verwaltung",
+              "fr": "Corporation de droit public",
+              "it": "Amministrazione di un ente di diritto pubblico",
+              "version": 0
+            }
+          },
+          {
+            "value": "0221",
+            "labels": {
+              "code": "selection.value.labels.18c18509-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Cantonal Administration",
+              "de": "Verwaltung Kanton",
+              "fr": "Administration du canton",
+              "it": "Amministrazione cantonale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0441",
+            "labels": {
+              "code": "selection.value.labels.18c18525-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Foreign company",
+              "de": "Ausländische Unternehmen",
+              "fr": "Entreprise étrangère",
+              "it": "Impresa estera",
+              "version": 0
+            }
+          },
+          {
+            "value": "0101",
+            "labels": {
+              "code": "selection.value.labels.18c18517-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Individually owned company",
+              "de": "Einzelunternehmen",
+              "fr": "Entreprise individuelle",
+              "it": "Ditte individuali",
+              "version": 0
+            }
+          },
+          {
+            "value": "0222",
+            "labels": {
+              "code": "selection.value.labels.18c1851d-b02e-11e8-a5c0-0050569d3c43",
+              "en": "District Administration",
+              "de": "Verwaltung Bezirk",
+              "fr": "Administration du district",
+              "it": "Amministrazione distrettuale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0328",
+            "labels": {
+              "code": "selection.value.labels.18c18507-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Foreign public administration body (e.g. Embassy)",
+              "de": "Ausländische öffentliche Verwaltung (z.B. Botschaft)",
+              "fr": "Administration publique étrangère (p. ex. ambassade)",
+              "it": "Amministrazione pubblica estera (ad es. un'ambasciata)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0108",
+            "labels": {
+              "code": "selection.value.labels.18c18516-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Cooperative",
+              "de": "Genossenschaft",
+              "fr": "Société coopérative",
+              "it": "Società cooperativa",
+              "version": 0
+            }
+          },
+          {
+            "value": "0109",
+            "labels": {
+              "code": "selection.value.labels.18c1850d-b02e-11e8-a5c0-0050569d3c43",
+              "en": "Association",
+              "de": "Verein",
+              "fr": "Association",
+              "it": "Associazione",
+              "version": 0
+            }
+          },
+          {
+            "value": "0329",
+            "labels": {
+              "code": "selection.value.labels.18c18524-b02e-11e8-a5c0-0050569d3c43",
+              "en": "International organisation",
+              "de": "Internationale Organisation",
+              "fr": "Organisation internationale",
+              "it": "Organizzazione internazionale",
+              "version": 0
+            }
+          }
+        ]
+      },
+      {
+        "attributeName": "content.commonsActual.company.legalForm",
+        "type": "SELECTION",
+        "labels": {
+          "code": "search.criterion.labels.dbd8edc8-6bff-11e9-bdcc-0050569db5fb",
+          "en": "Deleted Undertaking: Legal form",
+          "de": "Gelöschtes Unternehmen: Rechtsform",
+          "fr": "Entreprise radiée : Forme juridique",
+          "it": "Impresa cancellata: Forma giuridica",
+          "version": 0
+        },
+        "selectionValues": [
+          {
+            "value": "0220",
+            "labels": {
+              "code": "selection.value.labels.dbd8eddc-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Federal Administration",
+              "de": "Verwaltung Bund",
+              "fr": "Administration de la Confédération",
+              "it": "Amministrazione federale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0117",
+            "labels": {
+              "code": "selection.value.labels.dbd8edd4-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Public institution",
+              "de": "Institut des öffentichen Rechts",
+              "fr": "Institut de droit public",
+              "it": "Istituto di diritto pubblico",
+              "version": 0
+            }
+          },
+          {
+            "value": "0118",
+            "labels": {
+              "code": "selection.value.labels.dbd8edcb-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Nichtkaufmännische Prokuren",
+              "de": "Nichtkaufmännische Prokuren",
+              "fr": "Procurations non commerciales",
+              "it": "Procure non commerciali",
+              "version": 0
+            }
+          },
+          {
+            "value": "0115",
+            "labels": {
+              "code": "selection.value.labels.dbd8ede4-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Investment company with variable capital (SICAV)",
+              "de": "Investmentgesellschaft mit variablem Kapital (SICAV)",
+              "fr": "Société d’investissement à capital variable (SICAV)",
+              "it": "Capitolo Società di investimento a capitale variabile (SICAV)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0116",
+            "labels": {
+              "code": "selection.value.labels.dbd8edd3-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Investment company with fixed capital (SICAF)",
+              "de": "Investmentgesellschaft mit festem Kapital (SICAF)",
+              "fr": "Société d’investissement à capital fixe (SICAF)",
+              "it": "Società di investimento a capitale fisso (SICAF)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0234",
+            "labels": {
+              "code": "selection.value.labels.dbd8edd6-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Corporate public company",
+              "de": "Öffentliches Unternehmen einer Körperschaft",
+              "fr": "Entreprise publique d'une corporation",
+              "it": "Azienda pubblica di un ente",
+              "version": 0
+            }
+          },
+          {
+            "value": "0113",
+            "labels": {
+              "code": "selection.value.labels.dbd8edd8-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Special legal form",
+              "de": "Besondere Rechtsform",
+              "fr": "Forme juridique particulière",
+              "it": "Forma giuridica particolare",
+              "version": 0
+            }
+          },
+          {
+            "value": "0114",
+            "labels": {
+              "code": "selection.value.labels.dbd8edda-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Limited partnership for collective investment (KGK)",
+              "de": "Kommanditgesellschaft für kollektive Kapitalanlagen (KGK)",
+              "fr": "Société en commandite de placements collectifs (SCPC)",
+              "it": "Società in accomandita per investimenti collettivi di capitale (SACol)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0312",
+            "labels": {
+              "code": "selection.value.labels.dbd8ede6-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Foreign branch not listed in the Commercial Register",
+              "de": "Ausländische Niederlassung nicht im Handelsregister eingetragen",
+              "fr": "Succursale étrangère non inscrite au registre du commerce",
+              "it": "Sede straniera iscritta nel registro di commercio",
+              "version": 0
+            }
+          },
+          {
+            "value": "0111",
+            "labels": {
+              "code": "selection.value.labels.dbd8edd7-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Foreign branch listed in the Commercial Register",
+              "de": "Ausländische Niederlassung im Handelsregister eingetragen",
+              "fr": "Succursale étrangère inscrite au registre du commerce",
+              "it": "Sede straniera iscritta nel registro di commercio",
+              "version": 0
+            }
+          },
+          {
+            "value": "0232",
+            "labels": {
+              "code": "selection.value.labels.dbd8ede5-6bff-11e9-bdcc-0050569db5fb",
+              "en": "District public company",
+              "de": "Öffentliches Unternehmen des Bezirks",
+              "fr": "Entreprise publique de district",
+              "it": "Azienda pubblica del distretto",
+              "version": 0
+            }
+          },
+          {
+            "value": "0233",
+            "labels": {
+              "code": "selection.value.labels.dbd8edd9-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Communal public company",
+              "de": "Öffentliches Unternehmen der Gemeinde",
+              "fr": "Entreprise publique communale",
+              "it": "Azienda pubblica del Comune",
+              "version": 0
+            }
+          },
+          {
+            "value": "0119",
+            "labels": {
+              "code": "selection.value.labels.dbd8eddb-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Haupt von Gemeinschaften",
+              "de": "Haupt von Gemeinschaften",
+              "fr": "Représentant d’indivision",
+              "it": "Rappresentante d'indivisioni",
+              "version": 0
+            }
+          },
+          {
+            "value": "0230",
+            "labels": {
+              "code": "selection.value.labels.dbd8ede3-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Federal public company",
+              "de": "Öffentliches Unternehmen des Bundes",
+              "fr": "Entreprise publique fédérale",
+              "it": "Azienda pubblica della Confederazione",
+              "version": 0
+            }
+          },
+          {
+            "value": "0231",
+            "labels": {
+              "code": "selection.value.labels.dbd8edd5-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Cantonal public company",
+              "de": "Öffentliches Unternehmen des Kantons",
+              "fr": "Entreprise publique cantonale",
+              "it": "Azienda pubblica del Cantone",
+              "version": 0
+            }
+          },
+          {
+            "value": "0110",
+            "labels": {
+              "code": "selection.value.labels.dbd8ede7-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Foundation",
+              "de": "Stiftung",
+              "fr": "Fondation",
+              "it": "Fondazione",
+              "version": 0
+            }
+          },
+          {
+            "value": "0151",
+            "labels": {
+              "code": "selection.value.labels.dbd8edd2-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Swiss branch listed in the Commercial Register",
+              "de": "Schweizerische Zweigniederlassung im Handelsregister eingetragen",
+              "fr": "Succursale suisse enregistrée au registre de commerce",
+              "it": "Succursale svizzera iscritta nel registro di commercio",
+              "version": 0
+            }
+          },
+          {
+            "value": "0106",
+            "labels": {
+              "code": "selection.value.labels.dbd8eddf-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Company limited by shares",
+              "de": "Aktiengesellschaft",
+              "fr": "Société anonyme",
+              "it": "Società anonima",
+              "version": 0
+            }
+          },
+          {
+            "value": "0107",
+            "labels": {
+              "code": "selection.value.labels.dbd8ede8-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Limited liability company (GmbH/Sàrl/S.a.g.l.)",
+              "de": "Gesellschaft mit beschränkter Haftung (GmbH)",
+              "fr": "Société à responsabilité limitée (SARL)",
+              "it": "Società a garanzia limitata (Sagl)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0327",
+            "labels": {
+              "code": "selection.value.labels.dbd8edea-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Foreign public company",
+              "de": "Ausländisches öffentliches Unternehmen",
+              "fr": "Entreprise publique étrangère",
+              "it": "Azienda pubblica straniera",
+              "version": 0
+            }
+          },
+          {
+            "value": "0104",
+            "labels": {
+              "code": "selection.value.labels.dbd8edcc-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Limited partnership",
+              "de": "Kommanditgesellschaft",
+              "fr": "Société en commandite",
+              "it": "Società in accomandita",
+              "version": 0
+            }
+          },
+          {
+            "value": "0302",
+            "labels": {
+              "code": "selection.value.labels.dbd8eddd-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Simple company",
+              "de": "Einfache Gesellschaft",
+              "fr": "Société simple",
+              "it": "Società semplice",
+              "version": 0
+            }
+          },
+          {
+            "value": "0105",
+            "labels": {
+              "code": "selection.value.labels.dbd8edca-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Partnership limited by shares",
+              "de": "Kommanditaktiengesellschaft",
+              "fr": "Société en commandite par action",
+              "it": "Società in accomandita per azioni",
+              "version": 0
+            }
+          },
+          {
+            "value": "0223",
+            "labels": {
+              "code": "selection.value.labels.dbd8edd1-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Communal Administration",
+              "de": "Verwaltung Gemeinde",
+              "fr": "Administration communale",
+              "it": "Amministrazione comunale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0224",
+            "labels": {
+              "code": "selection.value.labels.dbd8edcd-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Public corporation administration",
+              "de": "Öffentlich-rechtliche Körperschaft Verwaltung",
+              "fr": "Corporation de droit public",
+              "it": "Amministrazione di un ente di diritto pubblico",
+              "version": 0
+            }
+          },
+          {
+            "value": "0103",
+            "labels": {
+              "code": "selection.value.labels.dbd8ede1-6bff-11e9-bdcc-0050569db5fb",
+              "en": "General partnership",
+              "de": "Kollektivgesellschaft",
+              "fr": "Société en nom collectif",
+              "it": "Società in nome collettivo",
+              "version": 0
+            }
+          },
+          {
+            "value": "0221",
+            "labels": {
+              "code": "selection.value.labels.dbd8edce-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Cantonal Administration",
+              "de": "Verwaltung Kanton",
+              "fr": "Administration du canton",
+              "it": "Amministrazione cantonale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0441",
+            "labels": {
+              "code": "selection.value.labels.dbd8edde-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Foreign company",
+              "de": "Ausländische Unternehmen",
+              "fr": "Entreprise étrangère",
+              "it": "Impresa estera",
+              "version": 0
+            }
+          },
+          {
+            "value": "0101",
+            "labels": {
+              "code": "selection.value.labels.dbd8ede0-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Individually owned company",
+              "de": "Einzelunternehmen",
+              "fr": "Entreprise individuelle",
+              "it": "Ditte individuali",
+              "version": 0
+            }
+          },
+          {
+            "value": "0222",
+            "labels": {
+              "code": "selection.value.labels.dbd8ede9-6bff-11e9-bdcc-0050569db5fb",
+              "en": "District Administration",
+              "de": "Verwaltung Bezirk",
+              "fr": "Administration du district",
+              "it": "Amministrazione distrettuale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0108",
+            "labels": {
+              "code": "selection.value.labels.dbd8edcf-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Cooperative",
+              "de": "Genossenschaft",
+              "fr": "Société coopérative",
+              "it": "Società cooperativa",
+              "version": 0
+            }
+          },
+          {
+            "value": "0328",
+            "labels": {
+              "code": "selection.value.labels.dbd8ede2-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Foreign public administration body (e.g. Embassy)",
+              "de": "Ausländische öffentliche Verwaltung (z.B. Botschaft)",
+              "fr": "Administration publique étrangère (p. ex. ambassade)",
+              "it": "Amministrazione pubblica estera (ad es. un'ambasciata)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0109",
+            "labels": {
+              "code": "selection.value.labels.dbd8edc9-6bff-11e9-bdcc-0050569db5fb",
+              "en": "Association",
+              "de": "Verein",
+              "fr": "Association",
+              "it": "Associazione",
+              "version": 0
+            }
+          },
+          {
+            "value": "0329",
+            "labels": {
+              "code": "selection.value.labels.dbd8edd0-6bff-11e9-bdcc-0050569db5fb",
+              "en": "International organisation",
+              "de": "Internationale Organisation",
+              "fr": "Organisation internationale",
+              "it": "Organizzazione internazionale",
+              "version": 0
+            }
+          }
+        ]
+      }
+    ],
+    "helpText": {
+      "code": "rubric.help.text.2a855b75-f5e8-11e7-acde-0050569d7719",
+      "en": "Commercial Register entries (new undertakings, changes and deletions) are published in the Swiss Official Gazette of Commerce (SOGC) and in certain cantonal Official Gazettes. From a legal standpoint, information published in the SOGC always prevails. Administered by the cantons, the Commercial Register is a database which provides publicly accessible and transparent information on the legal status and circumstances of registered undertakings. The Federal Commercial Registry Office (FCRO) is the supreme supervisory authority for the Commercial Register and oversees content published in the SOGC. It is also in charge of ZEFIX, the online and publicly accessible Central Business Names Index (www.zefix.ch).",
+      "de": "Handelsregistereintragungen (Neugründungen, Mutationen und Löschungen) werden im SHAB und teilweise in kantonalen Amtsblättern publiziert. Rechtlich massgebend ist immer die SHAB-Publikation. Das Handelsregister ist eine von den Kantonen verwaltete öffentliche Datenbank und macht die rechtlichen Verhältnisse von Gesellschaften öffentlich und damit auch transparent. Verantwortlich für die Oberaufsicht des Handelsregisters und die Publikation im SHAB ist das eidgenössische Handelsregisteramt, welches ein öffentlich einsehbares Zentralregister führt (www.zefix.ch).",
+      "fr": "Les inscriptions au registre du commerce (créations d'entreprise, mutations et radiations) sont publiées dans la FOSC et, pour partie, dans des feuilles officielles cantonales. La publication dans la FOSC fait toujours juridiquement foi. Géré par les cantons, le registre du commerce est une banque de données ouverte qui présente la situation juridique des entreprises de manière publique et donc transparente. La haute surveillance du Registre du commerce et de la publication dans la FOSC incombe à l'Office fédéral du registre du commerce (OFRC), qui tient un registre central accessible au public (www.zefix.ch).",
+      "it": "Le iscrizioni al registro di commercio (fondazioni di nuove imprese, mutazioni, cancellazioni) vengono pubblicate sul FUSC e in parte anche su fogli ufficiali cantonali. Fa sempre fede la pubblicazione sul FUSC. Il registro di commercio è una banca dati gestita dai Cantoni che rende pubblici e quindi trasparenti i rapporti tra società. Il responsabile della supervisione del registro di commercio e della pubblicazione sul FUSC è l'Ufficio federale del registro di commercio, che tiene un registro centrale pubblico (www.zefix.ch).",
+      "version": 5
+    },
+    "sortOrder": 100000,
+    "allowedSecondaryTenants": [
+      "kabsh",
+      "kabti",
+      "kabsz",
+      "kabnw",
+      "kabow",
+      "kabvs",
+      "kabzg",
+      "kabar"
+    ],
+    "subRubrics": [
+      {
+        "id": "2a855b76-f5e8-11e7-acde-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.2a855b76-f5e8-11e7-acde-0050569d7719",
+          "en": "New entry",
+          "de": "Neueintrag",
+          "fr": "Nouvelle inscription",
+          "it": "Nuove registrazione",
+          "version": 3
+        },
+        "code": "HR01",
+        "active": true,
+        "parent": "2a855b75-f5e8-11e7-acde-0050569d7719",
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "2a855b77-f5e8-11e7-acde-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.2a855b77-f5e8-11e7-acde-0050569d7719",
+          "en": "Change",
+          "de": "Mutation",
+          "fr": "Mutation",
+          "it": "Cambiamenti",
+          "version": 2
+        },
+        "code": "HR02",
+        "active": true,
+        "parent": "2a855b75-f5e8-11e7-acde-0050569d7719",
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "2a855b78-f5e8-11e7-acde-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.2a855b78-f5e8-11e7-acde-0050569d7719",
+          "en": "Deletion",
+          "de": "Löschung",
+          "fr": "Annulation",
+          "it": "Cancellazione",
+          "version": 3
+        },
+        "code": "HR03",
+        "active": true,
+        "parent": "2a855b75-f5e8-11e7-acde-0050569d7719",
+        "hasFollowUpPublicationTypes": false
+      }
+    ]
+  },
+  {
+    "code": "LS",
+    "id": "2ab32279-f5e8-11e7-acde-0050569d7719",
+    "name": {
+      "code": "rubric.name.2ab32279-f5e8-11e7-acde-0050569d7719",
+      "en": "Calls to creditors following liquidation",
+      "de": "Liquidationsschuldenrufe",
+      "fr": "Appels aux créanciers suite à la liquidation",
+      "it": "Liquidazioni e grida ai creditori",
+      "version": 1
+    },
+    "active": true,
+    "tenantId": "shab",
+    "allowSecondaryTenants": false,
+    "searchCriteria": [
+      {
+        "attributeName": "content.dissolved.companies.company.legalForm",
+        "type": "SELECTION",
+        "labels": {
+          "code": "search.criterion.labels.929f7ccd-b02e-11e8-a5c1-0050569de354",
+          "en": "null: Legal form",
+          "de": "null: Rechtsform",
+          "fr": "null: Forme juridique",
+          "it": "null: Forma giuridica",
+          "version": 0
+        },
+        "selectionValues": [
+          {
+            "value": "0220",
+            "labels": {
+              "code": "selection.value.labels.929fcb0c-b02e-11e8-a5c1-0050569de354",
+              "en": "Federal Administration",
+              "de": "Verwaltung Bund",
+              "fr": "Administration de la Confédération",
+              "it": "Amministrazione federale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0117",
+            "labels": {
+              "code": "selection.value.labels.929fcaff-b02e-11e8-a5c1-0050569de354",
+              "en": "Public institution",
+              "de": "Institut des öffentichen Rechts",
+              "fr": "Institut de droit public",
+              "it": "Istituto di diritto pubblico",
+              "version": 0
+            }
+          },
+          {
+            "value": "0118",
+            "labels": {
+              "code": "selection.value.labels.929fcb03-b02e-11e8-a5c1-0050569de354",
+              "en": "Nichtkaufmännische Prokuren",
+              "de": "Nichtkaufmännische Prokuren",
+              "fr": "Procurations non commerciales",
+              "it": "Procure non commerciali",
+              "version": 0
+            }
+          },
+          {
+            "value": "0115",
+            "labels": {
+              "code": "selection.value.labels.929fcb04-b02e-11e8-a5c1-0050569de354",
+              "en": "Investment company with variable capital (SICAV)",
+              "de": "Investmentgesellschaft mit variablem Kapital (SICAV)",
+              "fr": "Société d’investissement à capital variable (SICAV)",
+              "it": "Capitolo Società di investimento a capitale variabile (SICAV)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0116",
+            "labels": {
+              "code": "selection.value.labels.929fcaf9-b02e-11e8-a5c1-0050569de354",
+              "en": "Investment company with fixed capital (SICAF)",
+              "de": "Investmentgesellschaft mit festem Kapital (SICAF)",
+              "fr": "Société d’investissement à capital fixe (SICAF)",
+              "it": "Società di investimento a capitale fisso (SICAF)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0234",
+            "labels": {
+              "code": "selection.value.labels.929fcb09-b02e-11e8-a5c1-0050569de354",
+              "en": "Corporate public company",
+              "de": "Öffentliches Unternehmen einer Körperschaft",
+              "fr": "Entreprise publique d'une corporation",
+              "it": "Azienda pubblica di un ente",
+              "version": 0
+            }
+          },
+          {
+            "value": "0113",
+            "labels": {
+              "code": "selection.value.labels.929fcb0e-b02e-11e8-a5c1-0050569de354",
+              "en": "Special legal form",
+              "de": "Besondere Rechtsform",
+              "fr": "Forme juridique particulière",
+              "it": "Forma giuridica particolare",
+              "version": 0
+            }
+          },
+          {
+            "value": "0114",
+            "labels": {
+              "code": "selection.value.labels.929fcafb-b02e-11e8-a5c1-0050569de354",
+              "en": "Limited partnership for collective investment (KGK)",
+              "de": "Kommanditgesellschaft für kollektive Kapitalanlagen (KGK)",
+              "fr": "Société en commandite de placements collectifs (SCPC)",
+              "it": "Società in accomandita per investimenti collettivi di capitale (SACol)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0312",
+            "labels": {
+              "code": "selection.value.labels.929fcafc-b02e-11e8-a5c1-0050569de354",
+              "en": "Foreign branch not listed in the Commercial Register",
+              "de": "Ausländische Niederlassung nicht im Handelsregister eingetragen",
+              "fr": "Succursale étrangère non inscrite au registre du commerce",
+              "it": "Sede straniera iscritta nel registro di commercio",
+              "version": 0
+            }
+          },
+          {
+            "value": "0111",
+            "labels": {
+              "code": "selection.value.labels.929fcaee-b02e-11e8-a5c1-0050569de354",
+              "en": "Foreign branch listed in the Commercial Register",
+              "de": "Ausländische Niederlassung im Handelsregister eingetragen",
+              "fr": "Succursale étrangère inscrite au registre du commerce",
+              "it": "Sede straniera iscritta nel registro di commercio",
+              "version": 0
+            }
+          },
+          {
+            "value": "0232",
+            "labels": {
+              "code": "selection.value.labels.929fcaf1-b02e-11e8-a5c1-0050569de354",
+              "en": "District public company",
+              "de": "Öffentliches Unternehmen des Bezirks",
+              "fr": "Entreprise publique de district",
+              "it": "Azienda pubblica del distretto",
+              "version": 0
+            }
+          },
+          {
+            "value": "0233",
+            "labels": {
+              "code": "selection.value.labels.929fcaf8-b02e-11e8-a5c1-0050569de354",
+              "en": "Communal public company",
+              "de": "Öffentliches Unternehmen der Gemeinde",
+              "fr": "Entreprise publique communale",
+              "it": "Azienda pubblica del Comune",
+              "version": 0
+            }
+          },
+          {
+            "value": "0119",
+            "labels": {
+              "code": "selection.value.labels.929fcb0d-b02e-11e8-a5c1-0050569de354",
+              "en": "Haupt von Gemeinschaften",
+              "de": "Haupt von Gemeinschaften",
+              "fr": "Représentant d’indivision",
+              "it": "Rappresentante d'indivisioni",
+              "version": 0
+            }
+          },
+          {
+            "value": "0230",
+            "labels": {
+              "code": "selection.value.labels.929fcb08-b02e-11e8-a5c1-0050569de354",
+              "en": "Federal public company",
+              "de": "Öffentliches Unternehmen des Bundes",
+              "fr": "Entreprise publique fédérale",
+              "it": "Azienda pubblica della Confederazione",
+              "version": 0
+            }
+          },
+          {
+            "value": "0110",
+            "labels": {
+              "code": "selection.value.labels.929fcb00-b02e-11e8-a5c1-0050569de354",
+              "en": "Foundation",
+              "de": "Stiftung",
+              "fr": "Fondation",
+              "it": "Fondazione",
+              "version": 0
+            }
+          },
+          {
+            "value": "0231",
+            "labels": {
+              "code": "selection.value.labels.929fcb02-b02e-11e8-a5c1-0050569de354",
+              "en": "Cantonal public company",
+              "de": "Öffentliches Unternehmen des Kantons",
+              "fr": "Entreprise publique cantonale",
+              "it": "Azienda pubblica del Cantone",
+              "version": 0
+            }
+          },
+          {
+            "value": "0151",
+            "labels": {
+              "code": "selection.value.labels.929fcaf7-b02e-11e8-a5c1-0050569de354",
+              "en": "Swiss branch listed in the Commercial Register",
+              "de": "Schweizerische Zweigniederlassung im Handelsregister eingetragen",
+              "fr": "Succursale suisse enregistrée au registre de commerce",
+              "it": "Succursale svizzera iscritta nel registro di commercio",
+              "version": 0
+            }
+          },
+          {
+            "value": "0106",
+            "labels": {
+              "code": "selection.value.labels.929fcb01-b02e-11e8-a5c1-0050569de354",
+              "en": "Company limited by shares",
+              "de": "Aktiengesellschaft",
+              "fr": "Société anonyme",
+              "it": "Società anonima",
+              "version": 0
+            }
+          },
+          {
+            "value": "0327",
+            "labels": {
+              "code": "selection.value.labels.929fcaf0-b02e-11e8-a5c1-0050569de354",
+              "en": "Foreign public company",
+              "de": "Ausländisches öffentliches Unternehmen",
+              "fr": "Entreprise publique étrangère",
+              "it": "Azienda pubblica straniera",
+              "version": 0
+            }
+          },
+          {
+            "value": "0107",
+            "labels": {
+              "code": "selection.value.labels.929fcb05-b02e-11e8-a5c1-0050569de354",
+              "en": "Limited liability company (GmbH/Sàrl/S.a.g.l.)",
+              "de": "Gesellschaft mit beschränkter Haftung (GmbH)",
+              "fr": "Société à responsabilité limitée (SARL)",
+              "it": "Società a garanzia limitata (Sagl)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0302",
+            "labels": {
+              "code": "selection.value.labels.929fcafa-b02e-11e8-a5c1-0050569de354",
+              "en": "Simple company",
+              "de": "Einfache Gesellschaft",
+              "fr": "Société simple",
+              "it": "Società semplice",
+              "version": 0
+            }
+          },
+          {
+            "value": "0104",
+            "labels": {
+              "code": "selection.value.labels.929fcb0f-b02e-11e8-a5c1-0050569de354",
+              "en": "Limited partnership",
+              "de": "Kommanditgesellschaft",
+              "fr": "Société en commandite",
+              "it": "Società in accomandita",
+              "version": 0
+            }
+          },
+          {
+            "value": "0105",
+            "labels": {
+              "code": "selection.value.labels.929fcaf6-b02e-11e8-a5c1-0050569de354",
+              "en": "Partnership limited by shares",
+              "de": "Kommanditaktiengesellschaft",
+              "fr": "Société en commandite par action",
+              "it": "Società in accomandita per azioni",
+              "version": 0
+            }
+          },
+          {
+            "value": "0223",
+            "labels": {
+              "code": "selection.value.labels.929fcafd-b02e-11e8-a5c1-0050569de354",
+              "en": "Communal Administration",
+              "de": "Verwaltung Gemeinde",
+              "fr": "Administration communale",
+              "it": "Amministrazione comunale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0224",
+            "labels": {
+              "code": "selection.value.labels.929fcaf3-b02e-11e8-a5c1-0050569de354",
+              "en": "Public corporation administration",
+              "de": "Öffentlich-rechtliche Körperschaft Verwaltung",
+              "fr": "Corporation de droit public",
+              "it": "Amministrazione di un ente di diritto pubblico",
+              "version": 0
+            }
+          },
+          {
+            "value": "0103",
+            "labels": {
+              "code": "selection.value.labels.929fcaf5-b02e-11e8-a5c1-0050569de354",
+              "en": "General partnership",
+              "de": "Kollektivgesellschaft",
+              "fr": "Société en nom collectif",
+              "it": "Società in nome collettivo",
+              "version": 0
+            }
+          },
+          {
+            "value": "0221",
+            "labels": {
+              "code": "selection.value.labels.929fcaef-b02e-11e8-a5c1-0050569de354",
+              "en": "Cantonal Administration",
+              "de": "Verwaltung Kanton",
+              "fr": "Administration du canton",
+              "it": "Amministrazione cantonale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0441",
+            "labels": {
+              "code": "selection.value.labels.929fcaf4-b02e-11e8-a5c1-0050569de354",
+              "en": "Foreign company",
+              "de": "Ausländische Unternehmen",
+              "fr": "Entreprise étrangère",
+              "it": "Impresa estera",
+              "version": 0
+            }
+          },
+          {
+            "value": "0222",
+            "labels": {
+              "code": "selection.value.labels.929fcb06-b02e-11e8-a5c1-0050569de354",
+              "en": "District Administration",
+              "de": "Verwaltung Bezirk",
+              "fr": "Administration du district",
+              "it": "Amministrazione distrettuale",
+              "version": 0
+            }
+          },
+          {
+            "value": "0101",
+            "labels": {
+              "code": "selection.value.labels.929fcb0b-b02e-11e8-a5c1-0050569de354",
+              "en": "Individually owned company",
+              "de": "Einzelunternehmen",
+              "fr": "Entreprise individuelle",
+              "it": "Ditte individuali",
+              "version": 0
+            }
+          },
+          {
+            "value": "0108",
+            "labels": {
+              "code": "selection.value.labels.929fcaf2-b02e-11e8-a5c1-0050569de354",
+              "en": "Cooperative",
+              "de": "Genossenschaft",
+              "fr": "Société coopérative",
+              "it": "Società cooperativa",
+              "version": 0
+            }
+          },
+          {
+            "value": "0328",
+            "labels": {
+              "code": "selection.value.labels.929fcafe-b02e-11e8-a5c1-0050569de354",
+              "en": "Foreign public administration body (e.g. Embassy)",
+              "de": "Ausländische öffentliche Verwaltung (z.B. Botschaft)",
+              "fr": "Administration publique étrangère (p. ex. ambassade)",
+              "it": "Amministrazione pubblica estera (ad es. un'ambasciata)",
+              "version": 0
+            }
+          },
+          {
+            "value": "0109",
+            "labels": {
+              "code": "selection.value.labels.929fcb07-b02e-11e8-a5c1-0050569de354",
+              "en": "Association",
+              "de": "Verein",
+              "fr": "Association",
+              "it": "Associazione",
+              "version": 0
+            }
+          },
+          {
+            "value": "0329",
+            "labels": {
+              "code": "selection.value.labels.929fcb0a-b02e-11e8-a5c1-0050569de354",
+              "en": "International organisation",
+              "de": "Internationale Organisation",
+              "fr": "Organisation internationale",
+              "it": "Organizzazione internazionale",
+              "version": 0
+            }
+          }
+        ]
+      }
+    ],
+    "helpText": {
+      "code": "rubric.help.text.2ab32279-f5e8-11e7-acde-0050569d7719",
+      "en": "To dissolve a company and permanently remove it from the Commercial Register, a call to creditors must first be published. Here, creditors are asked to register any outstanding claims they may have. For the call to creditors to be legally valid, the liquidation of the company must first be recorded in the Commercial Register. A request to permanently delete the company from the Commercial Register may only be submitted to the competent Commercial Registry Office one year after the call has been published.",
+      "de": "Um eine Gesellschaft aufzulösen und aus dem Handelsregister zu löschen, muss zuerst ein Schuldenruf publiziert werden. Dadurch werden die Gläubiger aufgefordert, ihre ausstehenden Forderungen anzumelden. Die Liquidation muss im Handelsregister eingetragen sein, damit der Schuldenruf rechtlich gültig ist. Ein Jahr nach der Publikation kann die definitive Löschung beim zuständigen Handelsregisteramt beantragt werden.",
+      "fr": "Pour dissoudre une société et la radier du registre du commerce, il faut préalablement publier un appel aux créanciers. Lors de cette opération, les créanciers sont invités à produire leurs créances exigibles. Pour que l'appel aux créanciers ait force juridique, la liquidation doit être inscrite au registre du commerce. La radiation définitive peut être demandée auprès de l’office du registre du commerce compétent un an après la publication.",
+      "it": "Per sciogliere una società ed eliminarla dal registro di commercio è necessario prima pubblicare una grida ai creditori. In questo modo si invitano i creditori a notificare i propri crediti esigibili. Affinché la grida sia valida, la liquidazione deve essere appuntata sul registro di commercio. Un anno dopo la pubblicazione, può essere richiesta la cancellazione definitiva presso gli uffici competenti del registro di commercio.",
+      "version": 5
+    },
+    "sortOrder": 100100,
+    "subRubrics": [
+      {
+        "id": "2ab3227a-f5e8-11e7-acde-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.2ab3227a-f5e8-11e7-acde-0050569d7719",
+          "en": "Call to creditors referred to liquidation of a share company",
+          "de": "Liquidationsschuldenruf einer Aktiengesellschaft",
+          "fr": "Appel aux créanciers à la liquidation d'une société anonyme",
+          "it": "Diffida ai creditori alla liquidazione di una società anonima",
+          "version": 1
+        },
+        "code": "LS01",
+        "active": true,
+        "parent": "2ab32279-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "66838673-ff7d-11e7-9ee3-0050569d0f01",
+        "name": {
+          "code": "sub.rubric.name.66838673-ff7d-11e7-9ee3-0050569d0f01",
+          "en": "Call to creditors following the liquidation of a limited liability company",
+          "de": "Liquidationsschuldenruf einer Gesellschaft mit beschränkter Haftung",
+          "fr": "Appel aux créanciers à la liquidation d’une société à responsabilité limitée",
+          "it": "Diffida ai creditori alla liquidazione di una società a garanzia limitata",
+          "version": 2
+        },
+        "code": "LS02",
+        "active": true,
+        "parent": "2ab32279-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "77d4d082-ff7d-11e7-b54c-0050569d791e",
+        "name": {
+          "code": "sub.rubric.name.77d4d082-ff7d-11e7-b54c-0050569d791e",
+          "en": "Call to creditors following the liquidation of a cooperative",
+          "de": "Liquidationsschuldenruf einer Genossenschaft",
+          "fr": "Appel aux créanciers à la liquidation d'une société coopérative",
+          "it": "Diffida ai creditori alla liquidazione di una società cooperativa",
+          "version": 2
+        },
+        "code": "LS03",
+        "active": true,
+        "parent": "2ab32279-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "86a032de-ff7d-11e7-9ee3-0050569d0f01",
+        "name": {
+          "code": "sub.rubric.name.86a032de-ff7d-11e7-9ee3-0050569d0f01",
+          "en": "Call to creditors following the liquidation of an association",
+          "de": "Liquidationsschuldenruf eines Vereins",
+          "fr": "Appel aux créanciers à la liquidation d'une association",
+          "it": "Diffida ai creditori alla liquidazione di una associazione",
+          "version": 2
+        },
+        "code": "LS04",
+        "active": true,
+        "parent": "2ab32279-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "93a1f8e7-ff7d-11e7-9cd6-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.93a1f8e7-ff7d-11e7-9cd6-0050569d7719",
+          "en": "Call to creditors following the liquidation of a foundation",
+          "de": "Liquidationsschuldenruf einer Stiftung",
+          "fr": "Appel aux créanciers à la liquidation d’une fondation",
+          "it": "Diffida ai creditori alla liquidazione di una fondazione",
+          "version": 2
+        },
+        "code": "LS05",
+        "active": true,
+        "parent": "2ab32279-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "aadc7952-ff7d-11e7-9ee3-0050569d0f01",
+        "name": {
+          "code": "sub.rubric.name.aadc7952-ff7d-11e7-9ee3-0050569d0f01",
+          "en": "Call to creditors following the liquidation of a general partnership",
+          "de": "Liquidationsschuldenruf einer Kollektivgesellschaft",
+          "fr": "Appel aux créanciers d'une société en nom collectif",
+          "it": "Diffida ai creditori alla liquidazione di una società in nome collettivo",
+          "version": 1
+        },
+        "code": "LS06",
+        "active": true,
+        "parent": "2ab32279-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "b9724d66-ff7d-11e7-b54c-0050569d791e",
+        "name": {
+          "code": "sub.rubric.name.b9724d66-ff7d-11e7-b54c-0050569d791e",
+          "en": "Call to creditors following the liquidation of a limited partnership",
+          "de": "Liquidationsschuldenruf einer Kommanditgesellschaft",
+          "fr": "Appel aux créanciers à la liquidation d'une société en commandite",
+          "it": "Diffida ai creditori alla liquidazione di una società in accomandita",
+          "version": 1
+        },
+        "code": "LS07",
+        "active": true,
+        "parent": "2ab32279-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "cbe6e15e-ff7d-11e7-9cd6-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.cbe6e15e-ff7d-11e7-9cd6-0050569d7719",
+          "en": "Call to creditors following the liquidation of a partnership/other legal form",
+          "de": "Liquidationsschuldenruf einer Kommanditaktiengesellschaft/anderer Rechtsform",
+          "fr": "Appel aux créanciers à la liquidation d'une société en commandite par actions/autre forme juridique",
+          "it": "Grida ai creditori alla liquidazione di una società in accomandita per azioni/altra forma giuridica",
+          "version": 2
+        },
+        "code": "LS08",
+        "active": true,
+        "parent": "2ab32279-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      }
+    ]
+  },
+  {
+    "code": "OB-AR",
+    "id": "313ba931-a4e9-11ea-aba7-0050569d3c43",
+    "name": {
+      "code": "rubric.name.313ba931-a4e9-11ea-aba7-0050569d3c43",
+      "en": "Öffentliches Beschaffungswesen",
+      "de": "Öffentliches Beschaffungswesen",
+      "fr": "Öffentliches Beschaffungswesen",
+      "it": "Öffentliches Beschaffungswesen",
+      "version": 0
+    },
+    "active": true,
+    "tenantId": "kabar",
+    "allowSecondaryTenants": false,
+    "sortOrder": 60950,
+    "subRubrics": [
+      {
+        "id": "c28b0d6e-32ca-11ef-bc3a-04505600903c",
+        "name": {
+          "code": "sub.rubric.name.c28b0d6e-32ca-11ef-bc3a-04505600903c",
+          "en": "Prior notice",
+          "de": "Vorankündigung",
+          "fr": "Avis préalable",
+          "it": "Preavviso",
+          "version": 0
+        },
+        "code": "OB-AR05",
+        "active": true,
+        "parent": "313ba931-a4e9-11ea-aba7-0050569d3c43",
+        "publicPeriod": {
+          "minNumMonths": 3,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "c28b0d70-32ca-11ef-bc3a-04505600903c",
+        "name": {
+          "code": "sub.rubric.name.c28b0d70-32ca-11ef-bc3a-04505600903c",
+          "en": "Request for Information (RFI)",
+          "de": "Request for Information (RFI)",
+          "fr": "Request for Information (RFI)",
+          "it": "Request for Information (RFI)",
+          "version": 0
+        },
+        "code": "OB-AR07",
+        "active": true,
+        "parent": "313ba931-a4e9-11ea-aba7-0050569d3c43",
+        "publicPeriod": {
+          "minNumMonths": 3,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "313ba932-a4e9-11ea-aba7-0050569d3c43",
+        "name": {
+          "code": "sub.rubric.name.313ba932-a4e9-11ea-aba7-0050569d3c43",
+          "en": "Invitation to tender",
+          "de": "Ausschreibung",
+          "fr": "Appel d'offres",
+          "it": "Bando",
+          "version": 1
+        },
+        "code": "OB-AR10",
+        "active": true,
+        "parent": "313ba931-a4e9-11ea-aba7-0050569d3c43",
+        "publicPeriod": {
+          "minNumMonths": 3,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "313ba934-a4e9-11ea-aba7-0050569d3c43",
+        "name": {
+          "code": "sub.rubric.name.313ba934-a4e9-11ea-aba7-0050569d3c43",
+          "en": "Design contest",
+          "de": "Wettbewerb",
+          "fr": "Concours",
+          "it": "Concorso",
+          "version": 1
+        },
+        "code": "OB-AR20",
+        "active": true,
+        "parent": "313ba931-a4e9-11ea-aba7-0050569d3c43",
+        "publicPeriod": {
+          "minNumMonths": 3,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "c28b0d76-32ca-11ef-bc3a-04505600903c",
+        "name": {
+          "code": "sub.rubric.name.c28b0d76-32ca-11ef-bc3a-04505600903c",
+          "en": "Study contract",
+          "de": "Studienauftrag",
+          "fr": "Mandat d’étude parallèle",
+          "it": "Mandato di studio in parallelo",
+          "version": 0
+        },
+        "code": "OB-AR25",
+        "active": true,
+        "parent": "313ba931-a4e9-11ea-aba7-0050569d3c43",
+        "publicPeriod": {
+          "minNumMonths": 3,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "313ba936-a4e9-11ea-aba7-0050569d3c43",
+        "name": {
+          "code": "sub.rubric.name.313ba936-a4e9-11ea-aba7-0050569d3c43",
+          "en": "Award",
+          "de": "Zuschlag",
+          "fr": "Adjudication",
+          "it": "Aggiudicazione",
+          "version": 1
+        },
+        "code": "OB-AR30",
+        "active": true,
+        "parent": "313ba931-a4e9-11ea-aba7-0050569d3c43",
+        "publicPeriod": {
+          "minNumMonths": 3,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "313ba938-a4e9-11ea-aba7-0050569d3c43",
+        "name": {
+          "code": "sub.rubric.name.313ba938-a4e9-11ea-aba7-0050569d3c43",
+          "en": "Design contest result",
+          "de": "Vergebener Wettbewerb",
+          "fr": "Résultat du concours",
+          "it": "Risultato del concorso",
+          "version": 1
+        },
+        "code": "OB-AR40",
+        "active": true,
+        "parent": "313ba931-a4e9-11ea-aba7-0050569d3c43",
+        "publicPeriod": {
+          "minNumMonths": 3,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "c28b0d7c-32ca-11ef-bc3a-04505600903c",
+        "name": {
+          "code": "sub.rubric.name.c28b0d7c-32ca-11ef-bc3a-04505600903c",
+          "en": "Study contract result",
+          "de": "Ergebnis Studienauftrag",
+          "fr": "Résultat du mandat d'étude parallèle",
+          "it": "Esito del mandato di studio in parallelo",
+          "version": 1
+        },
+        "code": "OB-AR45",
+        "active": true,
+        "parent": "313ba931-a4e9-11ea-aba7-0050569d3c43",
+        "publicPeriod": {
+          "minNumMonths": 3,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "c28b0d7e-32ca-11ef-bc3a-04505600903c",
+        "name": {
+          "code": "sub.rubric.name.c28b0d7e-32ca-11ef-bc3a-04505600903c",
+          "en": "Direct award procedure",
+          "de": "Freihändige Vergabe",
+          "fr": "Adjudication de gré à gré",
+          "it": "Incarico diretto",
+          "version": 1
+        },
+        "code": "OB-AR47",
+        "active": true,
+        "parent": "313ba931-a4e9-11ea-aba7-0050569d3c43",
+        "publicPeriod": {
+          "minNumMonths": 3,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "313ba93a-a4e9-11ea-aba7-0050569d3c43",
+        "name": {
+          "code": "sub.rubric.name.313ba93a-a4e9-11ea-aba7-0050569d3c43",
+          "en": "Other notice",
+          "de": "Weitere Bekanntmachung",
+          "fr": "Autre avis",
+          "it": "Altro avviso",
+          "version": 1
+        },
+        "code": "OB-AR70",
+        "active": true,
+        "parent": "313ba931-a4e9-11ea-aba7-0050569d3c43",
+        "publicPeriod": {
+          "minNumMonths": 3,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      }
+    ]
+  },
+  {
+    "code": "OB-BS",
+    "id": "454c6d3a-eee8-11e8-869b-0050569de354",
+    "name": {
+      "code": "rubric.name.454c6d3a-eee8-11e8-869b-0050569de354",
+      "en": "Öffentliches Beschaffungswesen",
+      "de": "Öffentliches Beschaffungswesen",
+      "fr": "Öffentliches Beschaffungswesen",
+      "it": "Öffentliches Beschaffungswesen",
+      "version": 0
+    },
+    "active": true,
+    "tenantId": "kabbs",
+    "allowSecondaryTenants": false,
+    "helpText": {
+      "code": "rubric.help.text.454c6d3a-eee8-11e8-869b-0050569de354",
+      "en": "In dieser Rubrik werden Meldungen aus simap.ch und weitere Bekanntmachungen des öffentlichen Beschaffungswesens des Kantons im Kantonsblatt Basel-Stadt publiziert.",
+      "de": "In dieser Rubrik werden Meldungen aus simap.ch und weitere Bekanntmachungen des öffentlichen Beschaffungswesens des Kantons im Kantonsblatt Basel-Stadt publiziert.",
+      "fr": "In dieser Rubrik werden Meldungen aus simap.ch und weitere Bekanntmachungen des öffentlichen Beschaffungswesens des Kantons im Kantonsblatt Basel-Stadt publiziert.",
+      "it": "In dieser Rubrik werden Meldungen aus simap.ch und weitere Bekanntmachungen des öffentlichen Beschaffungswesens des Kantons im Kantonsblatt Basel-Stadt publiziert.",
+      "version": 1
+    },
+    "sortOrder": 41400,
+    "subRubrics": [
+      {
+        "id": "5ad4f8cd-eee8-11e8-869b-0050569de354",
+        "name": {
+          "code": "sub.rubric.name.5ad4f8cd-eee8-11e8-869b-0050569de354",
+          "en": "Ausschreibung",
+          "de": "Ausschreibung",
+          "fr": "Ausschreibung",
+          "it": "Ausschreibung",
+          "version": 0
+        },
+        "code": "OB-BS10",
+        "active": true,
+        "parent": "454c6d3a-eee8-11e8-869b-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "7078fa9a-eee8-11e8-869b-0050569de354",
+        "name": {
+          "code": "sub.rubric.name.7078fa9a-eee8-11e8-869b-0050569de354",
+          "en": "Wettbewerb",
+          "de": "Wettbewerb",
+          "fr": "Wettbewerb",
+          "it": "Wettbewerb",
+          "version": 0
+        },
+        "code": "OB-BS20",
+        "active": true,
+        "parent": "454c6d3a-eee8-11e8-869b-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "7d04582a-eee8-11e8-869b-0050569de354",
+        "name": {
+          "code": "sub.rubric.name.7d04582a-eee8-11e8-869b-0050569de354",
+          "en": "Zuschlag",
+          "de": "Zuschlag",
+          "fr": "Zuschlag",
+          "it": "Zuschlag",
+          "version": 0
+        },
+        "code": "OB-BS30",
+        "active": true,
+        "parent": "454c6d3a-eee8-11e8-869b-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "896374c6-eee8-11e8-bd58-0050569d3c43",
+        "name": {
+          "code": "sub.rubric.name.896374c6-eee8-11e8-bd58-0050569d3c43",
+          "en": "Vergebener Wettbewerb",
+          "de": "Vergebener Wettbewerb",
+          "fr": "Vergebener Wettbewerb",
+          "it": "Vergebener Wettbewerb",
+          "version": 0
+        },
+        "code": "OB-BS40",
+        "active": true,
+        "parent": "454c6d3a-eee8-11e8-869b-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "a3daa9c8-eee8-11e8-bd58-0050569d3c43",
+        "name": {
+          "code": "sub.rubric.name.a3daa9c8-eee8-11e8-bd58-0050569d3c43",
+          "en": "Zuschlagsanzeige Einladungsverfahren",
+          "de": "Zuschlagsanzeige Einladungsverfahren",
+          "fr": "Zuschlagsanzeige Einladungsverfahren",
+          "it": "Zuschlagsanzeige Einladungsverfahren",
+          "version": 0
+        },
+        "code": "OB-BS50",
+        "active": true,
+        "parent": "454c6d3a-eee8-11e8-869b-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "b13edbe9-eee8-11e8-a81e-0050569db5fb",
+        "name": {
+          "code": "sub.rubric.name.b13edbe9-eee8-11e8-a81e-0050569db5fb",
+          "en": "Auftragsbekanntmachung FLUGHAFEN BASEL-MULHOUSE",
+          "de": "Auftragsbekanntmachung FLUGHAFEN BASEL-MULHOUSE",
+          "fr": "Auftragsbekanntmachung FLUGHAFEN BASEL-MULHOUSE",
+          "it": "Auftragsbekanntmachung FLUGHAFEN BASEL-MULHOUSE",
+          "version": 0
+        },
+        "code": "OB-BS60",
+        "active": true,
+        "parent": "454c6d3a-eee8-11e8-869b-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 3,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "20196d4b-3efc-11eb-a908-0050569d3c43",
+        "name": {
+          "code": "sub.rubric.name.20196d4b-3efc-11eb-a908-0050569d3c43",
+          "en": "Bekanntmachung Deutsche Bahn AG",
+          "de": "Bekanntmachung Deutsche Bahn AG",
+          "fr": "Bekanntmachung Deutsche Bahn AG",
+          "it": "Bekanntmachung Deutsche Bahn AG",
+          "version": 0
+        },
+        "code": "OB-BS65",
+        "active": true,
+        "parent": "454c6d3a-eee8-11e8-869b-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 3,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "bf6216d1-eee8-11e8-869b-0050569de354",
+        "name": {
+          "code": "sub.rubric.name.bf6216d1-eee8-11e8-869b-0050569de354",
+          "en": "Weitere Bekanntmachung",
+          "de": "Weitere Bekanntmachung",
+          "fr": "Weitere Bekanntmachung",
+          "it": "Weitere Bekanntmachung",
+          "version": 0
+        },
+        "code": "OB-BS70",
+        "active": true,
+        "parent": "454c6d3a-eee8-11e8-869b-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      }
+    ]
+  },
+  {
+    "code": "OB-TI",
+    "id": "63144255-4f42-11eb-8b30-0050569de354",
+    "name": {
+      "code": "rubric.name.63144255-4f42-11eb-8b30-0050569de354",
+      "en": "Öffentliches Beschaffungswesen",
+      "de": "Öffentliches Beschaffungswesen",
+      "fr": "Öffentliches Beschaffungswesen",
+      "it": "Appalti pubblici",
+      "version": 0
+    },
+    "active": true,
+    "tenantId": "kabti",
+    "allowSecondaryTenants": false,
+    "helpText": {
+      "code": "rubric.help.text.63144255-4f42-11eb-8b30-0050569de354",
+      "en": "In questa sezione sono pubblicate sul Foglio ufficiale del Cantone Ticino le notifiche relative a Bando di concorso, Concorso, Concorso aggiudicato, Avvisi di gara non CIAP per appalti e concorsi LCPubb e Altro avviso.",
+      "de": "In dieser Rubrik werden Meldungen betreffend Bando di concorso, Concorso, Concorso aggiudicato, Avvisi di gara non CIAP per appalti e concorsi LCPubb und Altro avviso  im Amtsblatt des Kantons Tessin publiziert.",
+      "fr": "In questa sezione sono pubblicate sul Foglio ufficiale del Cantone Ticino le notifiche relative a Bando di concorso, Concorso, Concorso aggiudicato, Avvisi di gara non CIAP per appalti e concorsi LCPubb e Altro avviso.",
+      "it": "In questa sezione sono pubblicate sul Foglio ufficiale del Cantone Ticino le notifiche relative a Bando di concorso, Concorso, Concorso aggiudicato, Avvisi di gara non CIAP per appalti e concorsi LCPubb e Altro avviso.",
+      "version": 0
+    },
+    "sortOrder": 70400,
+    "subRubrics": [
+      {
+        "id": "b5b42791-32ca-11ef-9d60-04505600905c",
+        "name": {
+          "code": "sub.rubric.name.b5b42791-32ca-11ef-9d60-04505600905c",
+          "en": "Prior notice",
+          "de": "Vorankündigung",
+          "fr": "Avis préalable",
+          "it": "Preavviso",
+          "version": 1
+        },
+        "code": "OB-TI05",
+        "active": true,
+        "parent": "63144255-4f42-11eb-8b30-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "b5b42793-32ca-11ef-9d60-04505600905c",
+        "name": {
+          "code": "sub.rubric.name.b5b42793-32ca-11ef-9d60-04505600905c",
+          "en": "Request for Information (RFI)",
+          "de": "Request for Information (RFI)",
+          "fr": "Request for Information (RFI)",
+          "it": "Request for Information (RFI)",
+          "version": 0
+        },
+        "code": "OB-TI07",
+        "active": true,
+        "parent": "63144255-4f42-11eb-8b30-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "63144256-4f42-11eb-8b30-0050569de354",
+        "name": {
+          "code": "sub.rubric.name.63144256-4f42-11eb-8b30-0050569de354",
+          "en": "Invitation to tender",
+          "de": "Ausschreibung",
+          "fr": "Appel d'offres",
+          "it": "Bando di concorso",
+          "version": 1
+        },
+        "code": "OB-TI10",
+        "active": true,
+        "parent": "63144255-4f42-11eb-8b30-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "63144258-4f42-11eb-8b30-0050569de354",
+        "name": {
+          "code": "sub.rubric.name.63144258-4f42-11eb-8b30-0050569de354",
+          "en": "Wettbewerb",
+          "de": "Wettbewerb",
+          "fr": "Wettbewerb",
+          "it": "Concorso",
+          "version": 0
+        },
+        "code": "OB-TI20",
+        "active": true,
+        "parent": "63144255-4f42-11eb-8b30-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "b5b42799-32ca-11ef-9d60-04505600905c",
+        "name": {
+          "code": "sub.rubric.name.b5b42799-32ca-11ef-9d60-04505600905c",
+          "en": "Study contract",
+          "de": "Studienauftrag",
+          "fr": "Mandat d'étude parallèle",
+          "it": "Mandato di studio in parallelo",
+          "version": 1
+        },
+        "code": "OB-TI25",
+        "active": true,
+        "parent": "63144255-4f42-11eb-8b30-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "6314425a-4f42-11eb-8b30-0050569de354",
+        "name": {
+          "code": "sub.rubric.name.6314425a-4f42-11eb-8b30-0050569de354",
+          "en": "Zuschlag (inaktiv)",
+          "de": "Zuschlag (inaktiv)",
+          "fr": "Zuschlag (inaktiv)",
+          "it": "Aggiudicazione (inaktiv)",
+          "version": 1
+        },
+        "code": "OB-TI30",
+        "active": false,
+        "parent": "63144255-4f42-11eb-8b30-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "6314425c-4f42-11eb-8b30-0050569de354",
+        "name": {
+          "code": "sub.rubric.name.6314425c-4f42-11eb-8b30-0050569de354",
+          "en": "Vergebener Wettbewerb (inaktiv)",
+          "de": "Vergebener Wettbewerb (inaktiv)",
+          "fr": "Vergebener Wettbewerb (inaktiv)",
+          "it": "Concorso aggiudicato (inaktiv)",
+          "version": 1
+        },
+        "code": "OB-TI40",
+        "active": false,
+        "parent": "63144255-4f42-11eb-8b30-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "6314425e-4f42-11eb-8b30-0050569de354",
+        "name": {
+          "code": "sub.rubric.name.6314425e-4f42-11eb-8b30-0050569de354",
+          "en": "Manuelle Bekanntmachungen nicht gemäss GATT/WTO-Abkommen",
+          "de": "Manuelle Bekanntmachungen nicht gemäss GATT/WTO-Abkommen",
+          "fr": "Manuelle Bekanntmachungen nicht gemäss GATT/WTO-Abkommen",
+          "it": "Avvisi di gara non CIAP per appalti e concorsi LCPubb",
+          "version": 0
+        },
+        "code": "OB-TI65",
+        "active": true,
+        "parent": "63144255-4f42-11eb-8b30-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 3,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "63144260-4f42-11eb-8b30-0050569de354",
+        "name": {
+          "code": "sub.rubric.name.63144260-4f42-11eb-8b30-0050569de354",
+          "en": "Other notice",
+          "de": "Weitere Bekanntmachung",
+          "fr": "Autre avis",
+          "it": "Altro avviso",
+          "version": 1
+        },
+        "code": "OB-TI70",
+        "active": true,
+        "parent": "63144255-4f42-11eb-8b30-0050569de354",
+        "publicPeriod": {
+          "minNumMonths": 60,
+          "maxNumMonths": 60,
+          "defaultNumMonths": 60,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      }
+    ]
+  },
+  {
+    "code": "OB-ZG",
+    "id": "17da4d82-7148-11ed-a6b9-045056009037",
+    "name": {
+      "code": "rubric.name.17da4d82-7148-11ed-a6b9-045056009037",
+      "en": "Öffentliches Beschaffungswesen (bis Ende Februar 2024 via simap.ch importiert)",
+      "de": "Öffentliches Beschaffungswesen (bis Ende Februar 2024 via simap.ch importiert)",
+      "fr": "Öffentliches Beschaffungswesen (bis Ende Februar 2024 via simap.ch importiert)",
+      "it": "Öffentliches Beschaffungswesen (bis Ende Februar 2024 via simap.ch importiert)",
+      "version": 1
+    },
+    "active": true,
+    "tenantId": "kabzg",
+    "allowSecondaryTenants": false,
+    "helpText": {
+      "code": "rubric.help.text.17da4d82-7148-11ed-a6b9-045056009037",
+      "en": "In dieser Rubrik werden die Meldungen aus simap.ch sowie kantonale Ausschreibungen (nicht GATT/WTO) des öffentlichen Beschaffungswesens des Kantons im Amtsblatt Zug publiziert.",
+      "de": "In dieser Rubrik werden die Meldungen aus simap.ch sowie kantonale Ausschreibungen (nicht GATT/WTO) des öffentlichen Beschaffungswesens des Kantons im Amtsblatt Zug publiziert.",
+      "fr": "In dieser Rubrik werden die Meldungen aus simap.ch sowie kantonale Ausschreibungen (nicht GATT/WTO) des öffentlichen Beschaffungswesens des Kantons im Amtsblatt Zug publiziert.",
+      "it": "In dieser Rubrik werden die Meldungen aus simap.ch sowie kantonale Ausschreibungen (nicht GATT/WTO) des öffentlichen Beschaffungswesens des Kantons im Amtsblatt Zug publiziert.",
+      "version": 2
+    },
+    "sortOrder": 72300,
+    "subRubrics": [
+      {
+        "id": "17da4d83-7148-11ed-a6b9-045056009037",
+        "name": {
+          "code": "sub.rubric.name.17da4d83-7148-11ed-a6b9-045056009037",
+          "en": "Ausschreibung",
+          "de": "Ausschreibung",
+          "fr": "Ausschreibung",
+          "it": "Ausschreibung",
+          "version": 0
+        },
+        "code": "OB-ZG10",
+        "active": true,
+        "parent": "17da4d82-7148-11ed-a6b9-045056009037",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 3,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "17da4d85-7148-11ed-a6b9-045056009037",
+        "name": {
+          "code": "sub.rubric.name.17da4d85-7148-11ed-a6b9-045056009037",
+          "en": "Wettbewerb",
+          "de": "Wettbewerb",
+          "fr": "Wettbewerb",
+          "it": "Wettbewerb",
+          "version": 0
+        },
+        "code": "OB-ZG20",
+        "active": true,
+        "parent": "17da4d82-7148-11ed-a6b9-045056009037",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 3,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "17da4d87-7148-11ed-a6b9-045056009037",
+        "name": {
+          "code": "sub.rubric.name.17da4d87-7148-11ed-a6b9-045056009037",
+          "en": "Zuschlag",
+          "de": "Zuschlag",
+          "fr": "Zuschlag",
+          "it": "Zuschlag",
+          "version": 0
+        },
+        "code": "OB-ZG30",
+        "active": true,
+        "parent": "17da4d82-7148-11ed-a6b9-045056009037",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 3,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "17da4d89-7148-11ed-a6b9-045056009037",
+        "name": {
+          "code": "sub.rubric.name.17da4d89-7148-11ed-a6b9-045056009037",
+          "en": "Vergebener Wettbewerb",
+          "de": "Vergebener Wettbewerb",
+          "fr": "Vergebener Wettbewerb",
+          "it": "Vergebener Wettbewerb",
+          "version": 0
+        },
+        "code": "OB-ZG40",
+        "active": true,
+        "parent": "17da4d82-7148-11ed-a6b9-045056009037",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 3,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "17da4d8b-7148-11ed-a6b9-045056009037",
+        "name": {
+          "code": "sub.rubric.name.17da4d8b-7148-11ed-a6b9-045056009037",
+          "en": "Weitere Bekanntmachung",
+          "de": "Weitere Bekanntmachung",
+          "fr": "Weitere Bekanntmachung",
+          "it": "Weitere Bekanntmachung",
+          "version": 0
+        },
+        "code": "OB-ZG70",
+        "active": true,
+        "parent": "17da4d82-7148-11ed-a6b9-045056009037",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 3,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      }
+    ]
+  },
+  {
+    "code": "SB",
+    "id": "2ae72b1f-f5e8-11e7-acde-0050569d7719",
+    "name": {
+      "code": "rubric.name.2ae72b1f-f5e8-11e7-acde-0050569d7719",
+      "en": "Debt enforcement",
+      "de": "Schuldbetreibungen",
+      "fr": "Poursuites pour dettes",
+      "it": "Procedure d'esecuzione",
+      "version": 0
+    },
+    "active": true,
+    "tenantId": "shab",
+    "allowSecondaryTenants": true,
+    "searchCriteria": [
+      {
+        "attributeName": "content.creditor.selectType",
+        "type": "SELECTION",
+        "labels": {
+          "code": "search.criterion.labels.25852137-6a36-11e8-bd8f-0050569d92ef",
+          "en": "Creditor type",
+          "de": "Art des Gläubigers",
+          "fr": "Type de créancier",
+          "it": "Tipo di creditore",
+          "version": 0
+        },
+        "selectionValues": [
+          {
+            "value": "person",
+            "labels": {
+              "code": "selection.value.labels.25852138-6a36-11e8-bd8f-0050569d92ef",
+              "en": "Privatperson",
+              "de": "Privatperson",
+              "fr": "Privatperson",
+              "it": "Privatperson",
+              "version": 0
+            }
+          },
+          {
+            "value": "company",
+            "labels": {
+              "code": "selection.value.labels.25852139-6a36-11e8-bd8f-0050569d92ef",
+              "en": "Gesellschaft",
+              "de": "Gesellschaft",
+              "fr": "Gesellschaft",
+              "it": "Gesellschaft",
+              "version": 0
+            }
+          }
+        ]
+      },
+      {
+        "attributeName": "content.orderClass.selectType",
+        "type": "SELECTION",
+        "labels": {
+          "code": "search.criterion.labels.2585213a-6a36-11e8-bd8f-0050569d92ef",
+          "en": "Type of debt enforcement proceedings",
+          "de": "Art der Schuldbetreibung",
+          "fr": "Type de poursuite pour dettes",
+          "it": "Tipo di esecuzione",
+          "version": 0
+        },
+        "selectionValues": [
+          {
+            "value": "mortgages",
+            "labels": {
+              "code": "selection.value.labels.2585213c-6a36-11e8-bd8f-0050569d92ef",
+              "en": "Betreibung auf Verwertung eines Grundpfandes",
+              "de": "Betreibung auf Verwertung eines Grundpfandes",
+              "fr": "Betreibung auf Verwertung eines Grundpfandes",
+              "it": "Betreibung auf Verwertung eines Grundpfandes",
+              "version": 0
+            }
+          },
+          {
+            "value": "billLiquidation",
+            "labels": {
+              "code": "selection.value.labels.2585213f-6a36-11e8-bd8f-0050569d92ef",
+              "en": "Wechselbetreibung",
+              "de": "Wechselbetreibung",
+              "fr": "Wechselbetreibung",
+              "it": "Wechselbetreibung",
+              "version": 0
+            }
+          },
+          {
+            "value": "pledge",
+            "labels": {
+              "code": "selection.value.labels.2585213e-6a36-11e8-bd8f-0050569d92ef",
+              "en": "Betreibung auf Verwertung eines Faustpfandes",
+              "de": "Betreibung auf Verwertung eines Faustpfandes",
+              "fr": "Betreibung auf Verwertung eines Faustpfandes",
+              "it": "Betreibung auf Verwertung eines Faustpfandes",
+              "version": 0
+            }
+          },
+          {
+            "value": "securityDeposit",
+            "labels": {
+              "code": "selection.value.labels.2585213d-6a36-11e8-bd8f-0050569d92ef",
+              "en": "Betreibung auf Sicherheitsleistung",
+              "de": "Betreibung auf Sicherheitsleistung",
+              "fr": "Betreibung auf Sicherheitsleistung",
+              "it": "Betreibung auf Sicherheitsleistung",
+              "version": 0
+            }
+          },
+          {
+            "value": "ordinaryProcedure",
+            "labels": {
+              "code": "selection.value.labels.2585213b-6a36-11e8-bd8f-0050569d92ef",
+              "en": "Ordentliches Verfahren",
+              "de": "Ordentliches Verfahren",
+              "fr": "Ordentliches Verfahren",
+              "it": "Ordentliches Verfahren",
+              "version": 0
+            }
+          }
+        ]
+      },
+      {
+        "attributeName": "content.debtor.selectType",
+        "type": "SELECTION",
+        "labels": {
+          "code": "search.criterion.labels.25852134-6a36-11e8-bd8f-0050569d92ef",
+          "en": "Type of debtor",
+          "de": "Art des Schuldners",
+          "fr": "Type de débiteur",
+          "it": "Tipo di debitore",
+          "version": 0
+        },
+        "selectionValues": [
+          {
+            "value": "person",
+            "labels": {
+              "code": "selection.value.labels.25852135-6a36-11e8-bd8f-0050569d92ef",
+              "en": "Privatperson",
+              "de": "Privatperson",
+              "fr": "Privatperson",
+              "it": "Privatperson",
+              "version": 0
+            }
+          },
+          {
+            "value": "company",
+            "labels": {
+              "code": "selection.value.labels.25852136-6a36-11e8-bd8f-0050569d92ef",
+              "en": "Gesellschaft",
+              "de": "Gesellschaft",
+              "fr": "Gesellschaft",
+              "it": "Gesellschaft",
+              "version": 0
+            }
+          }
+        ]
+      }
+    ],
+    "helpText": {
+      "code": "rubric.help.text.2ae72b1f-f5e8-11e7-acde-0050569d7719",
+      "en": "Debt enforcement publications appear in the SOGC and in certain cantonal Official Gazettes. Their purpose is to recover pecuniary claims. From a legal standpoint, the information which is published in the SOGC always prevails.",
+      "de": "Schuldbetreibungspublikationen werden im SHAB und teilweise in kantonalen Amtsblättern publiziert und dienen der Eintreibung von Geldforderungen. Rechtlich massgebend ist immer die SHAB-Publikation.",
+      "fr": "Les publications relatives aux poursuites pour dettes paraissent dans la FOSC et, pour partie, dans des feuilles officielles cantonales; elles servent au recouvrement des créances monétaires. La publication dans la FOSC fait toujours juridiquement foi.",
+      "it": "Le pubblicazioni riguardo alle procedure di esecuzione vengono pubblicate sul FUSC e in parte anche su fogli ufficiali cantonali e servono alla riscossione di crediti monetari. Fa sempre fede la pubblicazione sul FUSC.",
+      "version": 4
+    },
+    "sortOrder": 100200,
+    "allowedSecondaryTenants": [
+      "kablu",
+      "kabnw",
+      "kabju",
+      "kabbl",
+      "kabfr",
+      "kabbs",
+      "kabti",
+      "kabne",
+      "kabvs",
+      "kabbe",
+      "kabgl",
+      "kabsz",
+      "kabag",
+      "kabai",
+      "kabow",
+      "kabgr",
+      "kabzg",
+      "kabvd",
+      "kabzh",
+      "kabar",
+      "kabtg",
+      "kabsh",
+      "kabsg",
+      "kabur",
+      "kabso",
+      "kabge"
+    ],
+    "subRubrics": [
+      {
+        "id": "2ae72b20-f5e8-11e7-acde-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.2ae72b20-f5e8-11e7-acde-0050569d7719",
+          "en": "Property auction initiated by the debt enforcement office",
+          "de": "Betreibungsamtliche Grundstücksteigerung",
+          "fr": "Vente aux enchères d'immeubles dans le cadre de la poursuite",
+          "it": "Pubblici incanti di fondi nell'esecuzione",
+          "version": 2
+        },
+        "code": "SB01",
+        "active": true,
+        "parent": "2ae72b1f-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 12,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "2ae72b21-f5e8-11e7-acde-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.2ae72b21-f5e8-11e7-acde-0050569d7719",
+          "en": "Payment order",
+          "de": "Zahlungsbefehl",
+          "fr": "Commandement de payer",
+          "it": "Precetti esecutivi",
+          "version": 3
+        },
+        "code": "SB02",
+        "active": true,
+        "parent": "2ae72b1f-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 12,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "2ae72b22-f5e8-11e7-acde-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.2ae72b22-f5e8-11e7-acde-0050569d7719",
+          "en": "Sequestration order and report",
+          "de": "Arrestbefehl/-urkunde",
+          "fr": "Ordonnance et procès-verbal de séquestre",
+          "it": "Decreti e verbali di sequestro",
+          "version": 3
+        },
+        "code": "SB03",
+        "active": true,
+        "parent": "2ae72b1f-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 12,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "2ae72b23-f5e8-11e7-acde-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.2ae72b23-f5e8-11e7-acde-0050569d7719",
+          "en": "Seizure notice and report",
+          "de": "Pfändungsanzeige/-urkunde",
+          "fr": "Avis et procès-verbal de saisie",
+          "it": "Avvisi e verbali di pignoramento",
+          "version": 3
+        },
+        "code": "SB04",
+        "active": true,
+        "parent": "2ae72b1f-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 12,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "2ae72b24-f5e8-11e7-acde-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.2ae72b24-f5e8-11e7-acde-0050569d7719",
+          "en": "Purging of the retention of title register",
+          "de": "Bereinigung des Eigentumsvorbehaltsregisters",
+          "fr": "Épuration du registre des pactes de réserve de propriété",
+          "it": "Appuramento dei registri dei patti di riserva della proprietà",
+          "version": 5
+        },
+        "code": "SB05",
+        "active": true,
+        "parent": "2ae72b1f-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 12,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "2ae72b25-f5e8-11e7-acde-0050569d7719",
+        "name": {
+          "code": "sub.rubric.name.2ae72b25-f5e8-11e7-acde-0050569d7719",
+          "en": "Other public notice",
+          "de": "Weitere Bekanntmachung",
+          "fr": "Autre avis",
+          "it": "Altro avviso",
+          "version": 4
+        },
+        "code": "SB06",
+        "active": true,
+        "parent": "2ae72b1f-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 12,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      },
+      {
+        "id": "3daec777-946a-11ea-9c74-0050569db5fb",
+        "name": {
+          "code": "sub.rubric.name.3daec777-946a-11ea-9c74-0050569db5fb",
+          "en": "Bankruptcy warning",
+          "de": "Konkursandrohung",
+          "fr": "Commination de faillite",
+          "it": "Comminatoria di fallimento",
+          "version": 0
+        },
+        "code": "SB07",
+        "active": true,
+        "parent": "2ae72b1f-f5e8-11e7-acde-0050569d7719",
+        "publicPeriod": {
+          "minNumMonths": 1,
+          "maxNumMonths": 36,
+          "defaultNumMonths": 12,
+          "publicPeriodType": "NORMAL",
+          "helpText": null
+        },
+        "hasFollowUpPublicationTypes": false
+      }
+    ]
+  }
+]
