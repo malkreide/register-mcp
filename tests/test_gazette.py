@@ -8,6 +8,7 @@ from time import monotonic
 import httpx
 import pytest
 import respx
+from fixture_data import corpus_total, fixture_json
 
 from register_mcp import server
 from register_mcp.server import (
@@ -31,34 +32,11 @@ from register_mcp.server import (
 # Fixtures / mock payloads
 # ---------------------------------------------------------------------------
 
-MOCK_RUBRICS = [
-    {
-        "code": "HR",
-        "name": {"de": "Handelsregister", "en": "Commercial register"},
-        "subRubrics": [
-            {"code": "HR01", "name": {"de": "Neueintragungen"}},
-            {"code": "HR03", "name": {"de": "Löschungen"}},
-        ],
-    },
-    {
-        # SB is Schuldbetreibungen (debt collection) — NOT Submissionen.
-        # Public procurement lives in the cantonal OB-* rubrics below.
-        "code": "SB",
-        "name": {"de": "Schuldbetreibungen", "en": "Debt collection"},
-        "subRubrics": [{"code": "SB01", "name": {"de": "Zahlungsbefehl"}}],
-    },
-    {
-        "code": "LS",
-        "name": {"de": "Schuldenrufe"},
-        "subRubrics": [{"code": "LS01", "name": {"de": "Liquidationsschuldenruf"}}],
-    },
-    # A couple of cantonal rubrics so the optional rubric filter on the UID join
-    # has more than one valid code to validate against.
-    {"code": "OB-AR", "name": {"de": "Öffentliches Beschaffungswesen"}, "subRubrics": []},
-    {"code": "OB-BS", "name": {"de": "Öffentliches Beschaffungswesen"}, "subRubrics": []},
-    {"code": "OB-TI", "name": {"de": "Öffentliches Beschaffungswesen"}, "subRubrics": []},
-    {"code": "OB-ZG", "name": {"de": "Öffentliches Beschaffungswesen"}, "subRubrics": []},
-]
+# Aufgezeichnet statt ausgedacht: die echte Rubrikentaxonomie, gefiltert auf die
+# Codes, gegen die diese Tests validieren. Herkunft und Datum in
+# tests/fixtures/PROVENANCE.md. Eine Codeliste traegt keine Personendaten und
+# ist deshalb woertlich aufgezeichnet.
+MOCK_RUBRICS = fixture_json("gazette_rubrics.json")
 
 
 def _pub_item(pub_id: str, rubric: str, sub: str, date: str, title: str) -> dict:
@@ -474,3 +452,65 @@ async def test_live_get_publication_reads_full_text():
         pytest.skip("no HR publications for this UID at test time")
     result = await gazette_get_publication(GazettePublicationInput(id=pubs[0]["id"]))
     assert "amtsblattportal.ch" in result
+
+
+# ── Quirk-1-Schwelle: gemessen statt geraten ─────────────────────────────────
+
+
+def test_the_largest_rubric_is_not_mistaken_for_an_ignored_filter():
+    """Eine korrekte HR-Suche darf nicht als «Filter ignoriert» abgewiesen werden.
+
+    Die Schwelle stand als absolute Zahl (2_000_000) im Produktivcode, begruendet
+    mit «weit ueber jedem plausiblen Einzelfilter-Ergebnis». Gemessen am
+    2026-08-07 liefert `rubrics=HR` — das Handelsregister, der Kerngegenstand
+    dieses Servers — **2_279_587** Treffer und lag damit darueber. Jede
+    HR-Suche brach mit «Filter wurde vom Upstream ignoriert» ab, obwohl der
+    Filter gewirkt hatte.
+
+    Sichtbar wurde das erst mit aufgezeichneten Fixtures: Die erfundene setzte
+    den Korpus auf 2_790_323 und blieb mit jedem gefilterten Ergebnis unter
+    2 Mio. Produktivcode und Mock trugen dieselbe Annahme, also konnte kein
+    Test sie widerlegen.
+
+    Die Zusicherung prueft die **Ordnung** der drei Groessen, nicht drei Zahlen:
+    der groesste Einzelfilter unterhalb der Schwelle, der volle Korpus darueber.
+    """
+    corpus = corpus_total()
+    largest_single_rubric = 2_279_587  # rubrics=HR, gemessen 2026-08-07
+
+    assert largest_single_rubric < server.GAZETTE_IGNORED_FILTER_THRESHOLD, (
+        f"HR ({largest_single_rubric:,}) liegt ueber der Schwelle "
+        f"({server.GAZETTE_IGNORED_FILTER_THRESHOLD:,}) — eine korrekte Suche "
+        "wuerde als ignorierter Filter abgewiesen"
+    )
+    assert corpus > server.GAZETTE_IGNORED_FILTER_THRESHOLD, (
+        f"Der volle Korpus ({corpus:,}) liegt unter der Schwelle — dann faengt "
+        "die Pruefung den Fall nicht mehr, fuer den es sie gibt"
+    )
+
+
+def test_the_recorded_search_keeps_the_structure_the_server_branches_on():
+    """Die Redaktion darf die Form nicht antasten, nur die Werte.
+
+    Redigiert sind `meta.title` und `content` — Freitext, der natuerliche
+    Personen nennt. Alles, worauf der Server verzweigt (Rubrik, Unterrubrik,
+    Datum, IDs), ist woertlich aufgezeichnet. Diese Zusicherung haelt genau
+    diese Trennung fest: Waere sie verrutscht, belegte die Fixture stillschweigend
+    weniger, als sie aussieht.
+    """
+    payload = fixture_json("gazette_search.json")
+    assert payload["content"], "leere Fixture — neu aufzeichnen"
+    entry = payload["content"][0]
+    meta = entry["meta"]
+
+    assert meta["rubric"] == "HR"
+    assert meta["subRubric"].startswith("HR")
+    assert meta["publicationDate"].endswith("Z")
+    assert meta["id"] and meta["publicationNumber"]
+    assert isinstance(payload["total"], int) and payload["total"] > 0
+
+    redacted = set(meta["title"].values()) | {entry["content"]}
+    assert all(v is None or "redigiert" in str(v) for v in redacted), (
+        "Freitext ist nicht redigiert — diese Fixture darf keine Personendaten "
+        "in ein oeffentliches Repo tragen"
+    )

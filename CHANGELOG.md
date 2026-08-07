@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Behoben — eine korrekte HR-Suche galt als «Filter ignoriert»
+
+`GAZETTE_IGNORED_FILTER_THRESHOLD` stand als absolute Zahl (`2_000_000`) im
+Code, begruendet mit «weit ueber jedem plausiblen Einzelfilter-Ergebnis». Das
+war falsch, und zwar fuer die wichtigste Rubrik dieses Servers. Gemessen am
+2026-08-07:
+
+| Filter | `total` |
+|---|---:|
+| `rubrics=HR` (Handelsregister) | **2 279 587** |
+| `rubrics=LS` | 70 330 |
+| `rubrics=SB` | 22 872 |
+| ungefiltert (voller Korpus) | 2 809 194 |
+
+HR ist 81 % des Korpus und lag damit ueber der Schwelle: Jede HR-Suche brach mit
+«Filter wurde vom Upstream ignoriert — Ergebnis nicht vertrauenswuerdig» ab,
+obwohl der Filter einwandfrei gewirkt hatte. `rubrics` ist allow-gelistet, der
+Fall also ueber die oeffentliche Tool-Oberflaeche erreichbar.
+
+Der Pruefgegenstand ist nicht «viele Treffer», sondern «der **ganze** Bestand».
+Die Schwelle ist deshalb jetzt anteilig (95 % des aufgezeichneten Korpus).
+Waechst der Bestand und bleibt die Konstante stehen, wird die Pruefung
+unschaerfer statt falscher — sie verfehlt hoechstens einen echten Fall, statt
+einen gesunden abzuweisen.
+
+**Warum das niemand gesehen hat:** Die erfundene Fixture setzte den Korpus auf
+`2_790_323` und liess jedes gefilterte Ergebnis unter 2 Mio. bleiben.
+Produktivcode und Mock trugen dieselbe Annahme, also konnte kein Test sie
+widerlegen. Festgehalten von
+`test_the_largest_rubric_is_not_mistaken_for_an_ignored_filter`, das die
+**Ordnung** der drei Groessen prueft statt drei Zahlen. Gegenprobe gefuehrt: Mit
+der wiederhergestellten absoluten Schwelle faellt es.
+
+### Hinzugefuegt — die Amtsblatt-Fixtures sind aufgezeichnet, nicht mehr ausgedacht
+
+**`scripts/record_fixtures.py`** zeichnet von `amtsblattportal.ch` auf und
+schreibt `tests/fixtures/*` samt `PROVENANCE.md` mit Quelle,
+**Aufzeichnungsdatum**, Auswahlregel und SHA-256. Aufgezeichnet sind die
+Rubrikentaxonomie (woertlich — eine Codeliste), eine `/publications`-Antwort und
+der Gesamtbestand.
+
+**Personendaten: Struktur echt, Werte redigiert.** Das Amtsblatt fuehrt `SB`
+(Schuldbetreibungen) und `LS` (Schuldenrufe); der Freitext einer Publikation
+nennt natuerliche Personen mit Adresse. Eine woertliche Antwort in einem
+oeffentlichen Repo waere eine Republikation. Deshalb sind Schluessel,
+Verschachtelung, Typen und alle Codes, auf die der Server verzweigt, woertlich
+aufgezeichnet — und die Werte von `meta.title` und `content` ersetzt.
+`PROVENANCE.md` nennt die vollstaendige Liste, und
+`test_the_recorded_search_keeps_the_structure_the_server_branches_on` haelt die
+Trennung fest.
+
+**Zefix ist NICHT aufgezeichnet.** Die API verlangt `ZEFIX_USER`/`ZEFIX_PASSWORD`
+und antwortet ohne sie mit HTTP 401. Diese Payloads stehen weiterhin als
+Literale im Testmodul, sind also ausgedacht und tragen kein Datum.
+`PROVENANCE.md` fuehrt sie ausdruecklich unter «NICHT aufgezeichnet» — das ist
+der Ist-Zustand und keine Luecke, die man wegraeumt, indem man sie verschweigt.
+Wer Zugangsdaten hat, setzt die beiden Variablen und laesst das Skript erneut
+laufen; der Zefix-Zweig ist darin fertig vorgesehen.
+
+Der Rahmen dazu steht im Skill [`mcp-data-fidelity`](https://github.com/malkreide/mcp-data-fidelity-skill)
+unter Regel 5 und im Katalog-Check `OPS-009`.
+
+
 ### Hinzugefuegt — die Live-Suite laeuft geplant, statt nur markiert zu sein
 
 `ci.yml` faehrt `pytest tests/ -m "not live"`. Das ist richtig — ein fremder 503
