@@ -1,0 +1,12 @@
+{
+  "status_code": 404,
+  "body": {
+    "error": {
+      "code": "API.ZFR.SEARCH.NORESULT",
+      "title": "API.SEARCH.TITLE.NORESULT",
+      "message": null,
+      "suggestion": "API.HINT.SEARCH.SUGGESTION.CHANGEFILTER",
+      "internal_message": null
+    }
+  }
+}

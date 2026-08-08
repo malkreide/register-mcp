@@ -1,0 +1,373 @@
+{
+  "name": "Anlagestiftung der Migros-Pensionskasse",
+  "ehraid": 1287765,
+  "uid": "CHE238945329",
+  "uidFormatted": "CHE-238.945.329",
+  "chid": "CH02070021050",
+  "chidFormatted": "CH-020-7002105-0",
+  "legalSeatId": 247,
+  "legalSeat": "Schlieren",
+  "registerOfficeId": 20,
+  "legalFormId": 7,
+  "status": "EXISTIEREND",
+  "rabId": null,
+  "shabDate": "2025-03-14",
+  "deleteDate": null,
+  "cantonalExcerptWeb": "https://zh.chregister.ch/cr-portal/auszug/auszug.xhtml?uid=CHE-238.945.329",
+  "translation": null,
+  "purpose": "Die Stiftung bezweckt die Anlage und die Verwaltung von Vermögen, welches ausschliesslich der Personalvorsorge dient.",
+  "shabPub": [
+    {
+      "shabDate": "2025-03-14",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1006281790,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 11438,
+      "registryOfficeJournalDate": "2025-03-11",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2024-08-15",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1006106836,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 35120,
+      "registryOfficeJournalDate": "2024-08-12",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2023-06-20",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1005772352,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 24555,
+      "registryOfficeJournalDate": "2023-06-15",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2022-12-15",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1005628747,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 49238,
+      "registryOfficeJournalDate": "2022-12-12",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2022-08-25",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1005547145,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 33428,
+      "registryOfficeJournalDate": "2022-08-22",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2022-06-08",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1005489902,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 22182,
+      "registryOfficeJournalDate": "2022-06-02",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2022-05-27",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1005482484,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 20799,
+      "registryOfficeJournalDate": "2022-05-23",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2022-01-18",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1005382894,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 2184,
+      "registryOfficeJournalDate": "2022-01-13",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2021-07-20",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1005253031,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 31802,
+      "registryOfficeJournalDate": "2021-07-15",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2020-06-23",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1004917126,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 23092,
+      "registryOfficeJournalDate": "2020-06-18",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2019-12-23",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1004790279,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 49468,
+      "registryOfficeJournalDate": "2019-12-18",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 9,
+          "key": "firmenaenderung"
+        },
+        {
+          "id": 11,
+          "key": "zweckaenderung"
+        }
+      ]
+    },
+    {
+      "shabDate": "2019-12-10",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1004778842,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 47326,
+      "registryOfficeJournalDate": "2019-12-05",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 19,
+          "key": "fusion"
+        }
+      ]
+    },
+    {
+      "shabDate": "2019-10-16",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 1004738432,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 39742,
+      "registryOfficeJournalDate": "2019-10-11",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2018-07-19",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 4368317,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 25665,
+      "registryOfficeJournalDate": "2018-07-16",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": []
+    },
+    {
+      "shabDate": "2017-07-26",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 3666279,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 26133,
+      "registryOfficeJournalDate": "2017-07-21",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 17,
+          "key": "aenderungorgane"
+        }
+      ]
+    },
+    {
+      "shabDate": "2016-12-21",
+      "shabNr": 0,
+      "shabPage": 0,
+      "shabId": 3236349,
+      "shabMutationStatus": 0,
+      "registryOfficeId": 20,
+      "registryOfficeCanton": "ZH",
+      "registryOfficeJournalId": 44939,
+      "registryOfficeJournalDate": "2016-12-16",
+      "message": "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]",
+      "mutationTypes": [
+        {
+          "id": 1,
+          "key": "status"
+        },
+        {
+          "id": 2,
+          "key": "status.neu"
+        }
+      ]
+    }
+  ],
+  "address": {
+    "organisation": "Anlagestiftung der Migros-Pensionskasse",
+    "careOf": "",
+    "street": "Wiesenstrasse",
+    "houseNumber": "15",
+    "addon": "",
+    "poBox": "",
+    "town": "Schlieren",
+    "swissZipCode": "8952",
+    "country": "CH"
+  },
+  "mainOffices": null,
+  "furtherMainOffices": null,
+  "branchOffices": null,
+  "hasTakenOver": [
+    {
+      "name": "Anlagestiftung der Migros-Pensionskasse",
+      "ehraid": 282766,
+      "uid": "CHE109596982",
+      "uidFormatted": "CHE-109.596.982",
+      "chid": "CH02079001862",
+      "chidFormatted": "CH-020-7900186-2",
+      "legalSeatId": 261,
+      "legalSeat": "Zürich",
+      "registerOfficeId": 20,
+      "legalFormId": 7,
+      "status": "GELOESCHT",
+      "rabId": 0,
+      "shabDate": "2019-12-10",
+      "deleteDate": "2019-12-10",
+      "cantonalExcerptWeb": "https://zh.chregister.ch/cr-portal/auszug/zefix.xhtml?uid=CHE-109.596.982&lang=de&shabdatum=20191210"
+    }
+  ],
+  "wasTakenOverBy": null,
+  "auditFirms": [
+    {
+      "name": "Ernst & Young AG",
+      "ehraid": 445182,
+      "uid": "CHE491907686",
+      "uidFormatted": "CHE-491.907.686",
+      "chid": "CH02090010690",
+      "chidFormatted": "CH-020-9001069-0",
+      "legalSeatId": 261,
+      "legalSeat": "Zürich",
+      "registerOfficeId": 20,
+      "legalFormId": 9,
+      "status": "EXISTIEREND",
+      "rabId": 5892,
+      "shabDate": "2011-06-21",
+      "deleteDate": null,
+      "cantonalExcerptWeb": "https://zh.chregister.ch/cr-portal/auszug/auszug.xhtml?uid=CHE-491.907.686"
+    }
+  ],
+  "auditFirmFor": null,
+  "oldNames": [
+    {
+      "name": "Anlagestiftung der Migros-Pensionskasse Immobilien",
+      "sequenceNr": 990,
+      "translation": null
+    }
+  ]
+}

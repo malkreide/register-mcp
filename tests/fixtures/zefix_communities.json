@@ -1,0 +1,220 @@
+[
+  {
+    "id": 261,
+    "bfsId": 321,
+    "canton": "BE",
+    "name": "Aarwangen",
+    "registryOfficeId": 36,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 1197,
+    "bfsId": 2701,
+    "canton": "BS",
+    "name": "Basel",
+    "registryOfficeId": 270,
+    "replacedById": null,
+    "alternateNames": [
+      "Bâle",
+      "Basilea"
+    ]
+  },
+  {
+    "id": 2787,
+    "bfsId": 6608,
+    "canton": "GE",
+    "name": "Carouge (GE)",
+    "registryOfficeId": 660,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 757,
+    "bfsId": 1053,
+    "canton": "LU",
+    "name": "Dierikon",
+    "registryOfficeId": 100,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 2404,
+    "bfsId": 5671,
+    "canton": "VD",
+    "name": "Dompierre (VD)",
+    "registryOfficeId": 550,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 2296,
+    "bfsId": 5635,
+    "canton": "VD",
+    "name": "Ecublens (VD)",
+    "registryOfficeId": 550,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 2701,
+    "bfsId": 6283,
+    "canton": "VS",
+    "name": "Embd",
+    "registryOfficeId": 600,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 1980,
+    "bfsId": 4566,
+    "canton": "TG",
+    "name": "Frauenfeld",
+    "registryOfficeId": 440,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 1436,
+    "bfsId": 3443,
+    "canton": "SG",
+    "name": "Gossau (SG)",
+    "registryOfficeId": 320,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 139,
+    "bfsId": 409,
+    "canton": "BE",
+    "name": "Hindelbank",
+    "registryOfficeId": 36,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 3083,
+    "bfsId": 6513,
+    "canton": "NE",
+    "name": "Laténa",
+    "registryOfficeId": 645,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 2577,
+    "bfsId": 6110,
+    "canton": "VS",
+    "name": "Leuk",
+    "registryOfficeId": 600,
+    "replacedById": null,
+    "alternateNames": [
+      "La Souste",
+      "Loèche-la-Ville"
+    ]
+  },
+  {
+    "id": 544,
+    "bfsId": 740,
+    "canton": "BE",
+    "name": "Ligerz",
+    "registryOfficeId": 36,
+    "replacedById": null,
+    "alternateNames": [
+      "Gléresse"
+    ]
+  },
+  {
+    "id": 1053,
+    "bfsId": 2551,
+    "canton": "SO",
+    "name": "Lommiswil",
+    "registryOfficeId": 241,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 2589,
+    "bfsId": 6136,
+    "canton": "VS",
+    "name": "Martigny",
+    "registryOfficeId": 621,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 308,
+    "bfsId": 544,
+    "canton": "BE",
+    "name": "Moosseedorf",
+    "registryOfficeId": 36,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 1148,
+    "bfsId": 2404,
+    "canton": "SO",
+    "name": "Neuendorf",
+    "registryOfficeId": 241,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 2277,
+    "bfsId": 5607,
+    "canton": "VD",
+    "name": "Puidoux",
+    "registryOfficeId": 550,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 105,
+    "bfsId": 139,
+    "canton": "ZH",
+    "name": "Rüschlikon",
+    "registryOfficeId": 20,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 1650,
+    "bfsId": 5017,
+    "canton": "TI",
+    "name": "Sant'Antonino",
+    "registryOfficeId": 501,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 243,
+    "bfsId": 247,
+    "canton": "ZH",
+    "name": "Schlieren",
+    "registryOfficeId": 20,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 247,
+    "bfsId": 251,
+    "canton": "ZH",
+    "name": "Weiningen (ZH)",
+    "registryOfficeId": 20,
+    "replacedById": null,
+    "alternateNames": null
+  },
+  {
+    "id": 248,
+    "bfsId": 261,
+    "canton": "ZH",
+    "name": "Zürich",
+    "registryOfficeId": 20,
+    "replacedById": null,
+    "alternateNames": [
+      "Zurich",
+      "Zurigo"
+    ]
+  }
+]
