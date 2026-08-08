@@ -516,7 +516,24 @@ PYTHONPATH=src pytest tests/ -m "not live"
 
 # Integration tests (live API calls)
 pytest tests/ -m "live"
+
+# Re-record the fixtures from the live sources (writes tests/fixtures/PROVENANCE.md)
+python scripts/record_fixtures.py
 ```
+
+The unit-test payloads are **recorded, not invented**. Source, retrieval date,
+selection rule, **redaction** and SHA-256 per file are in
+[`tests/fixtures/PROVENANCE.md`](tests/fixtures/PROVENANCE.md).
+
+Two things are stated there rather than papered over. **Personal data:** the
+gazette carries debt-collection notices and Zefix carries the full SHAB text
+naming registered persons with their place of residence — the recorded payloads
+keep the shape and redact those values, with the complete list of redacted
+fields alongside. **Zefix needs no credentials:** until 2026-08-08 this
+repository recorded no Zefix fixtures because the recording script measured
+HTTP 401. The measurement was right about the wrong address — the script asked
+`ZefixPublicREST`, while the server speaks to `ZefixREST`, which answers with no
+authentication at all.
 
 ---
 

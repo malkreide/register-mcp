@@ -523,7 +523,24 @@ PYTHONPATH=src pytest tests/ -m "not live"
 
 # Integrationstests (Live-API-Aufrufe)
 pytest tests/ -m "live"
+
+# Fixtures neu von den Live-Quellen aufzeichnen (schreibt tests/fixtures/PROVENANCE.md)
+python scripts/record_fixtures.py
 ```
+
+Die Nutzdaten der Unit-Tests sind **aufgezeichnet, nicht ausgedacht**. Quelle,
+Aufzeichnungsdatum, Auswahlregel, **Redaktion** und SHA-256 je Datei stehen in
+[`tests/fixtures/PROVENANCE.md`](tests/fixtures/PROVENANCE.md).
+
+Zwei Dinge stehen dort ausdrücklich statt beschönigt. **Personendaten:** Das
+Amtsblatt führt Schuldbetreibungen und Schuldenrufe, Zefix führt in
+`shabPub[].message` den SHAB-Volltext mit Namen und Wohnort eingetragener
+Personen — die aufgezeichneten Payloads behalten die Struktur und ersetzen diese
+Werte, mit vollständiger Liste der redigierten Felder daneben. **Zefix braucht
+keine Zugangsdaten:** Bis zum 2026-08-08 zeichnete dieses Repository keine
+Zefix-Fixtures auf, weil das Skript HTTP 401 gemessen hatte. Die Messung stimmte
+und galt der falschen Adresse — das Skript fragte `ZefixPublicREST`, der Server
+spricht mit `ZefixREST`, und das antwortet ohne jede Anmeldung.
 
 ---
 

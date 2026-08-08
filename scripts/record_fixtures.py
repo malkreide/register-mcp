@@ -21,10 +21,22 @@ TWO THINGS MAKE THIS REPOSITORY A SPECIAL CASE, and both are stated in
    repeats it: a fixture that quietly said less than it appears to would be the
    very failure this whole exercise is against.
 
-2. **Zefix needs credentials** (`ZEFIX_USER` / `ZEFIX_PASSWORD`). Without them
-   the API answers 401, and this script records nothing for it rather than
-   dating a payload it never fetched. PROVENANCE.md marks those fixtures as
-   NOT RECORDED, which is the honest state -- not an omission to be tidied away.
+2. **Zefix brauchte angeblich Zugangsdaten -- und das war falsch gemessen.**
+   Bis zum 2026-08-08 stand hier, die API antworte ohne `ZEFIX_USER` /
+   `ZEFIX_PASSWORD` mit HTTP 401, und PROVENANCE.md fuehrte die Zefix-Payloads
+   als NICHT AUFGEZEICHNET. Der Messwert stimmte; er galt nur einer anderen
+   Adresse als der, die der Server benutzt.
+
+   Es gibt zwei Zefix-APIs unter demselben Host. Dieses Skript fragte
+   `ZefixPublicREST` -- das verlangt tatsaechlich Zugangsdaten. Der Server
+   spricht mit `ZefixREST` (`ZEFIX_BASE` in `server.py`), und das antwortet
+   **ohne jede Anmeldung mit HTTP 200**. Die 401 hat also die Adressliste
+   dieses Skripts gemessen, nicht den Zugang zur Quelle.
+
+   Damit das nicht noch einmal auseinanderlaeuft, wird die Basis-URL jetzt aus
+   `register_mcp.server` importiert statt hier abgeschrieben. Eine Fixture vom
+   falschen Endpunkt belegt die falsche Antwort -- unauffaellig, weil sie
+   plausibel aussieht.
 
 Without the retrieval date, "recorded" becomes indistinguishable from
 "invented" after two years, because the file looks the same either way.
@@ -34,7 +46,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -42,9 +53,17 @@ from typing import Any
 
 import httpx
 
-GAZETTE = "https://amtsblattportal.ch/api/v1"
-ZEFIX = "https://www.zefix.admin.ch/ZefixPublicREST/api/v1"
 FIXTURES = Path(__file__).resolve().parent.parent / "tests" / "fixtures"
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+
+from register_mcp.server import ZEFIX_BASE as ZEFIX  # noqa: E402
+
+GAZETTE = "https://amtsblattportal.ch/api/v1"
+
+# Die Firma, an der die Zefix-Fixtures haengen. Eine bekannte, langlebige
+# Gruppe mit vielen Treffern in mehreren Kantonen -- das braucht es, weil an
+# der Streuung der `legalSeatId` einer der Befunde haengt.
+ZEFIX_QUERY = "Migros"
 
 REDACTED = "[redigiert — siehe PROVENANCE.md]"
 
@@ -56,6 +75,23 @@ REDACTED = "[redigiert — siehe PROVENANCE.md]"
 # structural fields around them -- rubric, subRubric, publicationDate, ids --
 # are what the server actually branches on, and those stay real.
 REDACT_PATHS = ("meta.title", "content")
+
+# Zefix fuehrt in `shabPub[].message` den vollen SHAB-Text: «Eingetragene
+# Personen neu oder mutierend: <Name>, von <Ort>, in <Ort>, mit
+# Kollektivprokura zu zweien.» Das sind Personendaten, und sie gehoeren nicht
+# als Datei in ein oeffentliches Repository. Der Server liest das Feld nicht
+# (er nimmt Datum, shabId, Kanton und mutationTypes), aber die Fixture soll die
+# Form belegen -- also bleibt der Schluessel und der Wert wird ersetzt.
+ZEFIX_REDACT_NOTE = "[redigiert — SHAB-Volltext mit Personendaten, siehe PROVENANCE.md]"
+
+
+def _redact_shab_messages(firm: dict[str, Any]) -> dict[str, Any]:
+    """Copy of ``firm`` with every ``shabPub[].message`` replaced."""
+    out = json.loads(json.dumps(firm))
+    for pub in out.get("shabPub") or []:
+        if pub.get("message") is not None:
+            pub["message"] = ZEFIX_REDACT_NOTE
+    return out
 
 
 def _redact(entry: dict[str, Any]) -> dict[str, Any]:
@@ -156,29 +192,113 @@ def record() -> int:
             "vergleicht; sie waechst taeglich und gehoert deshalb aufgezeichnet",
         )
 
-    # 4) Zefix -- only with credentials. No credentials, no fixture, and the
-    #    absence is recorded as such.
-    user, password = os.environ.get("ZEFIX_USER"), os.environ.get("ZEFIX_PASSWORD")
-    if not (user and password):
-        skipped.append(
-            {
-                "name": "zefix_*.json",
-                "url": f"{ZEFIX}/company/search",
-                "why": "ZEFIX_USER/ZEFIX_PASSWORD nicht gesetzt — die API "
-                "antwortet ohne sie mit HTTP 401. NICHT aufgezeichnet.",
-            }
+    # 4) Zefix -- oeffentlich, ohne Zugangsdaten. Siehe Modul-Docstring.
+    with httpx.Client(timeout=90.0, follow_redirects=True) as c:
+        forms = c.get(f"{ZEFIX}/legalForm")
+        forms.raise_for_status()
+        write(
+            "zefix_legal_forms.json",
+            json.dumps(forms.json(), ensure_ascii=False, indent=2) + "\n",
+            f"{ZEFIX}/legalForm",
+            f"vollstaendig, alle {len(forms.json())} Rechtsformen",
         )
-        print("--  zefix_*.json          uebersprungen (keine Zugangsdaten)")
-    else:
-        with httpx.Client(timeout=90.0, auth=(user, password)) as c:
-            r = c.post(f"{ZEFIX}/company/search", json={"name": "Migros"})
-            r.raise_for_status()
-            write(
-                "zefix_search.json",
-                json.dumps(r.json(), ensure_ascii=False, indent=2) + "\n",
-                f"{ZEFIX}/company/search",
-                "Firmensuche 'Migros'; juristische Personen, oeffentliches Handelsregister",
+
+        hits = c.post(f"{ZEFIX}/firm/search.json", json={"name": ZEFIX_QUERY})
+        hits.raise_for_status()
+        search = hits.json()
+        seats = {h["legalSeatId"] for h in search["list"]}
+        if len(seats) < 3:
+            raise SystemExit(
+                f"Suche '{ZEFIX_QUERY}' liefert nur {len(seats)} verschiedene "
+                "legalSeatId — zu wenig, um die Aufloesung ueber `bfsId` gegen "
+                "die ueber `id` zu stellen. Anderen Suchbegriff waehlen."
             )
+        write(
+            "zefix_search.json",
+            json.dumps(search, ensure_ascii=False, indent=2) + "\n",
+            f"{ZEFIX}/firm/search.json",
+            f"vollstaendig, Firmensuche '{ZEFIX_QUERY}' — {len(search['list'])} "
+            f"Treffer aus {len(seats)} verschiedenen Gemeinden. Die Streuung ist "
+            "die Auswahlregel: An ihr haengt, dass sich `legalSeatId` ueber "
+            "`bfsId` aufloest und nicht ueber `id`",
+        )
+
+        ehraid = search["list"][0]["ehraid"]
+        detail = c.get(f"{ZEFIX}/firm/{ehraid}.json")
+        detail.raise_for_status()
+        firm = detail.json()
+        if not firm.get("shabPub"):
+            raise SystemExit(
+                f"Firma {ehraid} hat keine SHAB-Publikationen — dann prueft die "
+                "Fixture den Zweig nicht, der sie aufbereitet."
+            )
+        redacted = _redact_shab_messages(firm)
+        write(
+            "zefix_firm_detail.json",
+            json.dumps(redacted, ensure_ascii=False, indent=2) + "\n",
+            f"{ZEFIX}/firm/{ehraid}.json",
+            f"vollstaendig, Firma {ehraid} ({firm['name']}), "
+            f"{len(firm['shabPub'])} SHAB-Publikationen. **Redigiert:** Das Feld "
+            "`shabPub[].message` nennt eingetragene Personen mit Wohnort; der "
+            "Text ist ersetzt, die Struktur bleibt",
+        )
+
+        comm = c.get(f"{ZEFIX}/community")
+        comm.raise_for_status()
+        communities = comm.json()
+        # Alle Gemeinden der Kantone, in denen die Treffer sitzen, plus die
+        # Gemeinden zu jeder vorkommenden legalSeatId. Ein Zuschnitt nach
+        # Position haette hier genau den Befund verdeckt: Erst wenn `id` und
+        # `bfsId` derselben Gemeinde ungleich sind UND beide Zahlen im
+        # Wertebereich der anderen liegen, faellt die Verwechslung auf.
+        wanted_bfs = {h["legalSeatId"] for h in search["list"]}
+        by_bfs = {x["bfsId"] for x in communities}
+        missing = sorted(wanted_bfs - by_bfs)
+        if missing:
+            raise SystemExit(
+                f"legalSeatId {missing} kommt in keiner `bfsId` vor — die "
+                "Annahme, dass legalSeatId eine BFS-Nummer ist, traegt nicht mehr."
+            )
+        keep_ids = wanted_bfs | {x["id"] for x in communities if x["bfsId"] in wanted_bfs}
+        excerpt = [x for x in communities if x["bfsId"] in wanted_bfs or x["id"] in keep_ids]
+        collisions = [x for x in excerpt if x["id"] == x["bfsId"]]
+        if collisions:
+            raise SystemExit(
+                f"{len(collisions)} Gemeinden mit id == bfsId im Zuschnitt — an "
+                "denen laesst sich die Verwechslung nicht zeigen, sie gehoeren "
+                "geprueft."
+            )
+        write(
+            "zefix_communities.json",
+            json.dumps(sorted(excerpt, key=lambda x: x["name"]), ensure_ascii=False, indent=2)
+            + "\n",
+            f"{ZEFIX}/community",
+            f"{len(excerpt)} von {len(communities)} Gemeinden: zu jeder in der "
+            "Suche vorkommenden `legalSeatId` die Gemeinde mit dieser `bfsId` "
+            "UND die mit dieser `id`. Nach Merkmal ausgewaehlt, nicht nach "
+            "Position — nur so stehen beide Kandidaten einer Verwechslung "
+            "nebeneinander in der Datei",
+        )
+
+        empty = c.post(f"{ZEFIX}/firm/search.json", json={"name": "Zzzqqxyznichtexistent"})
+        if empty.status_code != 404:
+            raise SystemExit(
+                f"Eine Suche ohne Treffer antwortet mit HTTP {empty.status_code}, "
+                "nicht 404 — dann belegt die Fixture den Befund nicht mehr."
+            )
+        write(
+            "zefix_no_result.json",
+            json.dumps(
+                {"status_code": empty.status_code, "body": empty.json()},
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            f"{ZEFIX}/firm/search.json (Name ohne Treffer)",
+            "Statuscode UND Rumpf, weil beides zusammen den Befund ausmacht: "
+            "Die Quelle antwortet mit **404**, nicht mit 200 — der freundliche "
+            "Zweig fuer «keine Ergebnisse» war damit unerreichbar",
+        )
 
     _write_provenance(recorded_at, entries, skipped)
     print(f"\nPROVENANCE.md written, recording date {recorded_at}")

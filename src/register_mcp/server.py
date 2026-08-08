@@ -407,6 +407,31 @@ def _handle_http_error(e: Exception) -> str:
     return f"Unerwarteter Fehler: {type(e).__name__}: {e}"
 
 
+async def _zefix_post_search(client: httpx.AsyncClient, body: dict) -> dict:
+    """POST an Zefix `firm/search.json` — inklusive der leeren Treffermenge.
+
+    Zefix beantwortet eine Suche ohne Treffer mit **HTTP 404** und dem
+    NORESULT-Umschlag im Rumpf, nicht mit 200. Das ist vertretbar und war hier
+    trotzdem falsch behandelt: `raise_for_status()` warf, und die generische
+    404-Meldung lautet «Eintrag nicht gefunden. Bitte EHRAID oder UID prüfen» —
+    auf eine Namenssuche hin, bei der weder EHRAID noch UID im Spiel waren.
+    Der freundliche Zweig in `_zefix_error_to_str` war damit unerreichbar.
+
+    Aufgefallen ist das erst beim Aufzeichnen: Die erfundene Fixture legte den
+    NORESULT-Umschlag in eine 200er-Antwort, und der Test dazu bestand.
+    """
+    r = await client.post(f"{ZEFIX_BASE}/firm/search.json", json=body)
+    if r.status_code == 404:
+        try:
+            body_json = r.json()
+        except ValueError:
+            body_json = {}
+        if isinstance(body_json, dict) and body_json.get("error"):
+            return body_json
+    r.raise_for_status()
+    return r.json()
+
+
 def _zefix_error_to_str(data: dict) -> str | None:
     """Extract error message from Zefix error response if present."""
     error = data.get("error")
@@ -644,6 +669,16 @@ class MunicipalitiesInput(BaseModel):
         min_length=2,
         max_length=2,
     )
+    legal_seat_id: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Die `legalSeatId` einer Firma (aus zefix_search_companies oder "
+            "zefix_get_company). Löst genau eine Gemeinde auf. Bevorzugt "
+            "gegenüber dem Nachschlagen in der Tabelle: `legalSeatId` ist eine "
+            "BFS-Nummer und trifft die Spalte «BFS-ID», nicht die interne «ID»."
+        ),
+    )
     response_format: ResponseFormat = Field(
         default=ResponseFormat.MARKDOWN,
         description="Ausgabeformat: 'markdown' oder 'json'",
@@ -748,9 +783,7 @@ async def zefix_search_companies(params: CompanySearchInput) -> str:
     try:
         legal_forms = await _fetch_legal_forms()
         async with _make_client() as client:
-            r = await client.post(f"{ZEFIX_BASE}/firm/search.json", json=body)
-            r.raise_for_status()
-            data = r.json()
+            data = await _zefix_post_search(client, body)
     except Exception as e:
         return _handle_http_error(e)
 
@@ -937,9 +970,7 @@ async def zefix_get_company_by_uid(params: CompanyByUidInput) -> str:
     try:
         legal_forms = await _fetch_legal_forms()
         async with _make_client() as client:
-            r = await client.post(f"{ZEFIX_BASE}/firm/search.json", json=body)
-            r.raise_for_status()
-            data = r.json()
+            data = await _zefix_post_search(client, body)
     except Exception as e:
         return _handle_http_error(e)
 
@@ -1211,14 +1242,22 @@ async def zefix_list_legal_forms(params: LegalFormsInput) -> str:
 )
 @logged_tool("zefix_list_municipalities")
 async def zefix_list_municipalities(params: MunicipalitiesInput) -> str:
-    """Listet Schweizer Gemeinden mit BFS-ID und Handelsregisterkreis auf.
+    """Listet Schweizer Gemeinden auf und löst die `legalSeatId` einer Firma auf.
 
-    Die interne legalSeatId aus Zefix kann über diese Liste auf Gemeindenamen
-    und BFS-IDs gemappt werden. Nützlich für geografische Analysen und Berichte.
+    **`legalSeatId` ist eine BFS-Nummer.** Sie trifft die Spalte `BFS-ID`, nicht
+    die interne `ID` der Gemeinde. Die beiden sind bei **keiner** der 2112
+    Gemeinden gleich, und beide Wertebereiche überlappen sich — wer über die
+    falsche Spalte nachschlägt, bekommt keinen Fehler, sondern eine andere,
+    echte Schweizer Gemeinde: `legalSeatId=261` ist Zürich, über `ID` gelesen
+    aber Aarwangen (BE); `2701` ist Basel, über `ID` gelesen Embd (VS).
+
+    Deshalb macht `legal_seat_id` die Auflösung selbst, statt sie dem Aufrufer
+    und einer Tabelle mit zwei ähnlich aussehenden Zahlenspalten zu überlassen.
 
     Args:
         params (MunicipalitiesInput):
-            - canton (Optional[str]): Kanton-Filter (z.B. 'ZH'). Ohne Filter: alle ~2'300 Gemeinden.
+            - legal_seat_id (Optional[int]): `legalSeatId` einer Firma → genau eine Gemeinde.
+            - canton (Optional[str]): Kanton-Filter (z.B. 'ZH'). Ohne Filter: alle ~2'100 Gemeinden.
             - response_format (str): 'markdown' oder 'json'
 
     Returns:
@@ -1231,6 +1270,21 @@ async def zefix_list_municipalities(params: MunicipalitiesInput) -> str:
             communities = r.json()
     except Exception as e:
         return _handle_http_error(e)
+
+    if params.legal_seat_id is not None:
+        # Ueber `bfsId`, nicht ueber `id`. Siehe Docstring.
+        match = [c for c in communities if c.get("bfsId") == params.legal_seat_id]
+        if not match:
+            wrong = next((c for c in communities if c.get("id") == params.legal_seat_id), None)
+            hint = (
+                f" Es gibt allerdings eine Gemeinde mit der internen ID "
+                f"{params.legal_seat_id} ({wrong['name']}, {wrong['canton']}) — "
+                "das ist eine andere Gemeinde und nicht der Sitz dieser Firma."
+                if wrong
+                else ""
+            )
+            return f"Keine Gemeinde mit BFS-Nummer {params.legal_seat_id} gefunden.{hint}"
+        communities = match
 
     if params.canton:
         communities = [c for c in communities if c.get("canton") == params.canton]
@@ -1255,13 +1309,16 @@ async def zefix_list_municipalities(params: MunicipalitiesInput) -> str:
     lines = [
         f"## Gemeinden: {canton_label} ({len(communities)} Einträge)",
         "",
-        "| ID | Name | Kanton | BFS-ID | HR-Kreis |",
-        "|----|------|--------|--------|----------|",
+        "_`legalSeatId` einer Firma entspricht der Spalte **BFS-ID**, nicht der "
+        "internen Zefix-ID._",
+        "",
+        "| BFS-ID (= legalSeatId) | Name | Kanton | interne Zefix-ID | HR-Kreis |",
+        "|-----------------------|------|--------|------------------|----------|",
     ]
     for c in sorted(communities, key=lambda x: x.get("name", ""))[:100]:
         lines.append(
-            f"| {c['id']} | {c['name']} | {c['canton']} "
-            f"| {c.get('bfsId', '—')} | {c.get('registryOfficeId', '—')} |"
+            f"| {c.get('bfsId', '—')} | {c['name']} | {c['canton']} "
+            f"| {c['id']} | {c.get('registryOfficeId', '—')} |"
         )
 
     if len(communities) > 100:

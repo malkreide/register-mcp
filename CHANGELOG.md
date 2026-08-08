@@ -7,6 +7,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Behoben — Zefix ist doch aufzeichenbar, und das hat zwei Fehler freigelegt
+
+Der letzte Durchgang liess die Zefix-Payloads als Literale im Testmodul stehen
+und trug sie in `PROVENANCE.md` unter **NICHT aufgezeichnet** ein, mit der
+Begruendung: Die API antwortet ohne `ZEFIX_USER`/`ZEFIX_PASSWORD` mit HTTP 401.
+Die Messung stimmte. Sie galt der falschen Adresse.
+
+Es gibt zwei Zefix-APIs unter demselben Host:
+
+| | Zugangsdaten | Antwort |
+|---|---|---|
+| `ZefixPublicREST` — was das Aufzeichnungsskript fragte | ja | **401** |
+| `ZefixREST` — was `ZEFIX_BASE` ist und der Server benutzt | nein | **200** |
+
+Die 401 hat also die Adressliste des Skripts gemessen, nicht den Zugang zur
+Quelle. Damit das nicht noch einmal auseinanderlaeuft, importiert das Skript
+die Basis-URL jetzt aus `register_mcp.server`, statt sie abzuschreiben.
+
+**Zwei ausgelieferte Fehler kamen mit dem Aufzeichnen heraus:**
+
+**1. `legalSeatId` wurde ueber die falsche Spalte aufgeloest.** Eine Firma
+traegt ihren Sitz als `legalSeatId`; die Gemeindeliste fuehrt zwei
+Zahlenspalten, `id` und `bfsId`. `legalSeatId` ist eine **BFS-Nummer**. Das
+Werkzeug `zefix_list_municipalities` stellte die interne `id` in die erste
+Spalte und versprach im Docstring, ueber diese Liste liesse sich `legalSeatId`
+aufloesen.
+
+Ueber `id` nachgeschlagen kommt kein Fehler heraus, sondern **eine andere,
+echte Schweizer Gemeinde**. Gemessen an 12 Treffern: 0 von 12 richtig ueber
+`id`, 12 von 12 ueber `bfsId`.
+
+| `legalSeatId` | tatsaechlich | ueber `id` gelesen |
+|---|---|---|
+| 261 | Zürich (ZH) | **Aarwangen (BE)** |
+| 2701 | Basel (BS) | **Embd (VS)** |
+| 247 | Schlieren (ZH) | **Weiningen (ZH)** |
+
+Die erfundene Fixture fuehrte fuer Zürich `{"id": 261, "bfsId": 261}` — mit
+dieser Gleichheit stimmen beide Aufloesungen ueberein und die Verwechslung ist
+unsichtbar. Sie gilt fuer **keine** der 2112 Gemeinden.
+
+Neu nimmt das Werkzeug einen Parameter `legal_seat_id` und loest selbst auf,
+statt die Zuordnung einem Aufrufer und zwei aehnlich aussehenden Zahlenspalten
+zu ueberlassen. Die Tabelle fuehrt `BFS-ID (= legalSeatId)` zuerst und die
+interne Zefix-ID ausdruecklich benannt daneben.
+
+**2. Eine Suche ohne Treffer antwortete «Bitte EHRAID oder UID pruefen».**
+Zefix meldet die leere Treffermenge mit **HTTP 404** und dem NORESULT-Umschlag
+im Rumpf, nicht mit 200. `raise_for_status()` warf, und die generische
+404-Meldung des Servers lautet «Eintrag nicht gefunden. Bitte EHRAID oder UID
+pruefen» — auf eine **Namenssuche** hin, bei der weder EHRAID noch UID im Spiel
+waren. Der freundliche Zweig `_zefix_error_to_str` war fuer Suchen damit
+unerreichbar.
+
+Die erfundene Fixture legte den NORESULT-Umschlag in eine 200er-Antwort, und
+der Test dazu bestand. Die aufgezeichnete Fixture haelt **Statuscode und
+Rumpf** fest, weil erst beides zusammen den Fall ausmacht.
+
+**Nullbefund, der dazugehoert:** `mutationTypes` in `shabPub[]` gibt es
+wirklich — 87 Vorkommen in sechs Firmen. Dieses Feld hatte die erfundene
+Fixture richtig geraten.
+
+### Hinzugefuegt — die Zefix-Fixtures sind aufgezeichnet
+
+Fuenf neue Dateien: `zefix_legal_forms.json`, `zefix_search.json`,
+`zefix_firm_detail.json`, `zefix_communities.json`, `zefix_no_result.json`.
+`PROVENANCE.md` fuehrt keine Datei mehr unter «NICHT aufgezeichnet».
+
+**Die Auswahlregeln sind nach Merkmal, nicht nach Position.** Die
+Gemeinde-Fixture enthaelt zu jeder in der Suche vorkommenden `legalSeatId`
+*beide* Kandidaten einer Verwechslung — die Gemeinde mit dieser `bfsId` **und**
+die mit dieser `id`. Nur so stehen sie nebeneinander in der Datei; «die ersten
+N Gemeinden» haette den Befund verdeckt. Das Skript bricht ab, wenn im
+Zuschnitt eine Gemeinde mit `id == bfsId` landet, wenn die Suche zu wenige
+verschiedene Sitzgemeinden liefert, oder wenn eine leere Suche nicht mehr mit
+404 antwortet.
+
+**Redigiert wird auch hier.** Zefix fuehrt in `shabPub[].message` den
+SHAB-Volltext: «Eingetragene Personen neu oder mutierend: <Name>, von <Ort>, in
+<Ort> …». Der Server liest das Feld nicht, die Fixture soll aber die Form
+belegen — also bleibt der Schluessel und der Wert ist ersetzt, mit Vermerk in
+`PROVENANCE.md`. Ein Test sichert zu, dass der redigierte Text auch nicht in
+eine Antwort geraet.
+
+**Gegenprobe gefuehrt:** Mit zurueckgedrehtem Code — Aufloesung wieder ueber
+`id`, 404 wieder durchgeworfen — fallen die zwei neuen Zusicherungen.
+
 ### Behoben — eine korrekte HR-Suche galt als «Filter ignoriert»
 
 `GAZETTE_IGNORED_FILTER_THRESHOLD` stand als absolute Zahl (`2_000_000`) im
