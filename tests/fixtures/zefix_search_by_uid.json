@@ -1,0 +1,25 @@
+{
+  "list": [
+    {
+      "name": "Anlagestiftung der Migros-Pensionskasse",
+      "ehraid": 1287765,
+      "uid": "CHE238945329",
+      "uidFormatted": "CHE-238.945.329",
+      "chid": "CH02070021050",
+      "chidFormatted": "CH-020-7002105-0",
+      "legalSeatId": 247,
+      "legalSeat": "Schlieren",
+      "registerOfficeId": 20,
+      "legalFormId": 7,
+      "status": "EXISTIEREND",
+      "rabId": 0,
+      "shabDate": "2025-03-14",
+      "deleteDate": null,
+      "cantonalExcerptWeb": "https://zh.chregister.ch/cr-portal/auszug/auszug.xhtml?uid=CHE-238.945.329"
+    }
+  ],
+  "hasMoreResults": false,
+  "offset": 0,
+  "maxEntries": 5,
+  "maxOffset": null
+}

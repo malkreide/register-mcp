@@ -223,6 +223,53 @@ def record() -> int:
             "`bfsId` aufloest und nicht ueber `id`",
         )
 
+        # Die UID-Suche mit *dem* Payload, den `zefix_get_company_by_uid` und
+        # `docs/demo/demo.py` schicken. Sie steht hier eigenstaendig, weil sie
+        # eine andere Behauptung belegt als `zefix_search.json`: dass
+        # `firm/search.json` die UID als `name` annimmt und kein `uid`-Feld
+        # kennt. Die Demo schickte bis 2026-08-15 `{"uid": ...}` und bekam 400 —
+        # eine Fixture der Namenssuche haette das nie aufgedeckt.
+        uid_formatted = search["list"][0]["uidFormatted"]
+        uid_digits = "".join(ch for ch in uid_formatted if ch.isdigit())
+        uid_body = {
+            "languageKey": "de",
+            "maxEntries": 5,
+            "name": uid_formatted,
+            "searchType": "CONTAINS",
+            "activeOnly": False,
+        }
+        by_uid = c.post(f"{ZEFIX}/firm/search.json", json=uid_body)
+        by_uid.raise_for_status()
+        by_uid_payload = by_uid.json()
+        found = [
+            h
+            for h in by_uid_payload.get("list", [])
+            if "".join(ch for ch in h.get("uid", "") if ch.isdigit()) == uid_digits
+        ]
+        if not found:
+            raise SystemExit(
+                f"Die UID-Suche nach {uid_formatted} findet die Firma nicht mehr — "
+                "dann traegt die Annahme nicht mehr, dass `firm/search.json` eine "
+                "UID im Feld `name` aufloest."
+            )
+        rejected = c.post(f"{ZEFIX}/firm/search.json", json={"uid": uid_digits, "maxEntries": 1})
+        if rejected.status_code != 400:
+            raise SystemExit(
+                f"Ein Payload mit `uid`-Feld antwortet mit HTTP "
+                f"{rejected.status_code}, nicht 400 — dann belegt die Auswahlregel "
+                "dieser Fixture den Befund nicht mehr."
+            )
+        write(
+            "zefix_search_by_uid.json",
+            json.dumps(by_uid_payload, ensure_ascii=False, indent=2) + "\n",
+            f"{ZEFIX}/firm/search.json (UID als `name`, searchType CONTAINS)",
+            f"vollstaendig, Suche nach {uid_formatted} — {len(by_uid_payload['list'])} "
+            "Treffer. Auswahlregel ist der Kontrast: Derselbe Endpunkt "
+            f"beantwortet ein Payload mit `uid`-Feld am selben Tag mit HTTP "
+            f"{rejected.status_code}. Die Fixture belegt damit die Form, die "
+            "traegt, und das Skript prueft die, die nicht traegt",
+        )
+
         ehraid = search["list"][0]["ehraid"]
         detail = c.get(f"{ZEFIX}/firm/{ehraid}.json")
         detail.raise_for_status()
