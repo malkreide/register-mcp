@@ -43,6 +43,21 @@
 # wenn jeder Test uebersprungen wurde. Ein Job, der das als gruen bucht,
 # schliesst ein offenes Issue mit einem Vergleich, den es nie gab.
 
+# WAS HIER LAEUFT
+# ---------------
+# Alles unter `tests/` mit der Marke `live` — die Auswahl haengt an der Marke,
+# nicht an einer Liste in dieser Datei. Seit dem 15.8.2026 gehoert
+# `docs/demo/demo.py` dazu (`tests/test_demo.py`): das Skript hinter der
+# Terminal-Aufnahme, das jede Leserin der README als Erstes ausfuehrt.
+#
+# Der erste Lauf dieser drei Tests hat gleich etwas gefunden, und zwar keinen
+# Ausfall, sondern eine falsche Antwort: Die UID-Suche laeuft mit
+# `searchType: CONTAINS` ueber das Namensfeld, und Zefix beantwortet
+# CHE-999.999.999 mit «CHEMAM - 999» (UID CHE-113.593.998). Der Rueckfall auf
+# den ersten Treffer machte daraus die Antwort auf eine Abfrage nach einer ganz
+# anderen UID. Genau die Sorte Fehler, gegen die die Live-Suite geschrieben ist:
+# vollstaendig, plausibel, formatiert, und ueber jemand anderen.
+
 name: Live-Tests
 
 on:

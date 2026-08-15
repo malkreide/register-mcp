@@ -150,6 +150,29 @@ async def test_uid_picks_the_exact_match_not_the_first_hit(capsys):
 
 
 @pytest.mark.asyncio
+async def test_uid_without_an_exact_match_reports_nothing_found(capsys):
+    """Kein Rückfall auf `firms[0]` — eine Trefferliste ist noch keine Antwort.
+
+    Die Suche läuft mit `searchType: CONTAINS` über das Namensfeld. Zefix
+    beantwortet `CHE-999.999.999` mit «CHEMAM - 999» (UID CHE-113.593.998, an
+    der Quelle geprüft am 2026-08-15). Wer den ersten Treffer nimmt, gibt diese
+    Firma als Antwort auf eine Abfrage nach einer ganz anderen UID aus:
+    vollständig, plausibel, formatiert, und über jemand anderen.
+    """
+    absent = "999999999"
+    assert not [
+        h for h in MOCK_SEARCH["list"] if "".join(c for c in h["uid"] if c.isdigit()) == absent
+    ], "Die Fixture enthaelt diese UID doch — dann prueft der Test den Rueckfall nicht"
+    with respx.mock:
+        _mock_legal_forms()
+        _mock_search(MOCK_SEARCH)
+        await demo.cmd_uid("CHE-999.999.999")
+    out = capsys.readouterr().out
+    assert "Keine Firma mit UID CHE-999.999.999 gefunden" in out
+    assert FIRST_HIT_NAME not in out
+
+
+@pytest.mark.asyncio
 async def test_uid_reports_a_missing_company_instead_of_raising(capsys):
     """Der NORESULT-Fall kommt mit 404 — vorher endete das im Traceback."""
     with respx.mock:
@@ -201,3 +224,63 @@ async def test_search_reports_no_hits_instead_of_raising(capsys):
         _mock_search(NO_RESULT_BODY, status=NO_RESULT_STATUS)
         await demo.cmd_search("Zzzqqxyznichtexistent", None)
     assert "0 Ergebnisse" in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------------------
+# Live-Tests (in der CI mit -m "not live" ausgeschlossen, woechentlich in
+# .github/workflows/live-tests.yml)
+# ---------------------------------------------------------------------------
+#
+# Die Tests oben laufen gegen aufgezeichnete Antworten und pruefen damit die
+# Demo gegen Zefix vom Aufzeichnungstag. Aendert die Quelle ihren Vertrag,
+# bleiben sie gruen — die Fixture ist aus derselben Annahme geschrieben wie der
+# Code. Genau der Fall lag hier vor: Das Payload mit `uid`-Feld war seit jeher
+# falsch, und keine Fixture konnte das widerlegen.
+#
+# Diese drei Tests sind die Gegenprobe an der Quelle selbst.
+
+# Die dokumentierte Beispiel-Firma aus docs/demo/README.md und demo.tape.
+# Faellt dieser Test, stimmt entweder die Anfrage nicht mehr oder das Beispiel.
+LIVE_UID = "CHE-404.020.972"
+LIVE_NAME = "Lehrmittelverlag Zürich AG"
+
+
+@pytest.mark.live
+@pytest.mark.asyncio
+async def test_live_uid_resolves_the_documented_company(capsys):
+    """Live: `firm/search.json` loest eine UID weiterhin ueber das Feld `name` auf."""
+    await demo.cmd_uid(LIVE_UID)
+    out = capsys.readouterr().out
+    assert LIVE_NAME in out
+    assert LIVE_UID in out
+
+
+@pytest.mark.live
+@pytest.mark.asyncio
+async def test_live_verify_and_search_return_hits(capsys):
+    """Live: die beiden Namenssuchen liefern weiterhin Treffer."""
+    await demo.cmd_verify("Migros")
+    verify_out = capsys.readouterr().out
+    assert "CHE-" in verify_out
+    assert "✅" in verify_out
+
+    await demo.cmd_search("Migros", "ZH")
+    search_out = capsys.readouterr().out
+    assert "CHE-" in search_out
+    assert "0 Ergebnisse" not in search_out
+
+
+@pytest.mark.live
+@pytest.mark.asyncio
+async def test_live_a_search_without_hits_stays_an_answer(capsys):
+    """Live: die trefferlose Suche endet in einer Meldung, nicht im Traceback.
+
+    Zefix beantwortet sie mit HTTP 404 und dem NORESULT-Umschlag. Der Test
+    behauptet den Statuscode nicht — er behauptet, dass die Demo damit umgeht,
+    welchen Weg die Quelle auch waehlt.
+    """
+    await demo.cmd_verify("Zzzqqxyznichtexistent")
+    assert "Nicht im Handelsregister gefunden" in capsys.readouterr().out
+
+    await demo.cmd_uid("CHE-999.999.999")
+    assert "Keine Firma mit UID" in capsys.readouterr().out
