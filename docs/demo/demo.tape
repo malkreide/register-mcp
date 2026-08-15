@@ -33,7 +33,7 @@ Type "# Query 2 — Company profile by UID"
 Enter
 Sleep 300ms
 
-Type "python docs/demo/demo.py uid 'CHE-109.741.634'"
+Type "python docs/demo/demo.py uid 'CHE-404.020.972'"
 Sleep 500ms
 Enter
 Sleep 3s

@@ -7,7 +7,7 @@ Calls the live Zefix API — requires internet access.
 
 Usage:
     python docs/demo/demo.py verify "Lehrmittelverlag Zürich AG"
-    python docs/demo/demo.py uid "CHE-109.741.634"
+    python docs/demo/demo.py uid "CHE-404.020.972"
     python docs/demo/demo.py search "Migros" --canton ZH
 """
 
@@ -51,6 +51,27 @@ async def _fetch_legal_forms(client: httpx.AsyncClient) -> dict[int, str]:
     return {lf["id"]: lf["kurzform"].get("de", "—") for lf in r.json()}
 
 
+async def _post_search(client: httpx.AsyncClient, payload: dict) -> dict:
+    """POST an `firm/search.json` — inklusive der leeren Treffermenge.
+
+    Wie `_zefix_post_search` in src/register_mcp/server.py: Zefix beantwortet
+    eine Suche ohne Treffer mit **HTTP 404** und dem NORESULT-Umschlag im Rumpf.
+    Ohne diesen Zweig warf `raise_for_status()`, und die Demo endete auf jede
+    trefferlose Suche mit einem Traceback — die «nicht gefunden»-Ausgaben der
+    drei Kommandos waren unerreichbar.
+    """
+    r = await client.post(f"{ZEFIX_BASE}/firm/search.json", json=payload, timeout=TIMEOUT)
+    if r.status_code == 404:
+        try:
+            body = r.json()
+        except ValueError:
+            body = {}
+        if isinstance(body, dict) and body.get("error"):
+            return body
+    r.raise_for_status()
+    return r.json()
+
+
 # ── commands ─────────────────────────────────────────────────────────────────
 
 
@@ -59,9 +80,7 @@ async def cmd_verify(name: str) -> None:
     async with httpx.AsyncClient() as client:
         legal_forms = await _fetch_legal_forms(client)
         payload = {"name": name, "maxEntries": 5, "offset": 0}
-        r = await client.post(f"{ZEFIX_BASE}/firm/search.json", json=payload, timeout=TIMEOUT)
-        r.raise_for_status()
-        data = r.json()
+        data = await _post_search(client, payload)
 
     firms = data.get("list", [])
     if not firms:
@@ -84,21 +103,41 @@ async def cmd_verify(name: str) -> None:
 
 
 async def cmd_uid(uid: str) -> None:
-    uid_clean = uid.replace("-", "").replace(".", "")
+    # Nur Ziffern: `.replace("-", "").replace(".", "")` liess das Praefix
+    # stehen und machte aus CHE-404.020.972 ein "CHE404020972".
+    uid_clean = "".join(c for c in uid if c.isdigit())
     print(f"\n🔍  zefix_get_company_by_uid(uid={uid!r})\n")
+    if len(uid_clean) != 9:
+        print(f"❌  Ungültige UID {uid!r}. Erwartet: 9 Ziffern, z.B. CHE-404.020.972.")
+        return
+    uid_formatted = f"CHE-{uid_clean[:3]}.{uid_clean[3:6]}.{uid_clean[6:]}"
+
     async with httpx.AsyncClient() as client:
         legal_forms = await _fetch_legal_forms(client)
-        payload = {"uid": uid_clean, "maxEntries": 1, "offset": 0}
-        r = await client.post(f"{ZEFIX_BASE}/firm/search.json", json=payload, timeout=TIMEOUT)
-        r.raise_for_status()
-        data = r.json()
+        # Gleiche Anfrage wie `zefix_get_company_by_uid` in
+        # src/register_mcp/server.py: `firm/search.json` kennt kein `uid`-Feld,
+        # die UID wird als `name` gesucht. Das alte Payload mit `uid` wurde von
+        # Zefix mit 400 beantwortet — die Demo war damit unbenutzbar.
+        payload = {
+            "languageKey": "de",
+            "maxEntries": 5,
+            "name": uid_formatted,
+            "searchType": "CONTAINS",
+            "activeOnly": False,
+        }
+        data = await _post_search(client, payload)
 
+    # Die leere Treffermenge kommt als `error`-Objekt, nicht als leere Liste;
+    # `.get("list", [])` deckt beide Faelle ab.
     firms = data.get("list", [])
-    if not firms:
-        print(f"❌  Keine Firma mit UID {uid} gefunden.")
+    exact = [f for f in firms if "".join(c for c in f.get("uid", "") if c.isdigit()) == uid_clean]
+    if not exact:
+        exact = firms[:1]  # wie der Server: notfalls den ersten Treffer zeigen
+    if not exact:
+        print(f"❌  Keine Firma mit UID {uid_formatted} gefunden.")
         return
 
-    f = firms[0]
+    f = exact[0]
     uid_fmt = _uid_fmt(f.get("uidFormatted") or f.get("uid", uid))
     lf = legal_forms.get(f.get("legalFormId", 0), "—")
     icon = _status_icon(f.get("status", ""))
@@ -121,9 +160,7 @@ async def cmd_search(name: str, canton: str | None) -> None:
         payload: dict = {"name": name, "maxEntries": 5, "offset": 0}
         if canton:
             payload["canton"] = canton.upper()
-        r = await client.post(f"{ZEFIX_BASE}/firm/search.json", json=payload, timeout=TIMEOUT)
-        r.raise_for_status()
-        data = r.json()
+        data = await _post_search(client, payload)
 
     firms = data.get("list", [])
     total = data.get("maxOffset", len(firms))
