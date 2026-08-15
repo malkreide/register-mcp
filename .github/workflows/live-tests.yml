@@ -116,7 +116,18 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Issue oeffnen, aktualisieren oder schliessen
-        uses: actions/github-script@v7
+        # v9 statt v7: v7 zielt auf Node 20, das GitHub abgekuendigt hat — der
+        # Lauf vom 15.8.2026 warnte, die Action werde bereits zwangsweise auf
+        # Node 24 ausgefuehrt. v8 haette das ebenfalls behoben (nur Laufzeit),
+        # ist aber nicht mehr der aktuelle Stand; ein Zwischenschritt haette
+        # denselben Bump ein zweites Mal faellig gemacht.
+        #
+        # Die drei Bruchstellen von v9 gehen an diesem Skript vorbei, Zeile fuer
+        # Zeile geprueft: es ruft kein `require('@actions/github')`, deklariert
+        # kein eigenes `getOctokit` und fasst keine `@actions/github`-Interna
+        # an. Benutzt werden `github.rest.*`, `context` und `core` — die drei
+        # Dinge, die ueber alle drei Versionen gleich geblieben sind.
+        uses: actions/github-script@v9
         # Ueber `env`, nicht ueber `${{ }}` im Skript: Die pytest-Ausgabe ist
         # fremder Text, der sonst in einem JavaScript-Template-Literal landet.
         # Ein Backtick oder ein `${` darin bricht das Skript oder fuehrt aus,
