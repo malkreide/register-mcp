@@ -41,12 +41,13 @@ Ein Codex-Review auf einem PR wird beantwortet oder behoben, nie ignoriert.
 
 ## Teil 2 — Repo-spezifisch (register-mcp)
 
-**ruff-Pin: `0.16.1`, an zwei Stellen — beide gemeinsam anheben.**
-`.github/workflows/ci.yml` (`pip install ruff==0.16.1`) und `pyproject.toml [dev]`
-(`ruff==0.16.1`). `.pre-commit-config.yaml` existiert nicht; es gibt also kein
-lokales Gate, das den Pin erzwingt — `pip install -e ".[dev]"` bzw. `uv sync`
-liefert ihn. Gehen die zwei Stellen auseinander, ist ein lokal grünes
-`ruff check` kein Beleg für das Gate.
+**ruff-Pin: `0.16.1`, an drei Stellen — alle gemeinsam anheben.**
+`.github/workflows/ci.yml` (`pip install ruff==0.16.1`), `pyproject.toml [dev]`
+(`ruff==0.16.1`) und `.pre-commit-config.yaml` (`rev: v0.16.1`). Gehen sie
+auseinander, ist ein lokal grünes `ruff check` kein Beleg für das Gate.
+Die pre-commit-Hooks sind per `files: ^(src|tests|scripts)/` auf den Umfang des
+Gates begrenzt; `docs/demo/demo.py` liegt bewusst ausserhalb — es verletzt
+`F401` und die Formatierung, wird von der CI aber nicht geprüft.
 
 **Gate-Befehle, wörtlich aus `ci.yml`** (Job `test`, Python 3.11/3.12/3.13):
 

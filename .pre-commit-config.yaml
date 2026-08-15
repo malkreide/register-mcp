@@ -1,0 +1,21 @@
+# Lokales Gate, deckungsgleich mit dem Lint-Schritt in `.github/workflows/ci.yml`.
+#
+# `rev` traegt denselben Pin wie die CI und `pyproject.toml [dev]`: ruff 0.16.1.
+# Alle drei Stellen werden gemeinsam angehoben — laufen sie auseinander, meldet
+# eine davon Abweichungen, die niemand verursacht hat.
+#
+# `files` bildet den Umfang des Gates nach (`ruff … src/ tests/ scripts/`).
+# Ohne diese Schranke wuerde der Hook auch `docs/demo/demo.py` pruefen, das die
+# CI bewusst nicht linted — ein Hook, der Commits an einer Datei aufhaelt, die
+# kein Gate verlangt, wird abgeschaltet, und ein abgeschalteter Hook prueft nichts.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.1
+    hooks:
+      - id: ruff-check
+        files: ^(src|tests|scripts)/
+      # Anders als die CI (`--check`) schreibt dieser Hook die Formatierung
+      # direkt zurueck. Der Commit bricht ab, die Korrektur liegt danach im
+      # Arbeitsverzeichnis und muss nur noch gestaged werden.
+      - id: ruff-format
+        files: ^(src|tests|scripts)/
