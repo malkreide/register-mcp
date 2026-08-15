@@ -979,12 +979,18 @@ async def zefix_get_company_by_uid(params: CompanyByUidInput) -> str:
         return f"Keine Firma mit UID {uid_formatted} im Handelsregister gefunden.\n\n{err}"
 
     firms = data.get("list", [])
-    # Filter to exact UID match
+    # Nur der exakte Treffer. Bis zum 2026-08-15 fiel dieser Zweig auf
+    # `firms[:1]` zurueck, und das war keine Grosszuegigkeit, sondern eine
+    # falsche Auskunft: Die Suche laeuft mit `searchType: CONTAINS` ueber das
+    # Namensfeld, und Zefix beantwortet CHE-999.999.999 mit «CHEMAM - 999»
+    # (UID CHE-113.593.998, an der Quelle geprueft). Der Rueckfall gab diese
+    # Firma als Handelsregister-Eintrag zur angefragten UID aus — vollstaendig,
+    # plausibel, formatiert, und ueber jemand anderen. Ein Modell, das die
+    # Antwort liest, hat keinen Anhaltspunkt, dass die Zuordnung nicht stimmt.
+    #
+    # Eine Trefferliste ist noch keine Antwort. Ohne exakten Treffer sagt das
+    # Werkzeug, dass es nichts gefunden hat.
     exact = [f for f in firms if re.sub(r"[^0-9]", "", f.get("uid", "")) == uid_clean]
-    if not exact:
-        # Try broader: return first result
-        exact = firms[:1]
-
     if not exact:
         return f"Keine Firma mit UID {uid_formatted} im Handelsregister gefunden."
 
