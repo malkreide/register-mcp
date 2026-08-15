@@ -28,7 +28,7 @@ go install github.com/charmbracelet/vhs@latest
 # From repo root
 pip install httpx
 python docs/demo/demo.py verify "Lehrmittelverlag Zürich AG"
-python docs/demo/demo.py uid "CHE-109.741.634"
+python docs/demo/demo.py uid "CHE-404.020.972"
 python docs/demo/demo.py search "Migros" --canton ZH
 ```
 

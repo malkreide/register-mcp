@@ -495,8 +495,8 @@ Benutzer: «Ist der Lehrmittelverlag Zürich AG im Handelsregister aktiv?»
 → Tool: zefix_verify_company(name="Lehrmittelverlag Zürich AG")
 
 Claude: ✅ Lehrmittelverlag Zürich AG ist AKTIV im Handelsregister.
-        UID: CHE-109.741.634 | Kanton: ZH | Rechtsform: AG
-        Letzte SHAB-Mutation: 2024-06-15
+        UID: CHE-404.020.972 | Kanton: ZH | Rechtsform: AG
+        Letzte SHAB-Mutation: 2023-07-27
 ```
 
 [→ Weitere Anwendungsbeispiele nach Zielgruppe →](EXAMPLES.md)
