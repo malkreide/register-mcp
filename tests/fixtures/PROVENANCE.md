@@ -65,9 +65,9 @@ aussieht, waere genau der Fehler, gegen den diese Aufzeichnung angeht.
 
 ## `zefix_search_by_uid.json`
 
-- **Quelle:** `https://www.zefix.admin.ch/ZefixREST/api/v1/firm/search.json (UID als `name`, searchType CONTAINS)`
+- **Quelle:** `https://www.zefix.admin.ch/ZefixREST/api/v1/firm/search.json`
 - **Aufgezeichnet:** 2026-08-15
-- **Auswahl:** vollstaendig, Suche nach CHE-238.945.329 — 1 Treffer. Auswahlregel ist der Kontrast: Derselbe Endpunkt beantwortet ein Payload mit `uid`-Feld am selben Tag mit HTTP 400. Die Fixture belegt damit die Form, die traegt, und das Skript prueft die, die nicht traegt
+- **Auswahl:** vollstaendig, Suche nach CHE-238.945.329 — die UID im Feld `name`, `searchType: CONTAINS`. 1 Treffer. Auswahlregel ist der Kontrast: Derselbe Endpunkt beantwortet ein Payload mit `uid`-Feld am selben Tag mit HTTP 400. Die Fixture belegt damit die Form, die traegt, und das Skript prueft die, die nicht traegt
 - **Groesse:** 664 B
 - **SHA-256:** `2dea1f768e2720327e58b43d193a23527aab90d2fe8fad373995aa6cac07edf3`
 

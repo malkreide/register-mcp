@@ -1093,10 +1093,14 @@ async def zefix_verify_company(params: VerifyCompanyInput) -> str:
 
     try:
         legal_forms = await _fetch_legal_forms()
+        # Ueber `_zefix_post_search`, nicht ueber `raise_for_status()`: Zefix
+        # beantwortet eine Suche ohne Treffer mit HTTP 404 und dem
+        # NORESULT-Umschlag. Der rohe Aufruf warf darauf, und `_handle_http_error`
+        # antwortete «Eintrag nicht gefunden. Bitte EHRAID oder UID pruefen» —
+        # auf eine Namenssuche hin, bei der weder EHRAID noch UID im Spiel
+        # waren. Der freundliche Zweig darunter war damit unerreichbar.
         async with _make_client() as client:
-            r = await client.post(f"{ZEFIX_BASE}/firm/search.json", json=body)
-            r.raise_for_status()
-            data = r.json()
+            data = await _zefix_post_search(client, body)
     except Exception as e:
         return _handle_http_error(e)
 

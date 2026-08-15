@@ -37,12 +37,21 @@ def _status_icon(status: str) -> str:
     return "✅" if status == "EXISTIEREND" else "❌"
 
 
-def _uid_fmt(uid: str) -> str:
-    """CHE123456789 → CHE-123.456.789"""
-    digits = uid.replace("CHE", "").replace("-", "").replace(".", "")
+def _uid_fmt(uid: str | None) -> str:
+    """CHE123456789 → CHE-123.456.789; ohne verwertbare UID ein Gedankenstrich.
+
+    Alte, geloeschte Eintraege haben keine UID, und Zefix schreibt das nicht als
+    `null`, sondern als Leerzeichenkette: Der Verein «Foreign Pilots Association
+    in Swissair (F.P.A.S.)» kommt mit `uid: '            '` und
+    `uidFormatted: null`. Die frueheren `.replace()`-Aufrufe liessen die
+    Leerzeichen stehen, und die Zeile endete auf «UID:` `» — sichtbar wurde das
+    erst, als `activeOnly: False` geloeschte Firmen ueberhaupt in die Ausgabe
+    liess.
+    """
+    digits = "".join(c for c in (uid or "") if c.isdigit())
     if len(digits) == 9:
         return f"CHE-{digits[:3]}.{digits[3:6]}.{digits[6:]}"
-    return uid
+    return (uid or "").strip() or "—"
 
 
 async def _fetch_legal_forms(client: httpx.AsyncClient) -> dict[int, str]:
@@ -79,7 +88,20 @@ async def cmd_verify(name: str) -> None:
     print(f"\n🔍  zefix_verify_company(name={name!r})\n")
     async with httpx.AsyncClient() as client:
         legal_forms = await _fetch_legal_forms(client)
-        payload = {"name": name, "maxEntries": 5, "offset": 0}
+        # `activeOnly: False` wie `zefix_verify_company` im Server. Ohne das
+        # Feld liefert Zefix nur aktive Eintraege, und eine geloeschte Firma
+        # sieht aus wie eine, die es nie gab: «Foreign Pilots Association in
+        # Swissair (F.P.A.S.)» ergab «Nicht im Handelsregister gefunden»,
+        # waehrend das Werkzeug den GELOESCHT-Eintrag zeigte (2026-08-15 an der
+        # Quelle geprueft). Fuer ein Kommando, das «verify» heisst, ist das die
+        # gefaehrlichere Haelfte der Antwort.
+        payload = {
+            "languageKey": "de",
+            "maxEntries": 5,
+            "name": name,
+            "searchType": "CONTAINS",
+            "activeOnly": False,
+        }
         data = await _post_search(client, payload)
 
     firms = data.get("list", [])
@@ -167,8 +189,12 @@ async def cmd_search(name: str, canton: str | None) -> None:
         data = await _post_search(client, payload)
 
     firms = data.get("list", [])
-    total = data.get("maxOffset", len(firms))
-    print(f"  {len(firms)} Ergebnisse (von ca. {total}):\n")
+    # Kein «von ca. {maxOffset}» mehr. `maxOffset` ist keine Treffermenge: Die
+    # Suche nach «Lehrmittelverlag Zürich AG» liefert einen Treffer und
+    # maxOffset 875768 (2026-08-15 an der Quelle geprueft), und bei einer
+    # UID-Suche steht dort `null` — die Zeile las sich dann «von ca. None».
+    # Eine erfundene Zahl neben einer echten ist schlechter als keine.
+    print(f"  {len(firms)} Ergebnisse:\n")
     for f in firms:
         uid = _uid_fmt(f.get("uidFormatted") or f.get("uid", "—"))
         lf = legal_forms.get(f.get("legalFormId", 0), "—")

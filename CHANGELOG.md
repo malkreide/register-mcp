@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Behoben — zwei Antworten, die «nicht gefunden» sagten, obwohl es etwas zu finden gab
+
+**1. `zefix_verify_company` antwortete auf eine Namenssuche mit einer
+UID-Meldung.** Das Werkzeug lief mit rohem `raise_for_status()` an
+`_zefix_post_search` vorbei. Zefix beantwortet eine trefferlose Suche mit HTTP
+404, und die generische Behandlung machte daraus:
+
+```
+zefix_verify_company(name="Zzzqqxyznichtexistent AG")
+→ Fehler 404: Eintrag nicht gefunden. Bitte EHRAID oder UID prüfen.
+```
+
+Auf eine Suche hin, bei der weder EHRAID noch UID vorkamen. Der freundliche
+Zweig darunter — «Nicht im Handelsregister gefunden», mit dem Hinweis auf
+Einzelunternehmen unter Schwellenwert, Behoerden und Vereine ohne Eintrag — war
+unerreichbarer Code. Er wird jetzt erreicht.
+
+**2. `docs/demo/demo.py verify` erklaerte geloeschte Firmen fuer nicht
+existent.** Das Kommando fragte ohne `activeOnly: False` und bekam damit nur
+aktive Eintraege. Am 2026-08-15 an der Quelle geprueft:
+
+```
+demo.py verify "Foreign Pilots Association in Swissair (F.P.A.S.)"
+vorher  → ❌ Nicht im Handelsregister gefunden.
+nachher → • Foreign Pilots Association … | Verein | Kloten | Status: GELOESCHT
+```
+
+Das Werkzeug zeigte den GELOESCHT-Eintrag die ganze Zeit; nur die Demo nicht.
+Und seit dem 404-Zweig sah der Irrtum nicht mehr nach Fehler aus, sondern nach
+Auskunft — fuer ein Kommando namens «verify» die gefaehrlichere Haelfte der
+Antwort.
+
+Beide Faelle sind dieselbe Sorte: kein Absturz, keine Fehlermeldung, sondern
+eine vollstaendig formatierte Antwort, die das Gegenteil dessen sagt, was in
+der Quelle steht.
+
+Aus derselben Korrektur mitgekommen, beide nur in der Demo: `_uid_fmt` gibt
+jetzt einen Gedankenstrich aus statt der Leerzeichenkette, die Zefix als «keine
+UID» liefert (`uid: '            '`, `uidFormatted: null`) — sichtbar wurde das
+erst, als geloeschte Firmen ueberhaupt in die Ausgabe kamen. Und `cmd_search`
+nennt nur noch die Trefferzahl: `maxOffset` ist keine Treffermenge (ein
+Treffer, `maxOffset` 875768; bei der UID-Suche `null`, die Zeile las sich
+«von ca. None»).
+
 ### Geaendert — `actions/github-script` von v7 auf v9
 
 Betrifft nur `.github/workflows/live-tests.yml`, die einzige Fundstelle dieser
