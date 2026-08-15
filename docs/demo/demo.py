@@ -130,9 +130,13 @@ async def cmd_uid(uid: str) -> None:
     # Die leere Treffermenge kommt als `error`-Objekt, nicht als leere Liste;
     # `.get("list", [])` deckt beide Faelle ab.
     firms = data.get("list", [])
+    # Nur der exakte Treffer, ohne Rueckfall auf `firms[0]`. Die Suche laeuft
+    # mit `searchType: CONTAINS` ueber das Namensfeld, und Zefix beantwortet
+    # CHE-999.999.999 mit «CHEMAM - 999» (UID CHE-113.593.998) — an der Quelle
+    # geprueft am 2026-08-15. Ein Rueckfall wuerde diese Firma als Antwort auf
+    # eine Abfrage nach einer ganz anderen UID ausgeben: vollstaendig,
+    # plausibel, formatiert, und ueber jemand anderen.
     exact = [f for f in firms if "".join(c for c in f.get("uid", "") if c.isdigit()) == uid_clean]
-    if not exact:
-        exact = firms[:1]  # wie der Server: notfalls den ersten Treffer zeigen
     if not exact:
         print(f"❌  Keine Firma mit UID {uid_formatted} gefunden.")
         return
