@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-08-15
+
+Ein Nachtrag zu 0.6.0, gefunden beim End-to-End-Lauf gegen das
+veroeffentlichte Wheel. Kein Verhalten der Werkzeuge aendert sich; wer 0.6.0
+laufen hat, verpasst nichts ausser der Versionsangabe im Handshake.
+
 ### Behoben — der Server meldete im MCP-Handshake eine leere Version
 
 `MCPServer` nimmt ein `version=`-Argument; der Server uebergab keins, und der
