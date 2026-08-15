@@ -306,6 +306,16 @@ CANTON_CODES = [
 
 mcp = MCPServer(
     "register_mcp",
+    # Ohne dieses Argument meldet `MCPServer` im Handshake `version=''` — der
+    # Vorgabewert. Das Paket weiss, dass es 0.6.0 ist; ueber MCP sagte es das
+    # nicht, und ein Client, der Serverversionen anzeigt oder protokolliert,
+    # sah dort nichts. Aufgefallen beim End-to-End-Lauf gegen das von PyPI
+    # installierte Wheel, nicht in der Suite.
+    #
+    # `__version__` statt eines Literals: Es kommt aus den Paket-Metadaten, und
+    # `check_version_sync.py` weist eine hartkodierte Version in `src/`
+    # ohnehin zurueck.
+    version=__version__,
     instructions=(
         "Provides read-only access to two Swiss federal data sources, joined on the company "
         "UID: (1) the Federal Commercial Register (Zefix/Handelsregister, tools prefixed "
