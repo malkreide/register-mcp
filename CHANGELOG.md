@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Geaendert — `actions/github-script` von v7 auf v9
+
+Betrifft nur `.github/workflows/live-tests.yml`, die einzige Fundstelle dieser
+Action im Repo; am ausgelieferten Paket aendert sich nichts.
+
+v7 zielt auf Node 20. Der Live-Lauf vom 2026-08-15 endete mit `##[warning]
+Node.js 20 is deprecated. … being forced to run on Node.js 24`. v8 haette das
+ebenfalls behoben — es aendert nur die Laufzeit —, ist aber nicht mehr der
+aktuelle Stand; der Zwischenschritt haette denselben Bump ein zweites Mal
+faellig gemacht.
+
+Die drei Bruchstellen von v9 gehen an dem Skript vorbei: kein
+`require('@actions/github')`, keine eigene Deklaration von `getOctokit`, keine
+`@actions/github`-Interna. Benutzt werden `github.rest.issues.*`, `context` und
+`core` — ueber alle drei Versionen unveraendert.
+
+**Von Hand verifiziert, weil die CI es nicht kann.** `live-tests.yml` laeuft
+weder bei `push` noch bei `pull_request`; die Checks eines PR sagen ueber diesen
+Bump also nichts. Der Beleg ist ein `workflow_dispatch` auf dem Branch vor dem
+Merge: Die Action loeste auf, der Schritt lief durch, die Einordnung war `clear`
+(9 von 9 Live-Tests gruen), und die Node-20-Warnung kam im vollstaendigen Log
+nicht mehr vor.
+
 ### Behoben — `zefix_get_company_by_uid` antwortete notfalls mit einer fremden Firma
 
 Ohne exakten Treffer fiel das Werkzeug auf den ersten Suchtreffer zurueck
