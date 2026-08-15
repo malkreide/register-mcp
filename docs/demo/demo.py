@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import sys
 from pathlib import Path
 
@@ -32,6 +31,7 @@ ZEFIX_BASE = "https://www.zefix.admin.ch/ZefixREST/api/v1"
 TIMEOUT = 15.0
 
 # ── helpers ──────────────────────────────────────────────────────────────────
+
 
 def _status_icon(status: str) -> str:
     return "✅" if status == "EXISTIEREND" else "❌"
@@ -52,6 +52,7 @@ async def _fetch_legal_forms(client: httpx.AsyncClient) -> dict[int, str]:
 
 
 # ── commands ─────────────────────────────────────────────────────────────────
+
 
 async def cmd_verify(name: str) -> None:
     print(f"\n🔍  zefix_verify_company(name={name!r})\n")
@@ -137,6 +138,7 @@ async def cmd_search(name: str, canton: str | None) -> None:
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="register-mcp demo CLI")
