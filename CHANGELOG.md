@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-15
+
+Drei ausgelieferte Fehler derselben Sorte: keine Abstuerze, sondern
+vollstaendig formatierte Antworten, die das Gegenteil dessen sagten, was in der
+Quelle steht. Gefunden hat sie nicht die Unit-Suite — die war durchgehend
+gruen —, sondern der erste Lauf der erweiterten Live-Tests und zwei Reviews.
+Der Rest dieses Releases ist die Werkzeugkette, die so etwas kuenftig frueher
+sichtbar macht.
+
+Fuer Nutzende aendert sich Verhalten: `zefix_get_company_by_uid` antwortet ohne
+exakten Treffer nicht mehr mit der naechstbesten Firma, und
+`zefix_verify_company` beantwortet eine trefferlose Namenssuche nicht mehr mit
+einer Meldung ueber EHRAID und UID.
+
 ### Behoben — zwei Antworten, die «nicht gefunden» sagten, obwohl es etwas zu finden gab
 
 **1. `zefix_verify_company` antwortete auf eine Namenssuche mit einer
