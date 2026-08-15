@@ -66,8 +66,14 @@ UID_DIGITS = "".join(c for c in UID_FORMATTED if c.isdigit())
 # Ein Treffer, der in der aufgezeichneten Namenssuche NICHT an erster Stelle
 # steht. Daran hängt die Gegenprobe zu `firms[0]`: Wer den ersten Treffer nimmt
 # statt den exakten, druckt hier einen anderen Namen.
-LATER_HIT = next(h for h in MOCK_SEARCH["list"][1:] if h["name"] != MOCK_SEARCH["list"][0]["name"])
+#
+# Das Auswahlkriterium ist `not in`, nicht `!=` — dieselbe Beziehung, die die
+# Zusicherung unten prüft. Mit `!=` hätte eine neu aufgezeichnete Fixture mit
+# einem Präfix-Paar («Migros Bank AG» / «Migros Bank AG, Zweigniederlassung …»)
+# den Test bei völlig korrektem Code rot gemacht: Der Name des ersten Treffers
+# steckt dann im Namen des späteren, und `FIRST_HIT_NAME not in out` fällt.
 FIRST_HIT_NAME = MOCK_SEARCH["list"][0]["name"]
+LATER_HIT = next(h for h in MOCK_SEARCH["list"][1:] if FIRST_HIT_NAME not in h["name"])
 
 
 def _mock_legal_forms():
@@ -197,6 +203,60 @@ async def test_verify_prints_the_recorded_companies(capsys):
     assert FIRST_HIT_NAME in out
     assert MOCK_SEARCH["list"][0]["uidFormatted"] in out
     assert MOCK_SEARCH["list"][0]["status"] in out
+
+
+def test_uid_fmt_survives_records_without_a_uid():
+    """Zefix schreibt «keine UID» als Leerzeichenkette, nicht als `null`.
+
+    Gemessen am 2026-08-15: «Foreign Pilots Association in Swissair (F.P.A.S.)»
+    kommt mit `uid: '            '` und `uidFormatted: null`. Die Zeile endete
+    damit auf «UID:» und nichts dahinter.
+    """
+    assert demo._uid_fmt("CHE238945329") == "CHE-238.945.329"
+    assert demo._uid_fmt("CHE-238.945.329") == "CHE-238.945.329"
+    assert demo._uid_fmt("            ") == "—"
+    assert demo._uid_fmt("") == "—"
+    assert demo._uid_fmt(None) == "—"
+
+
+@pytest.mark.asyncio
+async def test_verify_asks_for_dissolved_companies_too():
+    """`activeOnly: False` wie im Server — sonst ist «geloescht» wie «gibt es nicht».
+
+    Ohne das Feld liefert Zefix nur aktive Eintraege. «Foreign Pilots
+    Association in Swissair (F.P.A.S.)» ergab dann «Nicht im Handelsregister
+    gefunden», waehrend `zefix_verify_company` den GELOESCHT-Eintrag zeigte
+    (2026-08-15 an der Quelle geprueft). Fuer ein Kommando namens «verify» ist
+    das die gefaehrlichere Haelfte der Antwort — und seit dem 404-Zweig sieht
+    sie nicht mehr nach Fehler aus, sondern nach Auskunft.
+    """
+    with respx.mock:
+        _mock_legal_forms()
+        route = _mock_search(MOCK_SEARCH)
+        await demo.cmd_verify("Migros")
+    body = _sent_body(route)
+    assert body["activeOnly"] is False
+    assert body["searchType"] == "CONTAINS"
+    assert body["name"] == "Migros"
+
+
+@pytest.mark.asyncio
+async def test_search_does_not_present_maxoffset_as_a_hit_count(capsys):
+    """`maxOffset` ist keine Treffermenge.
+
+    Die Suche nach «Lehrmittelverlag Zürich AG» liefert einen Treffer und
+    maxOffset 875768; in `zefix_search_by_uid.json` steht dort `null`, und die
+    Zeile las sich «von ca. None». Eine erfundene Zahl neben einer echten ist
+    schlechter als keine.
+    """
+    with respx.mock:
+        _mock_legal_forms()
+        _mock_search(MOCK_SEARCH)
+        await demo.cmd_search("Migros", None)
+    out = capsys.readouterr().out
+    assert f"{len(MOCK_SEARCH['list'])} Ergebnisse" in out
+    assert "von ca." not in out
+    assert str(MOCK_SEARCH["maxOffset"]) not in out
 
 
 @pytest.mark.asyncio

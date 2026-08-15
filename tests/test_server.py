@@ -124,7 +124,7 @@ async def test_search_companies_no_results():
     with respx.mock:
         _mock_legal_forms(respx)
         respx.post(f"{ZEFIX_BASE}/firm/search.json").mock(
-            return_value=httpx.Response(200, json=MOCK_NO_RESULT)
+            return_value=httpx.Response(NO_RESULT_STATUS, json=MOCK_NO_RESULT)
         )
         result = await zefix_search_companies(CompanySearchInput(name="XxXxNichtExistentXxXx"))
     assert "Keine Ergebnisse" in result
@@ -312,13 +312,27 @@ async def test_verify_company_active():
 
 @pytest.mark.asyncio
 async def test_verify_company_not_found():
+    """Mit dem aufgezeichneten Statuscode, nicht mit 200.
+
+    Der Test stand vorher auf `httpx.Response(200, ...)` und legte den
+    NORESULT-Umschlag in eine 200er-Antwort. Die Quelle antwortet aber mit
+    **404** — so steht es in `zefix_no_result.json`, Statuscode und Rumpf
+    zusammen aufgezeichnet, genau weil erst beides den Befund ausmacht. Der
+    Test bestaetigte damit einen Zweig, den es live nicht gab: `verify` lief
+    in `raise_for_status()` und antwortete «Eintrag nicht gefunden. Bitte
+    EHRAID oder UID pruefen» — auf eine Namenssuche hin.
+    """
     with respx.mock:
         _mock_legal_forms(respx)
         respx.post(f"{ZEFIX_BASE}/firm/search.json").mock(
-            return_value=httpx.Response(200, json=MOCK_NO_RESULT)
+            return_value=httpx.Response(NO_RESULT_STATUS, json=MOCK_NO_RESULT)
         )
         result = await zefix_verify_company(VerifyCompanyInput(name="FirmaXxNichtExistentXx"))
+    assert NO_RESULT_STATUS == 404, (
+        "Fixture sagt nicht mehr 404 — dann prueft der Test etwas anderes"
+    )
     assert "Nicht im Handelsregister gefunden" in result
+    assert "EHRAID" not in result, "Die generische 404-Meldung gehoert nicht in eine Namenssuche"
 
 
 @pytest.mark.asyncio
@@ -459,6 +473,21 @@ async def test_live_get_company_by_uid_ewz():
     """Live: Lookup EWZ by known UID."""
     result = await zefix_get_company_by_uid(CompanyByUidInput(uid="CHE-108.954.978"))
     assert "Elektrizitätswerk" in result
+
+
+@pytest.mark.live
+@pytest.mark.asyncio
+async def test_live_verify_without_hits_answers_in_the_terms_of_a_name_search():
+    """Live: die trefferlose Namenssuche bekommt keine EHRAID/UID-Meldung.
+
+    Zefix beantwortet sie mit HTTP 404. Solange `verify` daran vorbei in
+    `raise_for_status()` lief, lautete die Antwort «Eintrag nicht gefunden.
+    Bitte EHRAID oder UID pruefen» — auf eine Suche hin, bei der weder das
+    eine noch das andere vorkam.
+    """
+    result = await zefix_verify_company(VerifyCompanyInput(name="Zzzqqxyznichtexistent AG"))
+    assert "Nicht im Handelsregister gefunden" in result
+    assert "EHRAID" not in result
 
 
 @pytest.mark.live

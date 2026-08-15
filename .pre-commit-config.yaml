@@ -18,5 +18,13 @@ repos:
       # Anders als die CI (`--check`) schreibt dieser Hook die Formatierung
       # direkt zurueck. Der Commit bricht ab, die Korrektur liegt danach im
       # Arbeitsverzeichnis und muss nur noch gestaged werden.
+      #
+      # `types_or` muss `markdown` mitfuehren. Der Hook bringt von Haus aus
+      # `[python, pyi, jupyter]` mit — Markdown erreicht ihn damit nie, waehrend
+      # `ruff format` in der CI die Python-Bloecke *in* `docs/*.md` sehr wohl
+      # umschreibt. Ohne diese Zeile committet ein neuer ```python-Block in
+      # einer Doku sauber durch und faellt erst im Gate. `files` grenzt weiter
+      # auf den Gate-Umfang ein, `audits/` bleibt also aussen vor.
       - id: ruff-format
         files: ^(src|tests|scripts|docs)/
+        types_or: [python, pyi, jupyter, markdown]

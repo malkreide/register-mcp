@@ -43,6 +43,18 @@ ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = ROOT / "pyproject.toml"
 SERVER_JSON = ROOT / "server.json"
 SRC = ROOT / "src"
+CI_YML = ROOT / ".github" / "workflows" / "ci.yml"
+PRECOMMIT = ROOT / ".pre-commit-config.yaml"
+
+# Der ruff-Pin steht an drei Stellen, und keine davon merkt, wenn eine andere
+# abweicht: pre-commit formatiert dann mit der einen Version, das Gate prueft
+# mit der anderen, und ein lokal gruenes `ruff format` ist kein Beleg mehr.
+# Rot wird das erst in der CI, mit einem Diff, in dem die Ursache nicht steht.
+_RUFF_PINS = (
+    (".github/workflows/ci.yml", CI_YML, re.compile(r"pip install ruff==([0-9][^\s\"']*)")),
+    ("pyproject.toml [dev]", PYPROJECT, re.compile(r'"ruff==([0-9][^"]*)"')),
+    (".pre-commit-config.yaml", PRECOMMIT, re.compile(r"rev:\s*v([0-9][^\s]*)")),
+)
 
 # Shields.io-Badge: ![Version](https://img.shields.io/badge/version-X.Y.Z-blue)
 _BADGE = re.compile(r"img\.shields\.io/badge/[Vv]ersion-([^-\s)]+)-")
@@ -167,7 +179,49 @@ def read_project() -> dict:
     return out
 
 
+def collect_ruff_pins() -> list[tuple[str, str | None]]:
+    """Je (Bezeichnung, Pin) — `None`, wenn die Stelle keinen Pin hergibt."""
+    out: list[tuple[str, str | None]] = []
+    for label, path, pattern in _RUFF_PINS:
+        if not path.exists():
+            out.append((label, None))
+            continue
+        match = pattern.search(path.read_text(encoding="utf-8"))
+        out.append((label, match.group(1) if match else None))
+    return out
+
+
+def check_ruff_pins() -> None:
+    pins = collect_ruff_pins()
+    missing = [label for label, pin in pins if pin is None]
+    if missing:
+        print(
+            f"RUFF-PIN: an folgenden Stellen nicht gefunden: {', '.join(missing)}", file=sys.stderr
+        )
+        print(
+            "\nDer Pin gehoert in ci.yml, pyproject.toml [dev] und "
+            ".pre-commit-config.yaml. Fehlt er irgendwo, prueft diese Stelle "
+            "mit einer beliebigen Version.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    values = {pin for _, pin in pins}
+    if len(values) > 1:
+        print("RUFF-PIN: die drei Stellen weichen voneinander ab:", file=sys.stderr)
+        for label, pin in pins:
+            print(f"  {label} = {pin}", file=sys.stderr)
+        print(
+            "\nAlle drei im selben Commit anheben. Sonst formatiert pre-commit "
+            "mit der einen Version und das Gate prueft mit der anderen — ein "
+            "lokal gruenes `ruff format` ist dann kein Beleg fuer die CI.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
 def main() -> None:
+    check_ruff_pins()
     project = read_project()
     dist = project["name"]
     version = project.get("version")
@@ -209,7 +263,11 @@ def main() -> None:
         sys.exit(1)
 
     checked = ", ".join(where for where, _ in found) or "keine weiteren Stellen"
-    print(f"Versions-Sync OK ({version}; geprüft: {checked}; keine hartkodierte Version in src/)")
+    ruff_pin = collect_ruff_pins()[0][1]
+    print(
+        f"Versions-Sync OK ({version}; geprüft: {checked}; keine hartkodierte "
+        f"Version in src/; ruff-Pin {ruff_pin} an allen drei Stellen gleich)"
+    )
 
 
 if __name__ == "__main__":

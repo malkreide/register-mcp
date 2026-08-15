@@ -120,6 +120,16 @@ def record() -> int:
     skipped: list[dict] = []
 
     def write(name: str, text: str, url: str, rule: str) -> None:
+        # `_write_provenance` setzt `url` in einen Code-Span. Ein Backtick darin
+        # schliesst ihn vorzeitig, und die Zeile in PROVENANCE.md rendert
+        # zerlegt — sichtbar erst auf GitHub, nicht im Diff, und bei jedem
+        # Neuaufzeichnen wieder. Erklaerender Text gehoert nach `rule`; das
+        # Feld wird nicht ausgezeichnet.
+        if "`" in url:
+            raise SystemExit(
+                f"{name}: `url` enthaelt einen Backtick ({url!r}). Der Code-Span in "
+                "PROVENANCE.md bricht daran auf — die Erlaeuterung gehoert nach `rule`."
+            )
         (FIXTURES / name).write_text(text, encoding="utf-8")
         entries.append(
             {
@@ -262,8 +272,9 @@ def record() -> int:
         write(
             "zefix_search_by_uid.json",
             json.dumps(by_uid_payload, ensure_ascii=False, indent=2) + "\n",
-            f"{ZEFIX}/firm/search.json (UID als `name`, searchType CONTAINS)",
-            f"vollstaendig, Suche nach {uid_formatted} — {len(by_uid_payload['list'])} "
+            f"{ZEFIX}/firm/search.json",
+            f"vollstaendig, Suche nach {uid_formatted} — die UID im Feld `name`, "
+            f"`searchType: CONTAINS`. {len(by_uid_payload['list'])} "
             "Treffer. Auswahlregel ist der Kontrast: Derselbe Endpunkt "
             f"beantwortet ein Payload mit `uid`-Feld am selben Tag mit HTTP "
             f"{rejected.status_code}. Die Fixture belegt damit die Form, die "
