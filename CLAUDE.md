@@ -41,12 +41,10 @@ Ein Codex-Review auf einem PR wird beantwortet oder behoben, nie ignoriert.
 
 ## Teil 2 — Repo-spezifisch (register-mcp)
 
-**ruff-Pin: `0.16.1`, an drei Stellen — alle gemeinsam anheben.**
-`.github/workflows/ci.yml` (`pip install ruff==0.16.1`), `pyproject.toml [dev]`
-(`ruff==0.16.1`) und `.pre-commit-config.yaml` (`rev: v0.16.1`). Gehen sie
-auseinander, ist ein lokal grünes `ruff check` kein Beleg für das Gate.
-Die pre-commit-Hooks sind per `files: ^(src|tests|scripts|docs)/` auf den Umfang
-des Gates begrenzt.
+**ruff-Pin: `0.16.1`, an drei Stellen** — `ci.yml`, `pyproject.toml [dev]`,
+`.pre-commit-config.yaml`. Gemeinsam anheben; `check_version_sync.py` bricht ab,
+wenn sie auseinanderlaufen, und `tests/test_precommit_config.py` wacht darüber,
+dass der Hook denselben Umfang sieht wie das Gate.
 
 **Der Gate-Umfang ist aufgezählt, nicht `.` — und das ist Absicht.**
 `ruff format` formatiert auch Python-Blöcke *innerhalb* von Markdown. `ruff
@@ -74,3 +72,13 @@ scheitert, Container läuft als User `mcp`.
 plus `workflow_dispatch`, ordnet das JUnit-XML über
 `scripts/classify_live_run.py` ein und öffnet/schliesst danach ein Issue.
 `-m "not live"` in `ci.yml` ist hier also ein Ausschluss *mit* Auffangnetz.
+
+**Was die Live-Suite fand, waren keine Ausfälle, sondern Antworten.** Drei
+Formen von Zefix, jede hat einen ausgelieferten Fehler gekostet:
+
+- Ohne Treffer antwortet `firm/search.json` mit **HTTP 404** plus
+  NORESULT-Rumpf. Deshalb jeder Aufruf über `_zefix_post_search` — und eine
+  Fixture, die den Rumpf in eine 200 legt, lässt den toten Zweig grün aussehen.
+- Mit Treffern ist es noch keine Antwort: `searchType: CONTAINS` sucht über den
+  Namen, `CHE-999.999.999` liefert «CHEMAM - 999». Kein Rückfall auf `firms[0]`.
+- Ohne `activeOnly: False` sieht «gelöscht» aus wie «gibt es nicht».
