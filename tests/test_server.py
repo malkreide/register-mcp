@@ -15,6 +15,7 @@ Was der Vergleich mit der echten Quelle ergeben hat, steht im CHANGELOG.
 from __future__ import annotations
 
 import json
+import re
 
 import httpx
 import pytest
@@ -257,6 +258,40 @@ async def test_get_company_by_uid_invalid():
     assert "Ungültige UID" in result
 
 
+@pytest.mark.asyncio
+async def test_get_company_by_uid_without_an_exact_match_reports_nothing_found():
+    """Eine Trefferliste ist noch keine Antwort auf eine UID-Abfrage.
+
+    Die Suche laeuft mit `searchType: CONTAINS` ueber das Namensfeld. Zefix
+    beantwortet CHE-999.999.999 mit «CHEMAM - 999» (UID CHE-113.593.998, an der
+    Quelle geprueft am 2026-08-15). Der fruehere Rueckfall auf `firms[:1]` gab
+    diese Firma als Eintrag zur angefragten UID aus: vollstaendig, plausibel,
+    formatiert, und ueber jemand anderen. Die falsche Auskunft war von einer
+    richtigen nicht zu unterscheiden — das ist der Grund, warum hier gar keine
+    Antwort besser ist als die naechstbeste.
+    """
+    absent_digits = "999999999"
+    assert not [
+        f
+        for f in MOCK_FIRM_SEARCH_RESULT["list"]
+        if re.sub(r"[^0-9]", "", f["uid"]) == absent_digits
+    ], "Die aufgezeichnete Suche enthaelt diese UID doch — dann prueft der Test nichts"
+
+    with respx.mock:
+        _mock_legal_forms(respx)
+        respx.post(f"{ZEFIX_BASE}/firm/search.json").mock(
+            return_value=httpx.Response(200, json=MOCK_FIRM_SEARCH_RESULT)
+        )
+        detail = respx.get(f"{ZEFIX_BASE}/firm/{DETAIL_EHRAID}.json").mock(
+            return_value=httpx.Response(200, json=MOCK_FIRM_DETAIL)
+        )
+        result = await zefix_get_company_by_uid(CompanyByUidInput(uid="CHE-999.999.999"))
+
+    assert "Keine Firma mit UID CHE-999.999.999 im Handelsregister gefunden" in result
+    assert FIRST_NAME not in result, "Der erste Treffer darf nicht als Antwort durchgehen"
+    assert not detail.called, "Ohne exakten Treffer gehoert kein Detail-Abruf gemacht"
+
+
 # ---------------------------------------------------------------------------
 # zefix_verify_company
 # ---------------------------------------------------------------------------
@@ -424,6 +459,22 @@ async def test_live_get_company_by_uid_ewz():
     """Live: Lookup EWZ by known UID."""
     result = await zefix_get_company_by_uid(CompanyByUidInput(uid="CHE-108.954.978"))
     assert "Elektrizitätswerk" in result
+
+
+@pytest.mark.live
+@pytest.mark.asyncio
+async def test_live_get_company_by_uid_does_not_answer_with_someone_else():
+    """Live: eine UID ohne Eintrag bekommt keine Firma zur Antwort.
+
+    Der Fall ist an der Quelle nachgestellt statt an einer Fixture: Zefix
+    beantwortet die Namenssuche nach «CHE-999.999.999» mit «CHEMAM - 999»
+    (UID CHE-113.593.998), weil `searchType: CONTAINS` ueber das Namensfeld
+    laeuft. Solange das so ist, prueft dieser Test genau das, was der
+    Rueckfall frueher falsch gemacht hat. Aendert Zefix sein Suchverhalten,
+    faellt er — und das gehoert gesehen.
+    """
+    result = await zefix_get_company_by_uid(CompanyByUidInput(uid="CHE-999.999.999"))
+    assert "Keine Firma mit UID CHE-999.999.999 im Handelsregister gefunden" in result
 
 
 # ---------------------------------------------------------------------------

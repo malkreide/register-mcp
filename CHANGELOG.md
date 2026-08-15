@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Behoben — `zefix_get_company_by_uid` antwortete notfalls mit einer fremden Firma
+
+Ohne exakten Treffer fiel das Werkzeug auf den ersten Suchtreffer zurueck
+(`exact = firms[:1]`). Das war keine Grosszuegigkeit, sondern eine falsche
+Auskunft: Die UID-Suche laeuft mit `searchType: CONTAINS` ueber das Namensfeld,
+und Zefix beantwortet `CHE-999.999.999` mit einer Firma namens **«CHEMAM -
+999»** — UID `CHE-113.593.998`. An der Quelle geprueft am 2026-08-15.
+
+Ausgeliefert sah das so aus:
+
+```
+zefix_get_company_by_uid(uid="CHE-999.999.999")
+→ ## ❌ CHEMAM - 999
+  **UID:** CHE-999.999.999          ← die Firma hat CHE-113.593.998
+  | **CHID** | CH-073-1017856-6 |    ← gehoert zu CHE-113.593.998
+  | **Status** | GELOESCHT |
+```
+
+Vollstaendig, plausibel, formatiert, und ueber jemand anderen — von einer
+richtigen Antwort nicht zu unterscheiden. Ein Modell, das das liest, hat keinen
+Anhaltspunkt, dass die Zuordnung nicht existiert.
+
+Der Rueckfall ist raus. Ohne exakten Treffer meldet das Werkzeug, dass es
+nichts gefunden hat, und ruft auch keine Detailseite mehr ab. Dieselbe Stelle in
+`docs/demo/demo.py` wurde zuvor im selben Sinn korrigiert; aufgefallen ist der
+Fehler dort, beim ersten Lauf der neuen Live-Tests.
+
 ### Behoben — Zefix ist doch aufzeichenbar, und das hat zwei Fehler freigelegt
 
 Der letzte Durchgang liess die Zefix-Payloads als Literale im Testmodul stehen
