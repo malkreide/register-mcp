@@ -423,6 +423,37 @@ register-mcp/
 > server — those probe results live in [`docs/probe-shab.md`](docs/probe-shab.md)
 > and inform the separate `amtsblatt-mcp`.
 
+### Zefix — verified behaviour (live-checked 2026-08-15)
+
+Found by the weekly live suite, not by the unit tests — which stayed green
+throughout.
+
+| Call to `firm/search.json` | HTTP | Result |
+|---|---|---|
+| `{"name": "Migros", …}` | 200 | 35 hits |
+| a name with no hits | **404** | NORESULT envelope — *not* an empty 200 |
+| `{"uid": "109741634", …}` | **400** | Bad Request — there is no `uid` field |
+| `{"name": "CHE-999.999.999", "searchType": "CONTAINS"}` | 200 | **«CHEMAM - 999»**, UID CHE-113.593.998 |
+| a dissolved firm without `activeOnly: false` | 404 | NORESULT — as if it never existed |
+
+**Three shapes, one shipped bug each:**
+
+- **No hits answer with HTTP 404**, carrying the NORESULT envelope. Every call
+  therefore goes through `_zefix_post_search`; a raw `raise_for_status()` makes
+  the friendly branch unreachable. That is how `zefix_verify_company` shipped
+  answering *"Eintrag nicht gefunden. Bitte EHRAID oder UID prüfen"* to a **name**
+  search, where neither an EHRAID nor a UID was in play. A fixture that puts the
+  NORESULT body into a 200 makes exactly that dead branch look green.
+- **A hit list is not an answer.** UID lookup searches the *name* field with
+  `searchType: CONTAINS`, so `CHE-999.999.999` returns a real company under a UID
+  that is not its own. Defence: exact digit match or nothing — no `firms[0]`
+  fallback. The former fallback produced a complete, plausible, formatted record
+  about somebody else, indistinguishable from a correct answer.
+- **Without `activeOnly: false`, "dissolved" looks like "never existed".**
+  Zefix returns only active entries by default; `zefix_verify_company` sets the
+  flag deliberately. A firm with no UID comes back as a **string of blanks**
+  (`uid: "            "`, `uidFormatted: null`), not as `null`.
+
 **Three quirks are defended in code** (details in the [CHANGELOG](CHANGELOG.md)
 under *Known findings*):
 
@@ -534,6 +565,33 @@ repository recorded no Zefix fixtures because the recording script measured
 HTTP 401. The measurement was right about the wrong address — the script asked
 `ZefixPublicREST`, while the server speaks to `ZefixREST`, which answers with no
 authentication at all.
+
+### The live suite
+
+`ci.yml` runs `-m "not live"`: a foreign 503 must not redden a stranger's pull
+request, because a suite that does gets switched off, and a switched-off suite
+checks nothing. The exclusion has a safety net —
+[`.github/workflows/live-tests.yml`](.github/workflows/live-tests.yml) runs
+weekly (`cron: "31 5 * * 1"`) plus `workflow_dispatch`.
+
+The verdict is read from the JUnit XML rather than the exit code, by
+[`scripts/classify_live_run.py`](scripts/classify_live_run.py), because a live
+run has three answers and not two:
+
+| State | Meaning | Issue |
+|---|---|---|
+| `clear` | the suite ran and was green | closes an open one |
+| `finding` | the suite ran and something fell | opens or updates one |
+| `unknown` | the suite did **not** run — failed install, timeout, renamed marker, everything skipped | left untouched |
+
+`tests - skipped == 0` is `unknown`, not `clear`: pytest exits 0 when every test
+was skipped, and a job that books that as green closes an issue on a comparison
+that never happened.
+
+One caveat when editing that workflow: the pull-request checks do **not** cover
+it — it has no `push` or `pull_request` trigger, so a green PR says nothing about
+it. Verify changes with a manual `workflow_dispatch` run on the branch *before*
+merging.
 
 ---
 

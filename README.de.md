@@ -428,6 +428,39 @@ register-mcp/
 > [`docs/probe-shab.md`](docs/probe-shab.md) und fliessen in den separaten
 > `amtsblatt-mcp` ein.
 
+### Zefix — verifiziertes Verhalten (live geprüft am 15.08.2026)
+
+Gefunden hat das die wöchentliche Live-Suite, nicht die Unit-Tests — die blieben
+durchgehend grün.
+
+| Aufruf an `firm/search.json` | HTTP | Ergebnis |
+|---|---|---|
+| `{"name": "Migros", …}` | 200 | 35 Treffer |
+| ein Name ohne Treffer | **404** | NORESULT-Umschlag — *keine* leere 200 |
+| `{"uid": "109741634", …}` | **400** | Bad Request — ein `uid`-Feld gibt es nicht |
+| `{"name": "CHE-999.999.999", "searchType": "CONTAINS"}` | 200 | **«CHEMAM - 999»**, UID CHE-113.593.998 |
+| eine gelöschte Firma ohne `activeOnly: false` | 404 | NORESULT — als hätte es sie nie gegeben |
+
+**Drei Formen, je ein ausgelieferter Fehler:**
+
+- **Ohne Treffer kommt HTTP 404** mit dem NORESULT-Umschlag. Jeder Aufruf geht
+  deshalb über `_zefix_post_search`; ein rohes `raise_for_status()` macht den
+  freundlichen Zweig unerreichbar. Genau so ging `zefix_verify_company` in
+  Produktion und antwortete *«Eintrag nicht gefunden. Bitte EHRAID oder UID
+  prüfen»* auf eine **Namenssuche**, bei der weder EHRAID noch UID im Spiel
+  waren. Eine Fixture, die den NORESULT-Rumpf in eine 200 legt, lässt genau
+  diesen toten Zweig grün aussehen.
+- **Eine Trefferliste ist noch keine Antwort.** Die UID-Suche läuft mit
+  `searchType: CONTAINS` über das *Namensfeld*, `CHE-999.999.999` liefert also
+  eine echte Firma unter einer UID, die ihr nicht gehört. Gegenmassnahme: exakter
+  Ziffernabgleich oder nichts — kein Rückfall auf `firms[0]`. Der frühere
+  Rückfall gab einen vollständigen, plausiblen, formatierten Datensatz über
+  jemand anderen aus, von einer richtigen Antwort nicht zu unterscheiden.
+- **Ohne `activeOnly: false` sieht «gelöscht» aus wie «gibt es nicht».** Zefix
+  liefert standardmässig nur aktive Einträge; `zefix_verify_company` setzt das
+  Feld bewusst. Eine Firma ohne UID kommt dabei als **Leerzeichenkette** zurück
+  (`uid: "            "`, `uidFormatted: null`), nicht als `null`.
+
 **Drei Quirks werden im Code abgefangen** (Details im [CHANGELOG](CHANGELOG.md)
 unter *Known findings*):
 
@@ -541,6 +574,33 @@ keine Zugangsdaten:** Bis zum 2026-08-08 zeichnete dieses Repository keine
 Zefix-Fixtures auf, weil das Skript HTTP 401 gemessen hatte. Die Messung stimmte
 und galt der falschen Adresse — das Skript fragte `ZefixPublicREST`, der Server
 spricht mit `ZefixREST`, und das antwortet ohne jede Anmeldung.
+
+### Die Live-Suite
+
+`ci.yml` fährt `-m "not live"`: Ein fremder 503 darf keinen fremden Pull Request
+rot machen, denn eine Suite, die das tut, wird abgeschaltet — und eine
+abgeschaltete Suite prüft nichts. Der Ausschluss hat ein Auffangnetz:
+[`.github/workflows/live-tests.yml`](.github/workflows/live-tests.yml) läuft
+wöchentlich (`cron: "31 5 * * 1"`) plus `workflow_dispatch`.
+
+Eingeordnet wird das JUnit-XML und nicht der Exit-Code, durch
+[`scripts/classify_live_run.py`](scripts/classify_live_run.py) — denn ein
+Live-Lauf hat drei Antworten und nicht zwei:
+
+| Zustand | Bedeutung | Issue |
+|---|---|---|
+| `clear` | Die Suite ist gelaufen und war grün | schliesst ein offenes |
+| `finding` | Die Suite ist gelaufen und etwas ist gefallen | öffnet oder ergänzt eins |
+| `unknown` | Die Suite ist **nicht** gelaufen — gescheiterte Installation, Timeout, umbenannte Marke, alles übersprungen | bleibt unberührt |
+
+`tests - skipped == 0` ist `unknown` und nicht `clear`: pytest endet mit 0, wenn
+jeder Test übersprungen wurde, und ein Job, der das als grün bucht, schliesst ein
+Issue mit einem Vergleich, den es nie gab.
+
+Ein Vorbehalt beim Ändern dieses Workflows: Die Pull-Request-Checks decken ihn
+**nicht** ab — er hat weder `push`- noch `pull_request`-Trigger, ein grüner PR
+sagt über ihn also nichts. Änderungen daran vor dem Merge mit einem
+`workflow_dispatch`-Lauf auf dem Branch verifizieren.
 
 ---
 
