@@ -2,12 +2,12 @@
   "content": [
     {
       "meta": {
-        "id": "8fe2420d-f9aa-43ce-a724-e45d61594cfe",
-        "creationDate": "2026-08-05T10:24:49.962Z",
-        "updateDate": "2026-08-06T22:36:36.223Z",
+        "id": "f814f790-f0d9-441f-8ebe-8850f8ab8040",
+        "creationDate": "2026-08-12T09:48:15.928Z",
+        "updateDate": "2026-08-13T22:36:36.144Z",
         "rubric": "HR",
-        "subRubric": "HR02",
-        "language": "de",
+        "subRubric": "HR03",
+        "language": "fr",
         "registrationOffice": {
           "id": "e15a629a-a08d-11e8-aa11-0050569d3c43",
           "displayName": "Bundesamt für Justiz (BJ), Eidgenössisches Amt für das Handelsregister",
@@ -21,16 +21,16 @@
           "uid": null
         },
         "publicationOriginator": null,
-        "publicationNumber": "HR02-1006726413",
+        "publicationNumber": "HR03-1006731894",
         "publicationState": "PUBLISHED",
-        "publicationDate": "2026-08-07T00:00:00.000Z",
+        "publicationDate": "2026-08-14T00:00:00.000Z",
         "expirationDate": null,
         "primaryTenantCode": "shab",
         "onBehalfOf": null,
         "invoiceAddressId": null,
-        "legalRemedy": "Die Mutation der aufgeführten Rechtseinheit wurde im Handelsregister vorgenommen. <br />Publikation nach HRegV Art. 9 und Art. 35.",
+        "legalRemedy": null,
         "cantons": [
-          "BE"
+          "NE"
         ],
         "secondaryTenants": null,
         "repeatedPublications": null,
@@ -51,11 +51,11 @@
     },
     {
       "meta": {
-        "id": "ee9a95da-53c4-4d7c-a663-aef849a69e82",
-        "creationDate": "2026-08-05T10:20:19.105Z",
-        "updateDate": "2026-08-06T22:36:36.442Z",
+        "id": "566da172-2075-4f84-b436-d5da63cb897c",
+        "creationDate": "2026-08-12T09:44:38.250Z",
+        "updateDate": "2026-08-13T22:36:36.416Z",
         "rubric": "HR",
-        "subRubric": "HR02",
+        "subRubric": "HR03",
         "language": "de",
         "registrationOffice": {
           "id": "e15a629a-a08d-11e8-aa11-0050569d3c43",
@@ -70,16 +70,16 @@
           "uid": null
         },
         "publicationOriginator": null,
-        "publicationNumber": "HR02-1006726450",
+        "publicationNumber": "HR03-1006731743",
         "publicationState": "PUBLISHED",
-        "publicationDate": "2026-08-07T00:00:00.000Z",
+        "publicationDate": "2026-08-14T00:00:00.000Z",
         "expirationDate": null,
         "primaryTenantCode": "shab",
         "onBehalfOf": null,
         "invoiceAddressId": null,
-        "legalRemedy": "Die Mutation der aufgeführten Rechtseinheit wurde im Handelsregister vorgenommen. <br />Publikation nach HRegV Art. 9 und Art. 35.",
+        "legalRemedy": null,
         "cantons": [
-          "LU"
+          "TG"
         ],
         "secondaryTenants": null,
         "repeatedPublications": null,
@@ -99,7 +99,7 @@
       "commented": false
     }
   ],
-  "total": 2279587,
+  "total": 2284463,
   "pageRequest": {
     "sortOrders": [],
     "page": 0,
