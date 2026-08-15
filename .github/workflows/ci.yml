@@ -37,11 +37,15 @@ jobs:
       - name: Install pinned ruff
         run: pip install ruff==0.16.1
 
+      # Umfang bewusst aufgezaehlt, nicht `.`: `ruff format` formatiert auch
+      # Python-Bloecke *innerhalb* von Markdown. Unter `audits/` wuerde das die
+      # Findings von 2026-05-21 umschreiben — die sind datierte Protokolle, kein
+      # Code, und ein Gate hat sie nicht anzufassen.
       - name: Lint
-        run: ruff check src/ tests/ scripts/
+        run: ruff check src/ tests/ scripts/ docs/
 
       - name: Format check
-        run: ruff format --check src/ tests/ scripts/
+        run: ruff format --check src/ tests/ scripts/ docs/
 
       - name: Versions-Sync (pyproject ↔ server.json / README / src)
         run: python scripts/check_version_sync.py
