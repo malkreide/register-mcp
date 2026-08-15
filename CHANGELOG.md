@@ -51,6 +51,56 @@ nennt nur noch die Trefferzahl: `maxOffset` ist keine Treffermenge (ein
 Treffer, `maxOffset` 875768; bei der UID-Suche `null`, die Zeile las sich
 «von ca. None»).
 
+### Behoben — `docs/demo/demo.py` war gegen die Quelle unbenutzbar
+
+Das Skript hinter der Terminal-Aufnahme, also das, was jede Leserin der README
+als Erstes ausfuehrt. Drei Fehler, jeder einzeln ausreichend:
+
+- **`uid` sendete ein Payload, das Zefix mit HTTP 400 quittiert.**
+  `firm/search.json` kennt kein `uid`-Feld; die UID wird als `name` gesucht. Das
+  Kommando lief damit in einen Traceback, nicht in eine Antwort.
+- **Alle drei Kommandos endeten bei jeder trefferlosen Suche im Traceback.**
+  Zefix antwortet darauf mit HTTP 404, `raise_for_status()` warf, und die
+  «nicht gefunden»-Zweige der Kommandos waren unerreichbarer Code.
+- **Die dokumentierte Beispiel-UID gab es nicht.** `CHE-109.741.634` liefert bei
+  Zefix NORESULT; der Lehrmittelverlag Zuerich AG hat `CHE-404.020.972`,
+  SHAB-Datum 2023-07-27. Die falsche Nummer stand in `demo.py`, in
+  `docs/demo/README.md`, in `demo.tape` und im Beispieldialog beider READMEs,
+  dort zusammen mit einem falschen SHAB-Datum.
+
+Ausserdem raus: derselbe Rueckfall auf `firms[0]`, der auch im Werkzeug stand.
+Aufgefallen ist er hier zuerst, beim ersten Lauf der neuen Live-Tests.
+
+### Hinzugefuegt — was bisher niemand nachpruefen konnte
+
+- **`tests/test_demo.py`** — fuer `demo.py` gab es keine Tests, und genau
+  deshalb fielen die Fehler oben erst von Hand auf. Jetzt 13 Unit-Tests gegen
+  aufgezeichnete Antworten plus drei Live-Tests in der woechentlichen Suite.
+- **`tests/fixtures/zefix_search_by_uid.json`** — die UID-Suche mit dem Payload,
+  das Server und Demo schicken. Auswahlregel ist der Kontrast: Das
+  Aufzeichnungsskript prueft im selben Lauf, dass derselbe Endpunkt ein Payload
+  mit `uid`-Feld mit 400 beantwortet, und bricht ab, wenn das nicht mehr gilt.
+- **`tests/test_check_version_sync.py` und `tests/test_precommit_config.py`** —
+  beide Gate-Skripte liefen bisher ohne eigenen Test.
+- **ruff-Pin-Abgleich in `check_version_sync.py`.** Der Pin steht an drei
+  Stellen, und keine merkte, wenn eine andere abwich. Fehlt er ueberall, ist die
+  Menge `{None}` — die Stellen waeren dann «einig», und der Check haette
+  Synchronitaet gemeldet, ohne je etwas verglichen zu haben. Auch dieser Fall
+  ist geprueft.
+
+### Geaendert — die Werkzeugkette prueft jetzt, was sie vorher nur behauptete
+
+- **ruff exakt gepinnt statt als Spanne.** `pyproject.toml [dev]` stand auf
+  `>=0.15.22,<0.17`, `uv.lock` loeste 0.16.2 auf, die CI linted mit 0.16.1 — ein
+  lokal gruenes `ruff check` war damit kein Beleg fuer das Gate.
+- **`.pre-commit-config.yaml` angelegt**, mit demselben Pin. Der `ruff-format`-
+  Hook fuehrt `markdown` in `types_or`: Ohne das erreicht Markdown den Hook nie,
+  waehrend die CI die Python-Bloecke *in* `docs/*.md` sehr wohl formatiert.
+- **`docs/` im Gate-Umfang.** `docs/demo/demo.py` war die einzige Python-Datei
+  ausserhalb und entsprechend ungeprueft. Der Umfang bleibt aufgezaehlt statt
+  `.`, weil `ruff format .` vier datierte Findings unter `audits/` umschreiben
+  wuerde.
+
 ### Geaendert — `actions/github-script` von v7 auf v9
 
 Betrifft nur `.github/workflows/live-tests.yml`, die einzige Fundstelle dieser
