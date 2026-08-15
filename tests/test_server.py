@@ -40,6 +40,32 @@ from register_mcp.server import (
 )
 
 # ---------------------------------------------------------------------------
+# Was der Server ueber sich selbst sagt
+# ---------------------------------------------------------------------------
+
+
+def test_the_server_advertises_its_version_in_the_handshake():
+    """`MCPServer` meldet ohne `version=` den Vorgabewert: die leere Zeichenkette.
+
+    Gemessen am 2026-08-15 gegen das von PyPI installierte Wheel 0.6.0:
+    `Implementation(name='register_mcp', title=None, version='', …)`. Das Paket
+    kannte seine Version, ueber MCP sagte es sie nicht — ein Client, der
+    Serverversionen anzeigt oder protokolliert, sah dort nichts.
+
+    Gefunden hat das kein Test, sondern ein End-to-End-Lauf gegen das
+    veroeffentlichte Paket. Deshalb steht die Zusicherung jetzt hier.
+    """
+    from register_mcp import __version__
+    from register_mcp.server import mcp
+
+    assert mcp.version, "Server meldet eine leere Version"
+    assert mcp.version == __version__
+    # Der Rueckfallwert aus einem Bare-Checkout ist als solcher erkennbar und
+    # gilt hier ausdruecklich als gueltig — er behauptet gerade keine Version.
+    assert re.match(r"^\d+\.\d+\.\d+", mcp.version) or mcp.version.endswith("+source")
+
+
+# ---------------------------------------------------------------------------
 # Aufgezeichnete Antworten
 # ---------------------------------------------------------------------------
 

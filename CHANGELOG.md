@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Behoben — der Server meldete im MCP-Handshake eine leere Version
+
+`MCPServer` nimmt ein `version=`-Argument; der Server uebergab keins, und der
+Vorgabewert ist die leere Zeichenkette. Gemessen am 2026-08-15 gegen das von
+PyPI installierte Wheel 0.6.0:
+
+```
+Implementation(name='register_mcp', title=None, version='', …)
+```
+
+Das Paket kannte seine Version die ganze Zeit — es sagte sie nur ueber MCP
+nicht. Ein Client, der Serverversionen anzeigt oder protokolliert, sah dort
+nichts; ein Fehlerbericht «register_mcp, Version unbekannt» waere die Folge
+gewesen. Jetzt `version=__version__`, also aus den Paket-Metadaten statt aus
+einem Literal.
+
+Gefunden hat das kein Test, sondern der End-to-End-Lauf gegen das
+veroeffentlichte Paket: Handshake ueber stdio gegen den Konsolen-Einstiegspunkt
+aus dem Wheel. Die Zusicherung steht jetzt in der Suite.
+
 ## [0.6.0] - 2026-08-15
 
 Drei ausgelieferte Fehler derselben Sorte: keine Abstuerze, sondern
