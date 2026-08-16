@@ -62,6 +62,9 @@ format .` würde vier Findings unter `audits/` umschreiben; das sind datierte
 Protokolle, kein Code. `audits/` bleibt deshalb draussen. Neue Verzeichnisse mit
 Code gehören dagegen in beide Listen (`ci.yml` und `.pre-commit-config.yaml`).
 
+Vor dem Lauf `ruff --version` prüfen: ein älteres ruff früher im `PATH`
+schlägt den Pin, ohne dass der Install etwas meldet.
+
 **Gate-Befehle, wörtlich aus `ci.yml`** (Job `test`, Python 3.11/3.12/3.13):
 
 ```bash
