@@ -46,15 +46,25 @@ SRC = ROOT / "src"
 CI_YML = ROOT / ".github" / "workflows" / "ci.yml"
 PRECOMMIT = ROOT / ".pre-commit-config.yaml"
 
-# Der ruff-Pin steht an drei Stellen, und keine davon merkt, wenn eine andere
-# abweicht: pre-commit formatiert dann mit der einen Version, das Gate prueft
-# mit der anderen, und ein lokal gruenes `ruff format` ist kein Beleg mehr.
-# Rot wird das erst in der CI, mit einem Diff, in dem die Ursache nicht steht.
+# Der ruff-Pin stand an drei Stellen. Die dritte, `pip install ruff==` in
+# ci.yml, ist weg: Sie lief NACH `pip install -e ".[dev]"` und ueberschrieb
+# damit, was pyproject deklariert — eine Abweichung dort konnte in der CI gar
+# nicht auffallen, sondern nur lokal, wo niemand sie erwartet.
+#
+# Zwei bleiben, und die muessen weiter zusammenpassen: pre-commit formatiert
+# sonst mit der einen Version, das Gate prueft mit der anderen, und ein lokal
+# gruenes `ruff format` ist kein Beleg mehr. Rot wird das erst in der CI, mit
+# einem Diff, in dem die Ursache nicht steht.
 _RUFF_PINS = (
-    (".github/workflows/ci.yml", CI_YML, re.compile(r"pip install ruff==([0-9][^\s\"']*)")),
     ("pyproject.toml [dev]", PYPROJECT, re.compile(r'"ruff==([0-9][^"]*)"')),
     (".pre-commit-config.yaml", PRECOMMIT, re.compile(r"rev:\s*v([0-9][^\s]*)")),
 )
+
+# Gegenprobe zur Konsolidierung: Ein wieder eingefuegter CI-Pin wuerde die
+# beiden oben stillschweigend aushebeln, ohne dass einer von ihnen sich
+# aendert. Deshalb wird sein Fehlen geprueft, nicht bloss die Gleichheit der
+# verbleibenden zwei.
+_CI_RUFF_INSTALL = re.compile(r"pip install\s+['\"]?ruff==([0-9][^\s\"']*)")
 
 # Shields.io-Badge: ![Version](https://img.shields.io/badge/version-X.Y.Z-blue)
 _BADGE = re.compile(r"img\.shields\.io/badge/[Vv]ersion-([^-\s)]+)-")
@@ -192,6 +202,19 @@ def collect_ruff_pins() -> list[tuple[str, str | None]]:
 
 
 def check_ruff_pins() -> None:
+    if CI_YML.exists():
+        stray = _CI_RUFF_INSTALL.search(CI_YML.read_text(encoding="utf-8"))
+        if stray:
+            print(f"RUFF-PIN: ci.yml installiert eigenes ruff ({stray.group(1)}).", file=sys.stderr)
+            print(
+                '\nDieser Schritt laeuft nach `pip install -e ".[dev]"` und '
+                "ueberschreibt den Pin aus pyproject.toml. Eine Abweichung dort "
+                "faellt dann in der CI nicht auf, sondern nur lokal. Den Schritt "
+                "entfernen — ruff kommt aus dem dev-Extra.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
     pins = collect_ruff_pins()
     missing = [label for label, pin in pins if pin is None]
     if missing:
@@ -199,7 +222,7 @@ def check_ruff_pins() -> None:
             f"RUFF-PIN: an folgenden Stellen nicht gefunden: {', '.join(missing)}", file=sys.stderr
         )
         print(
-            "\nDer Pin gehoert in ci.yml, pyproject.toml [dev] und "
+            "\nDer Pin gehoert in pyproject.toml [dev] und "
             ".pre-commit-config.yaml. Fehlt er irgendwo, prueft diese Stelle "
             "mit einer beliebigen Version.",
             file=sys.stderr,
@@ -208,11 +231,11 @@ def check_ruff_pins() -> None:
 
     values = {pin for _, pin in pins}
     if len(values) > 1:
-        print("RUFF-PIN: die drei Stellen weichen voneinander ab:", file=sys.stderr)
+        print("RUFF-PIN: die beiden Stellen weichen voneinander ab:", file=sys.stderr)
         for label, pin in pins:
             print(f"  {label} = {pin}", file=sys.stderr)
         print(
-            "\nAlle drei im selben Commit anheben. Sonst formatiert pre-commit "
+            "\nBeide im selben Commit anheben. Sonst formatiert pre-commit "
             "mit der einen Version und das Gate prueft mit der anderen — ein "
             "lokal gruenes `ruff format` ist dann kein Beleg fuer die CI.",
             file=sys.stderr,
@@ -266,7 +289,7 @@ def main() -> None:
     ruff_pin = collect_ruff_pins()[0][1]
     print(
         f"Versions-Sync OK ({version}; geprüft: {checked}; keine hartkodierte "
-        f"Version in src/; ruff-Pin {ruff_pin} an allen drei Stellen gleich)"
+        f"Version in src/; ruff-Pin {ruff_pin} an beiden Stellen gleich)"
     )
 
 

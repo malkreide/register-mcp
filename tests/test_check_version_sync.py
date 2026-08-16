@@ -30,19 +30,32 @@ import check_version_sync as cvs  # noqa: E402
 class RuffPinsImRepo(unittest.TestCase):
     """Gegen die echten Dateien — hier faellt auf, wenn ein Regex ins Leere greift."""
 
-    def test_alle_drei_stellen_liefern_einen_pin(self):
+    def test_beide_stellen_liefern_einen_pin(self):
         pins = cvs.collect_ruff_pins()
-        self.assertEqual(len(pins), 3)
+        self.assertEqual(len(pins), 2)
         for label, pin in pins:
             self.assertIsNotNone(pin, f"{label}: kein Pin gefunden — Regex oder Datei geaendert")
             self.assertRegex(pin, r"^\d+\.\d+\.\d+$", f"{label}: {pin!r} sieht nicht aus wie ruff")
 
-    def test_die_drei_pins_sind_gleich(self):
+    def test_die_beiden_pins_sind_gleich(self):
         pins = cvs.collect_ruff_pins()
         self.assertEqual(
             len({pin for _, pin in pins}),
             1,
             f"ruff-Pins weichen ab: {pins}",
+        )
+
+    def test_ci_installiert_kein_eigenes_ruff(self):
+        """Die dritte Stelle ist weg und soll wegbleiben.
+
+        Ein wieder eingefuegter `pip install ruff==` in ci.yml wuerde die
+        beiden Pins oben stillschweigend aushebeln — er laeuft nach dem
+        dev-Extra und ueberschreibt es. Beide blieben dabei gleich, der Test
+        oben also gruen, und trotzdem liefe in der CI eine andere Version.
+        """
+        self.assertIsNone(
+            cvs._CI_RUFF_INSTALL.search(cvs.CI_YML.read_text(encoding="utf-8")),
+            "ci.yml installiert wieder ein eigenes ruff — der Pin gehoert allein ins dev-Extra",
         )
 
     def test_check_ruff_pins_geht_auf_dem_repo_durch(self):
