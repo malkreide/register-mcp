@@ -41,10 +41,20 @@ Ein Codex-Review auf einem PR wird beantwortet oder behoben, nie ignoriert.
 
 ## Teil 2 — Repo-spezifisch (register-mcp)
 
-**ruff-Pin: `0.16.1`, an drei Stellen** — `ci.yml`, `pyproject.toml [dev]`,
-`.pre-commit-config.yaml`. Gemeinsam anheben; `check_version_sync.py` bricht ab,
-wenn sie auseinanderlaufen, und `tests/test_precommit_config.py` wacht darüber,
-dass der Hook denselben Umfang sieht wie das Gate.
+**ruff: eine Quelle.** Der Pin `0.16.1` steht in `pyproject.toml` und `.pre-
+commit-config.yaml` — und **nicht** mehr als eigener Install-Schritt in der
+CI.
+
+Der CI-Schritt lief nach dem Install der Abhängigkeiten und überschrieb sie.
+Eine Abweichung im Pin konnte deshalb in der CI gar nicht auffallen, sondern
+nur lokal — wo niemand sie erwartet. Ein manuelles Nachinstallieren von ruff
+vor den Gates ist damit nicht mehr nötig und wäre schädlich: Es würde eine
+spätere Anhebung hier stillschweigend überstimmen.
+
+`scripts/check_version_sync.py` bricht ab, wenn die verbleibenden Stellen
+auseinanderlaufen **oder** wenn `ci.yml` wieder ein eigenes ruff installiert;
+`tests/test_precommit_config.py` wacht darüber, dass der Hook denselben Umfang
+sieht wie das Gate.
 
 **Der Gate-Umfang ist aufgezählt, nicht `.` — und das ist Absicht.**
 `ruff format` formatiert auch Python-Blöcke *innerhalb* von Markdown. `ruff
@@ -57,7 +67,6 @@ Code gehören dagegen in beide Listen (`ci.yml` und `.pre-commit-config.yaml`).
 ```bash
 pip install -e ".[dev]"
 PYTHONPATH=src pytest tests/ -m "not live"
-pip install ruff==0.16.1
 ruff check src/ tests/ scripts/ docs/
 ruff format --check src/ tests/ scripts/ docs/
 python scripts/check_version_sync.py
