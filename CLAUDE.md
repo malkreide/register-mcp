@@ -96,6 +96,15 @@ plus `workflow_dispatch`, ordnet das JUnit-XML über
 `scripts/classify_live_run.py` ein und öffnet/schliesst danach ein Issue.
 `-m "not live"` in `ci.yml` ist hier also ein Ausschluss *mit* Auffangnetz.
 
+**Zur Matrix:** die Gate-Liste oben gehört dem Job `test` (3.11/3.12/3.13);
+`lockfile` und `docker` laufen daneben je einmal, ohne Matrix. Ein
+`fail-fast: false` steht nicht da — eine rote 3.11 bricht 3.12 und 3.13 ab,
+bevor sie etwas sagen.
+
+Was `check_version_sync.py` über den ruff-Pin meldet, steht im Klartext in
+seiner Ausgabe: `ruff-Pin 0.16.1 an beiden Stellen gleich`. Wer die zwei
+Stellen von Hand vergleicht, tut Arbeit, die dieser Gate schon leistet.
+
 **Was die Live-Suite fand, waren keine Ausfälle, sondern Antworten.** Drei
 Formen von Zefix, jede hat einen ausgelieferten Fehler gekostet:
 
