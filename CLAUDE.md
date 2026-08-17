@@ -84,6 +84,7 @@ schlägt den Pin, ohne dass der Install etwas meldet.
 ```bash
 pip install -e ".[dev]"
 PYTHONPATH=src pytest tests/ -m "not live"
+python scripts/check_ruff_pin.py
 ruff check src/ tests/ scripts/ docs/
 ruff format --check src/ tests/ scripts/ docs/
 python scripts/check_version_sync.py
