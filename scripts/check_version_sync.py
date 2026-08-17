@@ -19,6 +19,30 @@ kommt aus den Paket-Metadaten (`importlib.metadata.version()`); ein wieder
 eingefügtes Literal wäre der Beginn derselben Drift, die im ganzen Portfolio
 falsche User-Agents erzeugt hat.
 
+Dritter Teil: der ruff-Pin. Er steht in `pyproject.toml` (`ruff==X.Y.Z` im
+dev-Extra) und, falls vorhanden, als `rev: vX.Y.Z` beim `ruff-pre-commit`-Repo
+— pre-commit kann `pyproject.toml` nicht lesen und braucht die Zahl deshalb
+ein zweites Mal. Laufen sie auseinander, formatiert der Hook nach der einen
+und das Gate prüft nach der anderen Version; die Abweichungen, die dabei
+auftauchen, hat niemand verursacht, und der Diff, in dem es auffällt, hat
+damit nichts zu tun. Verglichen wird nur, was existiert: Ein Repo ohne
+pre-commit-Konfiguration ist kein Fehler, ein Repo mit zwei ungleichen Pins
+schon.
+
+Die Angabe in `pyproject.toml` ist dabei Pflicht, ihr Fehlen ein Fehler. Der
+blosse Gleichstand genügt nicht: Verschwindet die Zeile, bleibt die
+pre-commit-`rev` als einzige Stelle übrig, und «eine Stelle, einig» ist ein
+Zustand, den dieser Check von einem Repo mit nur einem Fundort nicht
+unterscheiden könnte. `pip install -e ".[dev]"` holt dann die jeweils neueste
+Version, der Hook formatiert weiter nach seiner festen — und der Vergleich,
+der das melden sollte, bleibt grün, weil er nichts mehr zu vergleichen hat.
+
+Ein **eigener** ruff-Install in einem Workflow ist dagegen immer ein Fehler,
+unabhängig von seiner Version: Er läuft nach dem Install des dev-Extras und
+überschreibt ihn. Eine Abweichung im deklarierten Pin fiele damit in der CI
+gar nicht auf, sondern nur lokal — und der Gleichstand der übrigen Stellen
+bliebe dabei grün. Deshalb wird sein Fehlen geprüft, nicht seine Version.
+
 Verwendung:
     python scripts/check_version_sync.py     # exit 1 bei Abweichung
 
@@ -43,28 +67,6 @@ ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = ROOT / "pyproject.toml"
 SERVER_JSON = ROOT / "server.json"
 SRC = ROOT / "src"
-CI_YML = ROOT / ".github" / "workflows" / "ci.yml"
-PRECOMMIT = ROOT / ".pre-commit-config.yaml"
-
-# Der ruff-Pin stand an drei Stellen. Die dritte, `pip install ruff==` in
-# ci.yml, ist weg: Sie lief NACH `pip install -e ".[dev]"` und ueberschrieb
-# damit, was pyproject deklariert — eine Abweichung dort konnte in der CI gar
-# nicht auffallen, sondern nur lokal, wo niemand sie erwartet.
-#
-# Zwei bleiben, und die muessen weiter zusammenpassen: pre-commit formatiert
-# sonst mit der einen Version, das Gate prueft mit der anderen, und ein lokal
-# gruenes `ruff format` ist kein Beleg mehr. Rot wird das erst in der CI, mit
-# einem Diff, in dem die Ursache nicht steht.
-_RUFF_PINS = (
-    ("pyproject.toml [dev]", PYPROJECT, re.compile(r'"ruff==([0-9][^"]*)"')),
-    (".pre-commit-config.yaml", PRECOMMIT, re.compile(r"rev:\s*v([0-9][^\s]*)")),
-)
-
-# Gegenprobe zur Konsolidierung: Ein wieder eingefuegter CI-Pin wuerde die
-# beiden oben stillschweigend aushebeln, ohne dass einer von ihnen sich
-# aendert. Deshalb wird sein Fehlen geprueft, nicht bloss die Gleichheit der
-# verbleibenden zwei.
-_CI_RUFF_INSTALL = re.compile(r"pip install\s+['\"]?ruff==([0-9][^\s\"']*)")
 
 # Shields.io-Badge: ![Version](https://img.shields.io/badge/version-X.Y.Z-blue)
 _BADGE = re.compile(r"img\.shields\.io/badge/[Vv]ersion-([^-\s)]+)-")
@@ -167,6 +169,118 @@ def collect_declared(expected: str) -> list[tuple[str, str]]:
     return found
 
 
+# `ruff==0.16.1` — auch mitten in einer Sammel-Zeile (`pip install ruff==X foo`).
+_RUFF_CI = re.compile(r"""\bruff==([0-9][^\s'"]*)""")
+
+# Der Kopf eines pre-commit-Eintrags. Gesplittet wird daran, damit `rev:` dem
+# richtigen `repo:` zugeordnet wird — ein `rev:` irgendwo in der Datei gehört
+# sonst genauso gut zu einem anderen Hook.
+_PC_REPO = re.compile(r"^\s*-\s*repo:", re.MULTILINE)
+_PC_REV = re.compile(r"""^\s*rev:\s*['"]?v?([^\s'"#]+)""", re.MULTILINE)
+
+
+def strip_comments(text: str) -> str:
+    """`#`-Kommentare entfernen, Zeichenketten in Anführungszeichen ausgenommen.
+
+    Gilt für YAML und TOML gleichermassen — beide kommentieren mit `#` und
+    quoten ihre Werte.
+
+    Nötig, weil die Kommentare hier genau die Drift beschreiben, die der Check
+    verhindern soll — `.pre-commit-config.yaml` erklärt seinen eigenen Pin mit
+    «v0.16.1 == ruff==0.16.1». Ohne dieses Ausschneiden läse der Check den
+    Kommentar als weiteren Fundort und meldete Übereinstimmung oder Drift
+    anhand von Prosa statt anhand der Konfiguration.
+    """
+    out = []
+    for line in text.splitlines():
+        quote = None
+        for i, ch in enumerate(line):
+            if quote:
+                if ch == quote:
+                    quote = None
+            elif ch in "\"'":
+                quote = ch
+            elif ch == "#":
+                line = line[:i]
+                break
+        out.append(line)
+    return "\n".join(out)
+
+
+# Eine ruff-Angabe in einer Abhängigkeitsliste: `"ruff==0.16.1"`, `"ruff>=0.4.0"`,
+# `"ruff"`. Nach `ruff` (samt optionalen Extras) darf nur ein Vergleichsoperator
+# oder das schliessende Anführungszeichen folgen — sonst zählte `"ruff-lsp"` mit.
+# Die Anführungszeichen im Muster halten ausserdem `[tool.ruff]` heraus.
+_TOML_RUFF = re.compile(r"""["']ruff(?:\[[^\]]*\])?\s*((?:[<>=!~][^"']*)?)["']""")
+
+
+def ruff_specs(root: Path) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    """ruff-Angaben aus pyproject.toml — (exakte Pins, lose Angaben).
+
+    `ruff>=0.4.0` im dev-Extra ist keine Kleinigkeit: `pip install -e ".[dev]"`
+    holt damit die jeweils neueste Version, während CI und pre-commit auf einer
+    festen stehen. Wer die Gates lokal fährt, prüft dann gegen ein anderes
+    Regelwerk als das, an dem der PR scheitert — und sieht Abweichungen an
+    Code, den niemand angefasst hat.
+    """
+    pins: list[tuple[str, str]] = []
+    loose: list[tuple[str, str]] = []
+
+    path = root / "pyproject.toml"
+    if not path.exists():
+        return pins, loose
+
+    for m in _TOML_RUFF.finditer(strip_comments(path.read_text(encoding="utf-8"))):
+        spec = m.group(1).strip()
+        # Nur `==X` ist ein Pin. `>=`, `~=` und ein Bereich mit Komma lassen
+        # der Auflösung Spielraum, und genau der ist hier das Problem.
+        if spec.startswith("==") and "," not in spec:
+            pins.append(("pyproject.toml → dev-Extra", spec[2:].strip()))
+        else:
+            loose.append(("pyproject.toml → dev-Extra", spec or "(ohne Version)"))
+
+    return pins, loose
+
+
+def ruff_pins(root: Path) -> list[tuple[str, str]]:
+    """Alle exakten ruff-Pins — je (Bezeichnung, Version), ohne führendes `v`."""
+    found: list[tuple[str, str]] = []
+
+    config = root / ".pre-commit-config.yaml"
+    if config.exists():
+        text = strip_comments(config.read_text(encoding="utf-8"))
+        # `[1:]`: vor dem ersten `- repo:` steht nur der Dateikopf.
+        for chunk in _PC_REPO.split(text)[1:]:
+            head, _, rest = chunk.partition("\n")
+            if "ruff-pre-commit" not in head:
+                continue
+            m = _PC_REV.search(rest)
+            if m:
+                found.append((".pre-commit-config.yaml → rev", m.group(1)))
+
+    found.extend(ruff_specs(root)[0])
+    return found
+
+
+def ruff_in_workflows(root: Path) -> list[tuple[str, str]]:
+    """Eigene ruff-Pins in den Workflows — hier soll keiner mehr stehen.
+
+    Ein solcher Schritt laeuft nach dem Install des dev-Extras und ueberschreibt
+    ihn. Eine Abweichung im deklarierten Pin faellt dann in der CI gar nicht
+    auf, sondern nur lokal — und der Gleichstand der uebrigen Stellen bliebe
+    dabei gruen. Deshalb wird sein *Fehlen* geprueft, nicht seine Version.
+    """
+    found: list[tuple[str, str]] = []
+    workflows = root / ".github" / "workflows"
+    if not workflows.is_dir():
+        return found
+    for path in sorted(workflows.glob("*.y*ml")):
+        text = strip_comments(path.read_text(encoding="utf-8"))
+        for m in _RUFF_CI.finditer(text):
+            found.append((path.relative_to(root).as_posix(), m.group(1)))
+    return found
+
+
 def read_project() -> dict:
     """`[project]`-Tabelle aus pyproject.toml.
 
@@ -189,62 +303,7 @@ def read_project() -> dict:
     return out
 
 
-def collect_ruff_pins() -> list[tuple[str, str | None]]:
-    """Je (Bezeichnung, Pin) — `None`, wenn die Stelle keinen Pin hergibt."""
-    out: list[tuple[str, str | None]] = []
-    for label, path, pattern in _RUFF_PINS:
-        if not path.exists():
-            out.append((label, None))
-            continue
-        match = pattern.search(path.read_text(encoding="utf-8"))
-        out.append((label, match.group(1) if match else None))
-    return out
-
-
-def check_ruff_pins() -> None:
-    if CI_YML.exists():
-        stray = _CI_RUFF_INSTALL.search(CI_YML.read_text(encoding="utf-8"))
-        if stray:
-            print(f"RUFF-PIN: ci.yml installiert eigenes ruff ({stray.group(1)}).", file=sys.stderr)
-            print(
-                '\nDieser Schritt laeuft nach `pip install -e ".[dev]"` und '
-                "ueberschreibt den Pin aus pyproject.toml. Eine Abweichung dort "
-                "faellt dann in der CI nicht auf, sondern nur lokal. Den Schritt "
-                "entfernen — ruff kommt aus dem dev-Extra.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
-    pins = collect_ruff_pins()
-    missing = [label for label, pin in pins if pin is None]
-    if missing:
-        print(
-            f"RUFF-PIN: an folgenden Stellen nicht gefunden: {', '.join(missing)}", file=sys.stderr
-        )
-        print(
-            "\nDer Pin gehoert in pyproject.toml [dev] und "
-            ".pre-commit-config.yaml. Fehlt er irgendwo, prueft diese Stelle "
-            "mit einer beliebigen Version.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    values = {pin for _, pin in pins}
-    if len(values) > 1:
-        print("RUFF-PIN: die beiden Stellen weichen voneinander ab:", file=sys.stderr)
-        for label, pin in pins:
-            print(f"  {label} = {pin}", file=sys.stderr)
-        print(
-            "\nBeide im selben Commit anheben. Sonst formatiert pre-commit "
-            "mit der einen Version und das Gate prueft mit der anderen — ein "
-            "lokal gruenes `ruff format` ist dann kein Beleg fuer die CI.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-
 def main() -> None:
-    check_ruff_pins()
     project = read_project()
     dist = project["name"]
     version = project.get("version")
@@ -285,11 +344,75 @@ def main() -> None:
         )
         sys.exit(1)
 
+    deklariert, loose = ruff_specs(ROOT)
+    pins = ruff_pins(ROOT)
+    eigenmaechtig = ruff_in_workflows(ROOT)
+    problems = False
+
+    if not deklariert and not loose:
+        problems = True
+        print("KEIN PIN: pyproject.toml nennt ruff nicht.", file=sys.stderr)
+        print(
+            "\n`ruff==X.Y.Z` gehört ins dev-Extra. Ohne die Zeile holt "
+            '`pip install -e ".[dev]"` gar kein ruff oder das jeweils neueste, '
+            "während der Hook nach seiner festen `rev` formatiert. Der Abgleich "
+            "unten bliebe dabei grün: Er sähe nur noch eine Stelle und hätte "
+            "damit nichts mehr zu vergleichen.",
+            file=sys.stderr,
+        )
+
+    if eigenmaechtig:
+        problems = True
+        print("EIGENER CI-PIN: ein Workflow installiert ruff selbst:", file=sys.stderr)
+        for where, value in eigenmaechtig:
+            print(f"  {where} = {value!r}", file=sys.stderr)
+        print(
+            "\nDer Schritt laeuft nach dem Install des dev-Extras und "
+            "ueberschreibt ihn: Eine Abweichung im deklarierten Pin faellt dann "
+            "in der CI gar nicht auf, sondern nur lokal. Den Schritt entfernen "
+            "— ruff kommt aus dem dev-Extra.",
+            file=sys.stderr,
+        )
+
+    if len({value for _, value in pins}) > 1:
+        problems = True
+        print("DRIFT: die ruff-Pins nennen verschiedene Versionen:", file=sys.stderr)
+        for where, value in pins:
+            print(f"  {where} = {value!r}", file=sys.stderr)
+        print(
+            "\nAlle Stellen im selben Commit bumpen. Solange sie abweichen, "
+            "meldet lokal und in der CI je eine andere ruff-Version Abweichungen, "
+            "die niemand verursacht hat.",
+            file=sys.stderr,
+        )
+
+    if loose:
+        problems = True
+        print("\nLOSE: ruff ist nicht exakt gepinnt:", file=sys.stderr)
+        for where, spec in loose:
+            print(f"  {where} = {spec!r}", file=sys.stderr)
+        print(
+            "\nruff ist ein Gate, kein Hilfsmittel: `ruff==X.Y.Z` schreiben. Mit "
+            'einem offenen Bereich holt `pip install -e ".[dev]"` die jeweils '
+            "neueste Version, und lokal läuft ein anderes Gate als in der CI.",
+            file=sys.stderr,
+        )
+
+    if problems:
+        sys.exit(1)
+
     checked = ", ".join(where for where, _ in found) or "keine weiteren Stellen"
-    ruff_pin = collect_ruff_pins()[0][1]
+    if len(pins) > 1:
+        ruff = f"; ruff-Pin einig auf {pins[0][1]} ({len(pins)} Stellen)"
+    elif pins:
+        # Ein einzelner Pin ist kein Fehler — aber auch kein Abgleich. Sichtbar
+        # machen, sonst liest sich «OK» wie ein bestandener Vergleich.
+        ruff = f"; ruff-Pin nur an einer Stelle ({pins[0][0]} {pins[0][1]})"
+    else:
+        ruff = ""
     print(
-        f"Versions-Sync OK ({version}; geprüft: {checked}; keine hartkodierte "
-        f"Version in src/; ruff-Pin {ruff_pin} an beiden Stellen gleich)"
+        f"Versions-Sync OK ({version}; geprüft: {checked}; "
+        f"keine hartkodierte Version in src/{ruff})"
     )
 
 
