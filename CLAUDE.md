@@ -143,3 +143,27 @@ sha256sum */scripts/pin_audit.py */tests/test_pin_audit.py |
 Erwartet: **zwei** Zeilen mit je **3**. Die Anzahl mitlesen, nicht nur die Zahl
 der Zeilen — findet der Glob nur ein Repo, stehen dort auch zwei Zeilen, und
 «einig» hiesse dann bloss, dass nichts verglichen wurde.
+
+**Der SessionStart-Hook steht an drei Stellen.** `swiss-electricity-mcp`,
+`bakom-mcp` und `register-mcp` halten byteweise dieselben drei Dateien:
+`.claude/hooks/check-clone-freshness.sh`, `.claude/hooks/README.md` und
+`tests/test_session_start_hook.py`. Wer eine ändert, ändert alle drei im selben
+Commit — sonst driften die Fassungen auseinander, und genau das war der
+Ausgangszustand: drei eigenständige Implementierungen mit drei Dateinamen, von
+denen eine ohne `timeout` im PATH ungebremst ins Netz ging und die Session
+anhalten konnte. `.claude/settings.json` ist bewusst **nicht** Teil der Regel
+(dort steht Repo-Eigenes); geprüft wird es stattdessen vom Test, der die
+Registrierung des Hooks nachweist.
+
+Kein Gate erzwingt die Gleichheit, es gibt nur diesen Absatz. Aus dem
+Verzeichnis, in dem die Server nebeneinander liegen:
+
+```bash
+sha256sum */.claude/hooks/check-clone-freshness.sh */.claude/hooks/README.md \
+          */tests/test_session_start_hook.py |
+  awk '{print $1}' | sort | uniq -c
+```
+
+Erwartet: **drei** Zeilen mit je **3**. Die Anzahl mitlesen, nicht nur die Zahl
+der Zeilen — findet der Glob nur ein Repo, stehen dort auch drei Zeilen, und
+«einig» hiesse dann bloss, dass nichts verglichen wurde.
