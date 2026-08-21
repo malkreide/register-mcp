@@ -14,6 +14,20 @@ from register_mcp import server as s
 PATH = "/api/v1/publications"
 URL = f"{s.GAZETTE_BASE}{PATH}"
 
+# Wall-clock numbers for the deadline test below, spread far enough apart that
+# scheduler jitter cannot move the outcome. Measured on 3.11 over 15 runs of
+# that test's own body, through pytest so every fixture is in place:
+# 0.072-0.111s against a 0.05s budget, so roughly 0.025s of the elapsed time is
+# the first call through the client rather than the budget. The old bound of
+# 0.5s left 0.425s of absolute headroom, and CI jitter is absolute, not
+# proportional: in swiss-efv-mcp a loaded runner turned 0.105s into 0.55s on
+# 2026-08-21 and tore the same assertion there. A stall of that size clears
+# 0.425s too. Raising the budget does not shrink the stall, it makes the stall
+# small *relative to* what is measured.
+_BUDGET = 0.5
+_CUT_BY = 2.5
+_SLOW_RESPONSE = 8.0
+
 
 def _resp(status: int, retry_after: str | None = None) -> httpx.Response:
     headers = {"Retry-After": retry_after} if retry_after is not None else {}
@@ -162,20 +176,35 @@ async def test_a_slow_response_is_cut_by_the_wall_clock_deadline():
 
     Deliberately without ``fake_clock``: this guarantee is about real time, and
     a clock that only moves when something sleeps could not refute it.
+
+    The margins are wide on purpose — see `_BUDGET` above for the measurement
+    that set them. A warm-up call pays the first-call cost before the clock
+    starts, so the measured window holds the deadline and nothing else.
     """
     import asyncio as real_asyncio
     import time as real_time
 
+    # Warm-up on the untouched default budget: pays whatever the first call
+    # through the client costs, outside the window measured below.
+    route = respx.get(URL).mock(return_value=httpx.Response(200, json={}))
+    await s._gazette_get(PATH)
+
     async def _slow(request):
-        await real_asyncio.sleep(1.0)
+        await real_asyncio.sleep(_SLOW_RESPONSE)
         return httpx.Response(200, json={})
 
-    respx.get(URL).mock(side_effect=_slow)
+    route.mock(side_effect=_slow)
     started = real_time.monotonic()
     with pytest.raises(TimeoutError):
-        await s._gazette_get(PATH, total_budget=0.05)
+        await s._gazette_get(PATH, total_budget=_BUDGET)
     elapsed = real_time.monotonic() - started
-    assert elapsed < 0.5, f"deadline did not cut: {elapsed:.2f}s"
+
+    # Two-sided on purpose. The upper bound is the guarantee: a response that
+    # would have taken _SLOW_RESPONSE was cut. The lower bound says the cut came
+    # from the budget rather than from something failing straight away — a
+    # deadline computed wrong sails through an upper bound alone.
+    assert elapsed >= _BUDGET / 2, f"cut too early to be the budget: {elapsed:.3f}s"
+    assert elapsed < _CUT_BY, f"deadline did not cut: {elapsed:.2f}s"
 
 
 def test_default_budget_stays_under_the_mcp_client_default():
