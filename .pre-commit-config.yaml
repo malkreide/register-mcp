@@ -11,7 +11,7 @@
 # abgeschalteter Hook prueft nichts.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.1
+    rev: v0.16.3
     hooks:
       - id: ruff-check
         files: ^(src|tests|scripts|docs)/
