@@ -54,7 +54,7 @@ dev = [
     # Fall: uv.lock loeste 0.16.2 auf, die CI linted mit 0.16.1 — ein `ruff
     # check`, der lokal gruen ist, kann so im Gate fallen. Die beiden Stellen
     # muessen gemeinsam angehoben werden.
-    "ruff==0.16.3",
+    "ruff==0.16.4",
 ]
 otel = [
     "opentelemetry-api>=1.27.0",
