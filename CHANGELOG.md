@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Hinzugefuegt
 
+- **Die Labels aus `.github/dependabot.yml` sind pruefbar**
+  (`scripts/check_dependabot_labels.py`, `tests/test_dependabot_labels.py`).
+  Dependabot legt Labels nicht an: Steht unter `labels:` ein Name, den das Repo
+  nicht kennt, haengt es nur einen Hinweis an jeden Pull Request und laesst ihn
+  ungelabelt. Kein roter Check, kein Log. In diesem Repo fehlten so **alle
+  vier** konfigurierten Labels (`dependencies`, `python`, `ci`, `docker`),
+  aufgefallen erst beim Durchgehen der Kommentare eines Dependabot-PRs.
+
+  Die Meldung nennt dabei immer nur die Labels des betroffenen Oekosystems —
+  wer sie fuer die vollstaendige Liste haelt, legt zwei an und uebersieht die
+  uebrigen bis zum naechsten `github-actions`- oder `docker`-PR. Das Skript
+  liest deshalb die Konfiguration, nicht die Meldung.
+
+  Bewusst **kein** Gate in `ci.yml` und **kein** `@pytest.mark.live`: Ob ein
+  Label existiert, ist GitHub-Zustand und braucht die API. Ein Gate daran wird
+  bei jedem Rate-Limit rot und macht fremde PRs rot; die Live-Suite wiederum
+  ist bis in den Issue-Titel auf `zefix.admin.ch` gemuenzt und wuerde ein Issue
+  ueber Zefix aufmachen, in dem es nicht um Zefix geht. Im Gate laeuft nur der
+  offline entscheidbare Teil (19 Tests); der Abgleich mit dem Repo laeuft von
+  Hand ueber `--repo OWNER/NAME`.
+
+  Zwei Befunde aus der Gegenprobe, beide im Test und nicht im Code:
+  Die erste Fassung verlangte, dass `color: #ff0000` unversehrt bleibt — in
+  YAML ist ` #` aber *immer* ein Kommentarbeginn, die Zeile heisst dort
+  `color: null`. Und der Kommentar-Stripper liess sich ersatzlos entfernen,
+  ohne dass ein Test fiel: geprueft war nur ein Kommentar *vor* `labels:`, wo
+  der Regex ohnehin nicht greift. Gebraucht wird er *hinter* dem Wert, wo sonst
+  Labels lautlos aus der Anforderungsliste verschwinden.
+
 - **Frischehinweise auf `tools/list` und `server/discover`** (SEP-2549, Spec
   `2026-07-28`): `ttlMs` 300000, `cacheScope` `public`. Das SDK setzt beides von
   sich aus auf «sofort veraltet, nie geteilt» — wer nichts übergibt, verhält

@@ -293,6 +293,36 @@ Formen von Zefix, jede hat einen ausgelieferten Fehler gekostet:
   Namen, `CHE-999.999.999` liefert «CHEMAM - 999». Kein Rückfall auf `firms[0]`.
 - Ohne `activeOnly: False` sieht «gelöscht» aus wie «gibt es nicht».
 
+**Dependabot-Labels legt niemand automatisch an.** Was in
+`.github/dependabot.yml` unter `labels:` steht, wendet Dependabot nur an, wenn
+es das Label im Repo schon gibt. Fehlt es, kommt kein roter Check und kein Log,
+sondern ein Kommentar an jedem Pull Request:
+
+```
+The following labels could not be found: `dependencies`, `python`.
+```
+
+Die Meldung nennt immer nur die Labels des betroffenen Ökosystems. Wer sie für
+die vollständige Liste hält, legt zwei an und übersieht die übrigen bis zum
+nächsten `github-actions`- oder `docker`-PR — hier fehlten **alle vier**.
+Deshalb die Konfiguration lesen, nicht die Meldung:
+
+```bash
+python scripts/check_dependabot_labels.py                    # nur auflisten
+python scripts/check_dependabot_labels.py --repo malkreide/register-mcp
+```
+
+Der zweite Modus fragt die GitHub-API und gehört bewusst **nicht** in `ci.yml`:
+Ein Gate, das bei einem erschöpften Rate-Limit rot wird, macht fremde PRs rot
+und wird abgeschaltet. Er ist auch **kein** `@pytest.mark.live` — die
+Live-Suite ist bis in den Issue-Titel auf `zefix.admin.ch` gemünzt und würde
+ein Issue über Zefix aufmachen, in dem es nicht um Zefix geht. Im Gate läuft
+nur der offline entscheidbare Teil (`tests/test_dependabot_labels.py`).
+
+Exit 2 heisst «konnte nicht vergleichen», Exit 1 «Labels fehlen». Wer beides
+gleich behandelt, meldet bei jedem API-Ausfall einen Konfigurationsfehler, den
+es nicht gibt.
+
 **`pin_audit.py` steht an drei Stellen.** `swiss-electricity-mcp`, `bakom-mcp`
 und `register-mcp` halten byteweise dieselbe `scripts/pin_audit.py` samt
 `tests/test_pin_audit.py`. Wer eine ändert, ändert alle drei im selben Commit —
