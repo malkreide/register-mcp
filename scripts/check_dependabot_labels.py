@@ -58,10 +58,19 @@ DEPENDABOT = ROOT / ".github" / "dependabot.yml"
 
 API = "https://api.github.com"
 
-# Eine neue Liste `- package-ecosystem: uv`. Der Bindestrich ist Teil der
-# Zusicherung: Er trennt die Einträge unter `updates:`, und ohne ihn würde ein
-# `package-ecosystem`-Schlüssel irgendwo tiefer im Baum einen Block eröffnen.
-_ECOSYSTEM = re.compile(r"^(\s*)-\s*package-ecosystem:\s*(\S+)\s*$")
+# Eigener Alias statt `urllib.request.urlopen` an der Aufrufstelle. Ein Test,
+# der `urllib.request` patcht, greift ins fremde Modul und entschaerft es im
+# ganzen Prozess — CLAUDE.md fuehrt genau das unter «Tests» als Falle. Ueber
+# den Alias trifft ein `mock.patch.object(cdl, "_urlopen", ...)` nur dieses
+# Modul.
+_urlopen = urllib.request.urlopen
+
+# Ein Eintrag der Liste unter `updates:` beginnt mit `- `. Welcher Schlüssel
+# darin zuerst steht, ist in YAML beliebig — `package-ecosystem` wird deshalb
+# im ganzen Eintrag gesucht, nicht auf seiner ersten Zeile.
+_ITEM_START = re.compile(r"^(\s*)-\s?(.*)$")
+
+_ECOSYSTEM_KEY = re.compile(r"^\s*package-ecosystem:\s*(\S+)\s*$")
 
 # `labels: [a, b]` auf einer Zeile.
 _LABELS_INLINE = re.compile(r"^\s*labels:\s*\[([^\]]*)\]\s*$")
@@ -71,6 +80,12 @@ _LABELS_BLOCK = re.compile(r"^(\s*)labels:\s*$")
 
 _LIST_ITEM = re.compile(r"^(\s*)-\s*(.+?)\s*$")
 
+_TOP_KEY = re.compile(r"^(\s*)updates:\s*$")
+
+# Zeichen, nach denen ein neuer Skalar beginnt — nur dort eröffnet ein
+# Anführungszeichen wirklich einen quotierten Wert.
+_SCALAR_START = set(":,-[{ \t")
+
 
 def strip_comments(text: str) -> str:
     """Zeilenkommentare entfernen, Anführungszeichen dabei respektieren.
@@ -78,8 +93,16 @@ def strip_comments(text: str) -> str:
     Ein nacktes `re.sub(r"#.*", "", …)` wäre hier falsch: `dependabot.yml`
     trägt in diesem Repo einen langen Kopfkommentar, in dem unter anderem
     «PRs #26–#30» steht. Das ist harmlos, weil die ganze Zeile Kommentar ist —
-    aber ein `#` innerhalb eines Wertes (`prefix: "deps # dev"`) wäre es nicht,
-    und ein Parser, der den Unterschied nicht kennt, schneidet still Werte ab.
+    aber ein `#` innerhalb eines quotierten Wertes (`prefix: "deps # dev"`)
+    wäre es nicht, und ein Parser, der den Unterschied nicht kennt, schneidet
+    still Werte ab.
+
+    Ein Anführungszeichen quotiert in YAML aber nur, wenn es einen Skalar
+    ERÖFFNET. Mitten in einem unquotierten Wert ist es ein gewöhnliches
+    Zeichen: `labels: [it's-fine]  # Notiz` ist eine Liste mit einem Apostroph
+    darin, kein offener String. Wer jedes `'` als Quote zählt, hält den Rest
+    der Zeile für quotiert, schneidet den Kommentar nicht ab — und das Label
+    heisst danach `it's-fine  # Notiz` und fehlt für immer.
     """
     out = []
     for line in text.splitlines():
@@ -89,12 +112,12 @@ def strip_comments(text: str) -> str:
             if quote is not None:
                 if ch == quote:
                     quote = None
-            elif ch in "\"'":
+            elif ch in "\"'" and (i == 0 or line[i - 1] in _SCALAR_START):
                 quote = ch
             elif ch == "#":
                 # Ein `#` zählt nur als Kommentar, wenn es am Zeilenanfang
                 # steht oder Leerraum davor liegt. Sonst ist es Teil eines
-                # unquotierten Wertes (`color: #ff0000`).
+                # unquotierten Wertes (`tag: v1#2`).
                 if i == 0 or line[i - 1].isspace():
                     cut = i
                     break
@@ -103,6 +126,90 @@ def strip_comments(text: str) -> str:
         # unangetastet — diese Funktion entfernt Kommentare, sie formatiert nicht.
         out.append(line if cut is None else line[:cut].rstrip())
     return "\n".join(out)
+
+
+def _update_items(lines: list[str]) -> list[list[str]]:
+    """Die Einträge unter `updates:`, jeder als eigene Zeilenliste.
+
+    Getrennt wird an `- ` auf der Einrückung des ersten Eintrags. Der Rumpf
+    eines Eintrags sind alle Folgezeilen, die tiefer eingerückt sind — plus
+    das, was hinter dem `- ` auf der Startzeile selbst steht.
+    """
+    start = None
+    for n, line in enumerate(lines):
+        if _TOP_KEY.match(line):
+            start = n + 1
+            break
+    if start is None:
+        return []
+
+    items: list[list[str]] = []
+    indent = None
+    for line in lines[start:]:
+        if not line.strip():
+            if items:
+                items[-1].append(line)
+            continue
+        m = _ITEM_START.match(line)
+        here = len(line) - len(line.lstrip())
+        if m and (indent is None or here == indent):
+            # Ein `-` weiter links als der erste Eintrag beendet `updates:`.
+            if indent is not None and here < indent:
+                break
+            indent = here
+            items.append([" " * (here + 2) + m.group(2)])
+            continue
+        if indent is None:
+            # Etwas anderes direkt unter `updates:` — keine Liste.
+            break
+        if here <= indent:
+            break
+        if items:
+            items[-1].append(line)
+    return items
+
+
+def _labels_in_item(item: list[str]) -> list[str]:
+    """Die Label-Namen eines einzelnen `updates:`-Eintrags."""
+    names: list[str] = []
+    i = 0
+    while i < len(item):
+        line = item[i]
+
+        inline = _LABELS_INLINE.match(line)
+        if inline:
+            for raw in inline.group(1).split(","):
+                name = raw.strip().strip("\"'")
+                if name:
+                    names.append(name)
+            i += 1
+            continue
+
+        block = _LABELS_BLOCK.match(line)
+        if block:
+            indent = len(block.group(1))
+            i += 1
+            while i < len(item):
+                # Leerzeilen (auch solche, die vorher ein Kommentar waren)
+                # trennen die Liste nicht. Wer hier abbricht, verliert alles
+                # Folgende still — und meldet danach «nichts fehlt».
+                if not item[i].strip():
+                    i += 1
+                    continue
+                entry = _LIST_ITEM.match(item[i])
+                # `>=`, nicht `>`: In YAML darf ein Listeneintrag auf DERSELBEN
+                # Spalte stehen wie sein Schlüssel. Beides ist verbreitet, und
+                # `>` verwirft die halbe Schreibweise kommentarlos.
+                if not entry or len(entry.group(1)) < indent:
+                    break
+                name = entry.group(2).strip().strip("\"'")
+                if name:
+                    names.append(name)
+                i += 1
+            continue
+
+        i += 1
+    return names
 
 
 def labels_in_dependabot(text: str) -> list[tuple[str, str]]:
@@ -114,53 +221,17 @@ def labels_in_dependabot(text: str) -> list[tuple[str, str]]:
     """
     lines = strip_comments(text).splitlines()
     found: list[tuple[str, str]] = []
-
-    ecosystem = None
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-
-        start = _ECOSYSTEM.match(line)
-        if start:
-            ecosystem = start.group(2).strip("\"'")
-            i += 1
-            continue
-
-        # Zurück auf oder über die Ebene der Liste: der Block ist zu Ende.
-        # Ohne das würde ein `labels:` in einem späteren, anders eingerückten
-        # Abschnitt noch dem letzten Ökosystem zugeschlagen.
-        if ecosystem is not None and line.strip() and not line[0].isspace():
-            ecosystem = None
-
+    for item in _update_items(lines):
+        ecosystem = None
+        for line in item:
+            key = _ECOSYSTEM_KEY.match(line)
+            if key:
+                ecosystem = key.group(1).strip("\"'")
+                break
         if ecosystem is None:
-            i += 1
             continue
-
-        inline = _LABELS_INLINE.match(line)
-        if inline:
-            for raw in inline.group(1).split(","):
-                name = raw.strip().strip("\"'")
-                if name:
-                    found.append((ecosystem, name))
-            i += 1
-            continue
-
-        block = _LABELS_BLOCK.match(line)
-        if block:
-            indent = len(block.group(1))
-            i += 1
-            while i < len(lines):
-                item = _LIST_ITEM.match(lines[i])
-                if not item or len(item.group(1)) <= indent:
-                    break
-                name = item.group(2).strip().strip("\"'")
-                if name:
-                    found.append((ecosystem, name))
-                i += 1
-            continue
-
-        i += 1
-
+        for name in _labels_in_item(item):
+            found.append((ecosystem, name))
     return found
 
 
@@ -177,7 +248,7 @@ def fetch_repo_labels(repo: str, token: str | None = None) -> set[str]:
                 **({"Authorization": f"Bearer {token}"} if token else {}),
             },
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with _urlopen(req, timeout=30) as resp:
             batch = json.load(resp)
         if not batch:
             break
@@ -191,10 +262,18 @@ def fetch_repo_labels(repo: str, token: str | None = None) -> set[str]:
 
 
 def missing(required: list[tuple[str, str]], existing: set[str]) -> dict[str, list[str]]:
-    """`{label: [ökosysteme]}` für alles, was im Repo fehlt."""
+    """`{label: [ökosysteme]}` für alles, was im Repo fehlt.
+
+    Verglichen wird ohne Rücksicht auf Gross-/Kleinschreibung, weil GitHub
+    Label-Namen so eindeutig hält: Neben `dependencies` lässt sich kein
+    `Dependencies` anlegen. Ein Vergleich, der die beiden trennt, meldet ein
+    vorhandenes Label als fehlend und schickt jemanden mit einem
+    `gh label create` los, das mit «already exists» scheitert.
+    """
+    vorhanden = {name.casefold() for name in existing}
     gaps: dict[str, list[str]] = {}
     for ecosystem, label in required:
-        if label not in existing:
+        if label.casefold() not in vorhanden:
             gaps.setdefault(label, [])
             if ecosystem not in gaps[label]:
                 gaps[label].append(ecosystem)
@@ -239,7 +318,21 @@ def main() -> None:
 
     try:
         existing = fetch_repo_labels(args.repo, os.environ.get("GITHUB_TOKEN"))
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
+    except (
+        urllib.error.URLError,
+        urllib.error.HTTPError,
+        TimeoutError,
+        # Eine Proxy- oder Fehlerseite kommt als HTTP 200 mit HTML an.
+        # Ohne diesen Zweig fliegt der JSONDecodeError durch, Python
+        # endet mit 1 — und das heisst hier «Labels fehlen».
+        json.JSONDecodeError,
+        # Ein JSON, das kein Array von Objekten mit `name` ist. Flach
+        # aufgezaehlt: ein verschachteltes Tupel in einer except-Klausel
+        # wirft in Python 3 selbst einen TypeError, ausgerechnet im
+        # Fehlerpfad.
+        KeyError,
+        TypeError,
+    ) as exc:
         # Exit 2, nicht 1: «konnte nicht vergleichen» ist nicht «Labels fehlen».
         # Ein Aufrufer, der beides gleich behandelt, meldet bei jedem API-Ausfall
         # einen Konfigurationsfehler, den es nicht gibt.

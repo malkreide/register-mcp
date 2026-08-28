@@ -208,6 +208,176 @@ updates:
         self.assertEqual(cdl.labels_in_dependabot(text), [("uv", "dependencies")])
 
 
+class ReviewBefunde(unittest.TestCase):
+    """Regression zu acht Befunden aus dem nachgeholten Review von #93.
+
+    Alle acht waren echt und einzeln reproduziert. Drei davon endeten in
+    einem falschen «Dependabot-Labels OK» — dem Fehlalarm in Gegenrichtung,
+    den dieses Skript verhindern soll. Die alte Testklasse fand sie nicht,
+    weil sie nur prüfte, dass *irgendein* Label gefunden wird.
+    """
+
+    def test_block_liste_auf_gleicher_einrueckung(self):
+        """`- a` darf in YAML auf derselben Spalte stehen wie `labels:`.
+
+        Der alte Parser verlangte echte Mehreinrückung und lieferte hier
+        null Labels — bei gemischter Schreibweise verschwand ein ganzes
+        Ökosystem, und alle 19 Tests blieben grün.
+        """
+        text = """
+updates:
+  - package-ecosystem: uv
+    labels:
+    - dependencies
+    - python
+"""
+        self.assertEqual(
+            cdl.labels_in_dependabot(text),
+            [("uv", "dependencies"), ("uv", "python")],
+        )
+
+    def test_leerzeile_trennt_die_block_liste_nicht(self):
+        text = """
+updates:
+  - package-ecosystem: uv
+    labels:
+      - dependencies
+
+      - python
+"""
+        self.assertEqual(
+            cdl.labels_in_dependabot(text),
+            [("uv", "dependencies"), ("uv", "python")],
+        )
+
+    def test_kommentarzeile_trennt_die_block_liste_nicht(self):
+        """Nach `strip_comments()` bleibt eine leere Zeile zurück.
+
+        Wer dort abbricht, verliert alles Folgende still.
+        """
+        text = """
+updates:
+  - package-ecosystem: uv
+    labels:
+      - dependencies
+      # seit 2026-08 auch fuer die Gruppe
+      - python
+"""
+        self.assertEqual(
+            cdl.labels_in_dependabot(text),
+            [("uv", "dependencies"), ("uv", "python")],
+        )
+
+    def test_package_ecosystem_muss_nicht_erster_key_sein(self):
+        """Die Reihenfolge der Schlüssel ist in YAML bedeutungslos.
+
+        Der alte Parser erkannte den Eintrag nur an `- package-ecosystem:`
+        auf der Startzeile; stand `directory:` davor, war der ganze Eintrag
+        samt Labels unsichtbar.
+        """
+        text = """
+updates:
+  - directory: /
+    schedule:
+      interval: weekly
+    package-ecosystem: uv
+    labels: [dependencies]
+"""
+        self.assertEqual(cdl.labels_in_dependabot(text), [("uv", "dependencies")])
+
+    def test_apostroph_im_wert_unterdrueckt_das_abschneiden_nicht(self):
+        """Ein `'` mitten im Wert eröffnet keinen quotierten Skalar.
+
+        Sonst gilt der Rest der Zeile als quotiert, der Kommentar bleibt
+        stehen, und das Label heisst `it's-fine  # Notiz`.
+        """
+        self.assertEqual(
+            cdl.strip_comments("    labels: [it's-fine]  # Notiz"),
+            "    labels: [it's-fine]",
+        )
+        text = """
+updates:
+  - package-ecosystem: uv
+    labels: [it's-fine]  # Notiz
+"""
+        self.assertEqual(cdl.labels_in_dependabot(text), [("uv", "it's-fine")])
+
+    def test_vergleich_ignoriert_gross_kleinschreibung(self):
+        """GitHub hält Label-Namen case-insensitiv eindeutig.
+
+        Ein case-sensitiver Vergleich meldet ein vorhandenes Label als
+        fehlend und schickt jemanden mit einem `gh label create` los, das
+        mit «already exists» scheitert.
+        """
+        self.assertEqual(cdl.missing([("uv", "Dependencies")], {"dependencies"}), {})
+        self.assertEqual(cdl.missing([("uv", "dependencies")], {"DEPENDENCIES"}), {})
+
+
+class ExitCodes(unittest.TestCase):
+    """Der in CLAUDE.md dokumentierte Vertrag: 1 heisst «fehlt», 2 «unklar».
+
+    Vorher rief kein Test `main()` auf — der Vertrag stand nur in der Doku.
+    """
+
+    def _main(self, argv, fake_urlopen):
+        with (
+            mock.patch.object(sys, "argv", argv),
+            mock.patch.object(cdl, "_urlopen", fake_urlopen),
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                cdl.main()
+        return cm.exception.code
+
+    def test_fehlende_labels_geben_exit_1(self):
+        def fake(req, timeout=None):
+            return _Antwort(b"[]")
+
+        self.assertEqual(self._main(["x", "--repo", "o/r"], fake), 1)
+
+    def test_nicht_abrufbar_gibt_exit_2(self):
+        """Netzfehler ist «konnte nicht vergleichen», nicht «fehlt»."""
+
+        def fake(req, timeout=None):
+            raise cdl.urllib.error.URLError("kein Netz")
+
+        self.assertEqual(self._main(["x", "--repo", "o/r"], fake), 2)
+
+    def test_html_statt_json_gibt_exit_2(self):
+        """Eine Proxy-Fehlerseite kommt als HTTP 200 mit HTML.
+
+        Ohne eigenen Zweig fliegt der JSONDecodeError durch und Python endet
+        mit 1 — also als «Labels fehlen», obwohl nichts verglichen wurde.
+        Genau der Fehler, den der Exit-Code-Vertrag ausschliessen soll.
+        """
+
+        def fake(req, timeout=None):
+            return _Antwort(b"<html>502 Bad Gateway</html>")
+
+        self.assertEqual(self._main(["x", "--repo", "o/r"], fake), 2)
+
+    def test_json_ohne_name_feld_gibt_exit_2(self):
+        def fake(req, timeout=None):
+            return _Antwort(b'[{"id": 1}]')
+
+        self.assertEqual(self._main(["x", "--repo", "o/r"], fake), 2)
+
+
+class _Antwort:
+    """Minimale `urlopen`-Antwort fuer die Exit-Code-Tests."""
+
+    def __init__(self, payload: bytes):
+        self._payload = payload
+
+    def read(self):
+        return self._payload
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
 class Vergleich(unittest.TestCase):
     """`missing()` gegen eine gesetzte Label-Menge — ohne Netz."""
 
@@ -275,7 +445,7 @@ class Paginierung(unittest.TestCase):
         seite1 = [{"name": f"label-{i}"} for i in range(100)]
         seite2 = [{"name": "letztes"}]
         fake, calls = self._fake_urlopen([seite1, seite2])
-        with mock.patch.object(cdl.urllib.request, "urlopen", fake):
+        with mock.patch.object(cdl, "_urlopen", fake):
             names = cdl.fetch_repo_labels("owner/repo")
         self.assertEqual(len(names), 101)
         self.assertIn("letztes", names)
@@ -290,7 +460,7 @@ class Paginierung(unittest.TestCase):
         Rate-Limit, das ohne Token bei 60 pro Stunde liegt.
         """
         fake, calls = self._fake_urlopen([[{"name": "a"}, {"name": "b"}]])
-        with mock.patch.object(cdl.urllib.request, "urlopen", fake):
+        with mock.patch.object(cdl, "_urlopen", fake):
             names = cdl.fetch_repo_labels("owner/repo")
         self.assertEqual(names, {"a", "b"})
         self.assertEqual(len(calls), 1)
@@ -313,7 +483,7 @@ class Paginierung(unittest.TestCase):
             seen.update(req.headers)
             return Response()
 
-        with mock.patch.object(cdl.urllib.request, "urlopen", fake):
+        with mock.patch.object(cdl, "_urlopen", fake):
             cdl.fetch_repo_labels("owner/repo", token="geheim")
         # urllib schreibt Header-Namen in Titel-Schreibweise.
         self.assertEqual(seen.get("Authorization"), "Bearer geheim")
