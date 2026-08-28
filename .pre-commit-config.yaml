@@ -1,8 +1,10 @@
 # Lokales Gate, deckungsgleich mit dem Lint-Schritt in `.github/workflows/ci.yml`.
 #
-# `rev` traegt denselben Pin wie die CI und `pyproject.toml [dev]`: ruff 0.16.1.
-# Alle drei Stellen werden gemeinsam angehoben — laufen sie auseinander, meldet
-# eine davon Abweichungen, die niemand verursacht hat.
+# `rev` traegt denselben Pin wie `pyproject.toml [dev]`: ruff 0.16.5. Das sind
+# die beiden fuehrenden Stellen; die CI installiert kein eigenes ruff mehr,
+# sondern nimmt es aus dem dev-Extra. Beide werden gemeinsam angehoben — laufen
+# sie auseinander, meldet eine davon Abweichungen, die niemand verursacht hat,
+# und `check_version_sync.py` bricht ab.
 #
 # `files` bildet den Umfang des Gates nach (`ruff … src/ tests/ scripts/ docs/`).
 # `audits/` bleibt bewusst draussen: dort liegen datierte Protokolle, deren
@@ -11,7 +13,7 @@
 # abgeschalteter Hook prueft nichts.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.3
+    rev: v0.16.5
     hooks:
       - id: ruff-check
         files: ^(src|tests|scripts|docs)/

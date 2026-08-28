@@ -229,7 +229,7 @@ wie der Code: Nichts ist rot, weil nichts geprüft wird, worauf es ankommt.
 
 ## Teil 2 — Repo-spezifisch (register-mcp)
 
-**ruff: eine Quelle.** Der Pin `0.16.3` steht in `pyproject.toml` und `.pre-
+**ruff: eine Quelle.** Der Pin `0.16.5` steht in `pyproject.toml` und `.pre-
 commit-config.yaml` — und **nicht** mehr als eigener Install-Schritt in der
 CI.
 
@@ -280,7 +280,7 @@ plus `workflow_dispatch`, ordnet das JUnit-XML über
 bevor sie etwas sagen.
 
 Was `check_version_sync.py` über den ruff-Pin meldet, steht im Klartext in
-seiner Ausgabe: `ruff-Pin 0.16.3 an beiden Stellen gleich`. Wer die zwei
+seiner Ausgabe: `ruff-Pin 0.16.5 an beiden Stellen gleich`. Wer die zwei
 Stellen von Hand vergleicht, tut Arbeit, die dieser Gate schon leistet.
 
 **Was die Live-Suite fand, waren keine Ausfälle, sondern Antworten.** Drei
