@@ -64,6 +64,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   auseinandergelaufen, weil nur eine Fassung nachgezogen wurde.
 
 
+### Behoben — acht Befunde am Dependabot-Label-Check, drei davon stille Fehlalarme
+
+Der Check aus #93 ist gemergt worden, ohne dass ihn jemand ausser dem Autor
+gesehen hat: drei Sekunden zwischen «ready for review» und Merge, Codex lief
+nicht an. Das nachgeholte Review fand acht Fehler, alle einzeln reproduziert.
+
+Drei davon endeten in einem falschen `Dependabot-Labels OK` — dem Fehlalarm in
+Gegenrichtung, den das Skript gerade verhindern soll:
+
+- **Block-Liste auf derselben Einrueckung wie `labels:`** ist gueltiges,
+  verbreitetes YAML und lieferte null Labels.
+- **Leer- oder Kommentarzeile zwischen zwei Block-Eintraegen** brach die Liste
+  ab; alles Folgende ging still verloren.
+- **`package-ecosystem` musste erster Schluessel sein**, sonst war der ganze
+  Eintrag samt Labels unsichtbar. Die Reihenfolge von Schluesseln ist in YAML
+  bedeutungslos.
+
+Dazu fuenf weitere:
+
+- Eine Proxy-Fehlerseite (HTTP 200 mit HTML) flog als `JSONDecodeError` durch
+  und endete mit Exit **1** — also «Labels fehlen», obwohl nichts verglichen
+  wurde. Jetzt Exit 2, wie der Vertrag es vorsieht.
+- `missing()` verglich case-sensitiv; GitHub haelt Label-Namen
+  case-insensitiv eindeutig. Der Vergleich meldete vorhandene Labels als
+  fehlend, samt `gh label create`, das mit «already exists» scheitert.
+- Ein Apostroph mitten in einem unquotierten Wert (`[it's-fine]`) galt als
+  oeffnendes Anfuehrungszeichen; der Kommentar dahinter wurde nicht
+  abgeschnitten, und das Label hiess danach `it's-fine  # Notiz`.
+- Kein Test rief `main()` auf — der in CLAUDE.md dokumentierte Exit-Code-
+  Vertrag stand nur in der Doku.
+- Die Tests patchten `cdl.urllib.request`, also das **fremde Modul**, und
+  entschaerften `urlopen` im ganzen Prozess. CLAUDE.md fuehrt genau das unter
+  «Tests» als Falle. Jetzt ueber den Modul-Alias `_urlopen`.
+
+**Einordnung, damit die Fixes nicht groesser aussehen als sie sind:** Gegen die
+43 echten `dependabot.yml` des Portfolios liest der neue Parser **identisch**
+zum alten. Keine der Luecken hat heute irgendwo Schaden angerichtet; sie sind
+Vorsorge gegen gueltige Schreibweisen, nicht Reparatur eines laufenden
+Ausfalls.
+
+Gegenprobe, jede Zusicherung einzeln neutralisiert und die Trefferzahl
+mitgezaehlt: Block-Einrueckung zurueck auf `>` -> 1 Test faellt; Leerzeilen
+brechen wieder ab -> 2; `package-ecosystem` nur auf Zeile 1 -> 1; Vergleich
+wieder case-sensitiv -> 1; `JSONDecodeError` nicht gefangen -> 1; Quote-Regel
+zurueckgenommen -> 1; Modul-Alias entfernt -> 4. Von 19 auf 29 Tests.
+
 ### Geaendert
 
 - **ruff-Pin von 0.16.3 auf 0.16.5 angehoben**, an beiden fuehrenden Stellen im
