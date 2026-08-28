@@ -35,6 +35,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   auseinandergelaufen, weil nur eine Fassung nachgezogen wurde.
 
 
+### Geaendert
+
+- **ruff-Pin von 0.16.3 auf 0.16.5 angehoben**, an beiden fuehrenden Stellen im
+  selben Commit (`pyproject.toml [dev]`, `.pre-commit-config.yaml rev`) und mit
+  nachgezogenem `uv.lock`. Vorher gemessen statt angenommen: `ruff check` und
+  `ruff format --check` bleiben ueber den Gate-Umfang
+  (`src/ tests/ scripts/ docs/`) ohne Befund — mit 0.16.4 wie mit 0.16.5.
+
+  Dependabot hatte auf 0.16.4 vorgeschlagen und dabei `uv.lock` korrekt
+  mitgezogen, `.pre-commit-config.yaml` aber stehen lassen; der `test`-Job fiel
+  daran. Der Sprung auf 0.16.5 erledigt beide offenen Anhebungen in einem Zug.
+
+  `tests/` und `scripts/` bleiben unberuehrt: dort ist `0.16.1` Fixture- und
+  Beispieltext, an dem Zusicherungen haengen. Ein blindes Ersetzen wuerde
+  Testdaten umschreiben statt einen Pin anzuheben.
+
+  Gegenprobe, jede Zusicherung einzeln neutralisiert und die Trefferzahl des
+  `sed` mitgezaehlt: `rev` auf 0.16.3 zurueckgedreht -> genau
+  `test_die_beiden_pins_sind_gleich` faellt, `check_version_sync.py` meldet
+  DRIFT. Pin in `pyproject.toml` geaendert und `uv.lock` stehen gelassen ->
+  `uv lock --locked` scheitert mit «The lockfile at `uv.lock` needs to be
+  updated».
+
 ## [0.6.1] - 2026-08-15
 
 Ein Nachtrag zu 0.6.0, gefunden beim End-to-End-Lauf gegen das
