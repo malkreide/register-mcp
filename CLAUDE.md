@@ -323,6 +323,33 @@ Exit 2 heisst «konnte nicht vergleichen», Exit 1 «Labels fehlen». Wer beides
 gleich behandelt, meldet bei jedem API-Ausfall einen Konfigurationsfehler, den
 es nicht gibt.
 
+**Portfolio-Regel, entschieden am 28.8.2026: neue Server tragen kein
+`labels:`.** Am selben Tag standen im Portfolio zwei gegensätzliche Antworten
+auf dieselbe Frage nebeneinander — 19 Repos hatten die Zeile bereits entfernt
+(`bakom-mcp` begründet es in seiner eigenen Konfiguration), 24 führten sie
+weiter. Zwei Sessions hatten unabhängig voneinander dasselbe Problem gefunden
+und verschieden gelöst; das ist der Fall aus «Wenn zwei Agenten dasselbe tun»,
+nur über Tage statt über Stunden.
+
+Entschieden wurde gegen die Labels, und zwar nicht aus Geschmack: Die Aussage
+steht ohnehin dreifach im PR — Autor `dependabot[bot]`, Commit-Prefix
+(`deps`/`ci`/`docker`) und Branchname `dependabot/<ökosystem>/…` nennen
+dasselbe. Ein Label ist damit eine zweite Quelle für eine Information, die
+schon da ist, und dieses Repo kennt die Kosten davon (ruff-Pin an zwei Stellen,
+`pin_audit.py` an drei, der Hook an drei — jedes braucht einen Gate oder einen
+Absatz wie diesen). Hier wäre selbst das nicht möglich: Ein Label ist
+GitHub-Zustand und kein Dateiinhalt, also kann kein Gate es prüfen.
+
+**Dieses Repo ist die Ausnahme und behält seine Zeile.** Die vier Labels
+existieren hier seit dem 28.8.2026; ab da kostet sie nichts mehr. Wer die Regel
+liest und `register-mcp` als Widerspruch sieht, hat beides richtig verstanden.
+
+Zwei Sonderformen fielen beim Sweep nebenbei auf, die in *keiner* der beiden
+Antworten richtig sind: `meteoswiss-mcp` fordert `ecosystem:pip`,
+`ecosystem:docker`, `ecosystem:github-actions` — ein eigenes Namensschema —,
+und `srgssr-mcp` fordert `github-actions` statt `ci`. Beide lösen sich auf,
+wenn die Zeile fällt.
+
 **`pin_audit.py` steht an drei Stellen.** `swiss-electricity-mcp`, `bakom-mcp`
 und `register-mcp` halten byteweise dieselbe `scripts/pin_audit.py` samt
 `tests/test_pin_audit.py`. Wer eine ändert, ändert alle drei im selben Commit —
