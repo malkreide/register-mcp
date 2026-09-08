@@ -112,6 +112,43 @@ zurueckgenommen -> 1; Modul-Alias entfernt -> 4. Von 19 auf 29 Tests.
 
 ### Geaendert
 
+- **Der Codex-Abschnitt in `CLAUDE.md` trug selbst einen Fehlalarm.** Er
+  beschrieb die Befundlos-Meldung als einen einzigen Wortlaut
+  («Codex Review: Didn't find any major issues. Swish!»). Auf PR #102 kam der
+  am 8.9.2026 nicht: Stattdessen eine Tabelle `## Codex Review Summary`, die
+  schon beim Start gepostet und danach *in derselben Kommentar-ID* editiert
+  wird — 04:12:08 als `🔄 Running`, 04:13:20 als `✅ Completed`, mit Commit und
+  Trigger. Kein Review-Objekt, keine Inline-Threads, kein zweiter Kommentar.
+
+  Wer nach «Swish!» greppt, findet das nicht und zaehlt einen sauberen Review
+  als ungeprueft — genau die Richtung, gegen die der Abschnitt geschrieben ist.
+  Ob die alte Form weg ist oder beide nebeneinander laufen, ist **ungemessen**;
+  belegt ist je ein Tag pro Form.
+
+  Drei Folgen nachgezogen: Ein Beleg fuer «geprueft» ist jetzt auch die Tabelle
+  im Zustand `✅ Completed` (im Zustand `🔄 Running` belegt sie nichts);
+  `comments: 1` traegt damit **fuenf** Bedeutungen statt drei, darunter «noch
+  gar nichts geprueft» und «geprueft und sauber»; und diese Tabelle ist die
+  erste Form, die sich unter der Hand aendert — `updated_at` mitlesen, nicht
+  nur `created_at`.
+
+- **Der Drei-Sekunden-Merge liegt erstmals sekundengenau vor** und korrigiert,
+  was «den Pruefer verlieren» nahelegt. Auf PR #102: ready 04:12:00, merged
+  04:12:03, Codex startet 04:12:06, fertig 04:13:19. Der Review faellt also
+  **nicht** aus — er lief drei Sekunden nach dem Merge und brauchte 73
+  Sekunden. Verloren geht nicht die Pruefung, sondern der Zeitpunkt, an dem
+  man auf sie noch reagieren kann: Ein Befund waere auf einem bereits
+  gemergten PR gelandet. Hier ohne Befund ausgegangen — und das ist der
+  gefaehrliche Teil, weil ein Verfahren, das nur wegen des Ergebnisses nicht
+  auffaellt, beim naechsten Mal auch nicht auffaellt.
+
+- **Zur 👍-Reaktion nur, was gemessen ist.** Der Abschnitt hielt fest, der
+  Infokasten behaupte sie und am 23.8. sei sie in sechs Repos ausgeblieben.
+  Auf #102 trug der PR danach `+1: 1`. Wer sie gesetzt hat, ist **nicht**
+  gemessen: Die API nennt hier nur die Zaehlung, keinen Urheber, und der
+  PR-Autor war in derselben Minute aktiv. Steht jetzt so da, statt als
+  Bestaetigung des Kastens.
+
 - **ruff-Pin von 0.16.5 auf 0.16.6 angehoben**, an beiden fuehrenden Stellen im
   selben Commit (`pyproject.toml [dev]`, `.pre-commit-config.yaml rev` samt der
   Version im Kopfkommentar derselben Datei) und mit nachgezogenem `uv.lock`.
