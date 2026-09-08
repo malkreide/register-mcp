@@ -112,6 +112,42 @@ zurueckgenommen -> 1; Modul-Alias entfernt -> 4. Von 19 auf 29 Tests.
 
 ### Geaendert
 
+- **ruff-Pin von 0.16.5 auf 0.16.6 angehoben**, an beiden fuehrenden Stellen im
+  selben Commit (`pyproject.toml [dev]`, `.pre-commit-config.yaml rev` samt der
+  Version im Kopfkommentar derselben Datei) und mit nachgezogenem `uv.lock`.
+
+  Anlass war ein roter `test`-Job auf Dependabot-PR #101: 236 Tests gruen, ein
+  einziger rot, `test_die_beiden_pins_sind_gleich` mit
+  «ruff-Pins weichen ab: [('.pre-commit-config.yaml -> rev', '0.16.5'),
+  ('pyproject.toml -> dev-Extra', '0.16.6')]». Das `uv`-Oekosystem schreibt
+  `pyproject.toml` und `uv.lock`; der `rev:` gehoert fuer Dependabot zu keinem
+  der drei konfigurierten Oekosysteme und blieb stehen.
+
+  Derselbe Vorfall wie bei 0.16.4 (siehe unten) — beim zweiten Mal steht er
+  jetzt auch in `CLAUDE.md`, wo eine Session nachschlaegt, statt nur im
+  Changelog, wo niemand ihn vor der Diagnose sucht. Dort auch, warum ein
+  `package-ecosystem: pre-commit` das nicht loest: Gruppen greifen nur
+  innerhalb eines Oekosystems, es waeren zwei rote PRs statt einem.
+
+  Vorher gemessen statt angenommen: `ruff check` und `ruff format --check`
+  bleiben mit 0.16.6 ueber den Gate-Umfang (`src/ tests/ scripts/ docs/`) ohne
+  Befund; die Suite meldet 237 bestanden, 10 abgewaehlt.
+
+  Gegenprobe, die Zusicherung einzeln neutralisiert: `rev` auf 0.16.5
+  zurueckgedreht -> genau `test_die_beiden_pins_sind_gleich` faellt und
+  `check_version_sync.py` meldet DRIFT mit Exit 1; zurueckgesetzt wieder gruen.
+
+  Nicht mitgenommen: das `pydantic` 2.13.4 -> 2.13.5 aus demselben Gruppen-PR.
+  Es hat mit dem roten Job nichts zu tun; Dependabot zieht #101 nach und
+  behaelt nur diese Haelfte.
+
+- **Zwei Falschzitate in `CLAUDE.md` berichtigt.** Der Absatz zum ruff-Pin
+  nannte eine feste Version (dritte Stelle, die mitwandern muesste, und die
+  einzige ohne Gate) und zitierte die Gate-Ausgabe als «ruff-Pin 0.16.5 an
+  beiden Stellen gleich». Ausgegeben wird `ruff-Pin einig auf X.Y.Z
+  (2 Stellen)` — der zitierte Wortlaut kam so nie vor. Beides ist jetzt
+  versionsagnostisch und am tatsaechlichen Text.
+
 - **ruff-Pin von 0.16.3 auf 0.16.5 angehoben**, an beiden fuehrenden Stellen im
   selben Commit (`pyproject.toml [dev]`, `.pre-commit-config.yaml rev`) und mit
   nachgezogenem `uv.lock`. Vorher gemessen statt angenommen: `ruff check` und

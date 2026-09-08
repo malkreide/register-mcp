@@ -380,9 +380,11 @@ wie der Code: Nichts ist rot, weil nichts geprüft wird, worauf es ankommt.
 
 ## Teil 2 — Repo-spezifisch (register-mcp)
 
-**ruff: eine Quelle.** Der Pin `0.16.5` steht in `pyproject.toml` und `.pre-
+**ruff: eine Quelle.** Derselbe Pin steht in `pyproject.toml` und `.pre-
 commit-config.yaml` — und **nicht** mehr als eigener Install-Schritt in der
-CI.
+CI. Welche Version gerade gilt, sagt `check_version_sync.py`; hier steht sie
+bewusst nicht. Sonst wäre dieser Absatz die dritte Stelle, die mitwandern
+müsste, und die einzige ohne Gate.
 
 Der CI-Schritt lief nach dem Install der Abhängigkeiten und überschrieb sie.
 Eine Abweichung im Pin konnte deshalb in der CI gar nicht auffallen, sondern
@@ -394,6 +396,34 @@ spätere Anhebung hier stillschweigend überstimmen.
 auseinanderlaufen **oder** wenn `ci.yml` wieder ein eigenes ruff installiert;
 `tests/test_precommit_config.py` wacht darüber, dass der Hook denselben Umfang
 sieht wie das Gate.
+
+**Dependabot hebt nur eine der beiden Stellen — jedes Mal.** Das
+`uv`-Ökosystem schreibt `pyproject.toml` und `uv.lock`; der `rev:` in
+`.pre-commit-config.yaml` gehört für Dependabot zu keinem der drei
+konfigurierten Ökosysteme und bleibt stehen. Jede ruff-Anhebung kommt deshalb
+als roter PR an, mit einem einzigen roten Test unter lauter grünen:
+
+```
+AssertionError: 2 != 1 : ruff-Pins weichen ab:
+[('.pre-commit-config.yaml → rev', '0.16.5'),
+ ('pyproject.toml → dev-Extra', '0.16.6')]
+```
+
+Das ist kein Fehler des Gates, sondern seine Aufgabe — ohne es liefe der Hook
+lokal mit einer anderen ruff-Version als das Gate in der CI, und genau das war
+der Zustand, gegen den der Pin gebaut wurde. Der Handgriff ist, die zweite
+Stelle im selben Commit nachzuziehen: den `rev` **und** die Version im
+Kopfkommentar derselben Datei, denn den Kommentar liest kein Gate.
+
+Zweimal ist das schon passiert (0.16.4 am 15.8.2026, 0.16.6 am 7.9.2026, beide
+im CHANGELOG). Wer den roten Job für einen Regressionsfund hält, sucht in
+ruff 0.16.6 nach einer Ursache, die im PR-Umfang steht.
+
+Ein `package-ecosystem: pre-commit` in `.github/dependabot.yml` löst das
+**nicht**: Gruppen greifen nur innerhalb eines Ökosystems, die Anhebung käme
+also als eigener PR — und dann wären zwei PRs rot statt einem, bis beide
+gemerged sind. Solange der Pin an zwei Stellen steht, führt sie ein Mensch
+oder eine Session zusammen.
 
 **Der Gate-Umfang ist aufgezählt, nicht `.` — und das ist Absicht.**
 `ruff format` formatiert auch Python-Blöcke *innerhalb* von Markdown. `ruff
@@ -431,8 +461,13 @@ plus `workflow_dispatch`, ordnet das JUnit-XML über
 bevor sie etwas sagen.
 
 Was `check_version_sync.py` über den ruff-Pin meldet, steht im Klartext in
-seiner Ausgabe: `ruff-Pin 0.16.5 an beiden Stellen gleich`. Wer die zwei
-Stellen von Hand vergleicht, tut Arbeit, die dieser Gate schon leistet.
+seiner Ausgabe: `ruff-Pin einig auf X.Y.Z (2 Stellen)`. Wer die zwei Stellen
+von Hand vergleicht, tut Arbeit, die dieser Gate schon leistet.
+
+Bis zum 8.9.2026 stand hier ein anderer Wortlaut («an beiden Stellen gleich»)
+samt fester Version — beides so nie ausgegeben. Ein Zitat, das kein Gate
+nachprüft, altert still; wer danach greppt, findet nichts und schliesst auf
+die falsche Stelle.
 
 **Was die Live-Suite fand, waren keine Ausfälle, sondern Antworten.** Drei
 Formen von Zefix, jede hat einen ausgelieferten Fehler gekostet:
