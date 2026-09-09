@@ -115,6 +115,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Behoben — der Codex-Gate wurde gruen, ohne den aktuellen Commit zu pruefen
 
+Betroffen waren **zwei** der drei Wege, auf denen ein Urteil hereinkommt.
+
 Der Review-Zweig prueffte nur den Autor des Review-Objekts, nicht dessen
 `commit_id` — anders als der Tabellen-Zweig, wo die Pruefung von Anfang an
 drin war.
@@ -141,9 +143,18 @@ bleibt. Er nutzt jetzt eine Form mit `commit_id`, dazu drei Faelle: passender
 Commit, fremder Commit, fehlende Angabe (zaehlt, wird nicht erfunden), sowie
 ein passendes Review neben einem veralteten.
 
+Die **dritte** Stelle kam eine halbe Stunde spaeter: Auf demselben PR lieferte
+Codex fuer `1503a1a` beide Befundlos-Formen zugleich — die Tabelle auf
+`Completed` und, eine Sekunde davor, den alten Wortlaut als eigenen Kommentar.
+Der traegt seit dem 9.9.2026 «Reviewed commit: `1503a1ad96`»; bis dahin nannte
+er keinen. Der Befundlos-Zweig liess die Meldung ungeprueft durch, weil
+`CLAUDE.md` festhielt, es gebe dort nichts zu pruefen. Auch dieser Zweig
+vergleicht jetzt den Commit; die Extraktion steht in `_commit_aus_backticks()`
+und dient beiden Formen.
+
 Gegenprobe: Commit-Pruefung im Review-Zweig entschaerft -> der neue Test
 faellt; die Meldung fuer das veraltete Review unterdrueckt -> derselbe Test
-faellt.
+faellt; dasselbe Paar fuer den Befundlos-Zweig -> der zugehoerige Test faellt.
 
 ### Behoben — acht Befunde am Dependabot-Label-Check, drei davon stille Fehlalarme
 

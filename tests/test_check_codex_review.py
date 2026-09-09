@@ -45,6 +45,13 @@ TABELLE_LAEUFT = """<!-- codex-pull-request-review-summary -->
 
 TABELLE_FREMDER_COMMIT = TABELLE_FERTIG.replace("`eb52969`", "`1e186c4`")
 
+# Woertlich aus PR #108: Seit dem 9.9.2026 nennt auch die aeltere Form ihren
+# Commit — und der Schlusssatz wechselt weiterhin.
+BEFUNDLOS_MIT_COMMIT = """Codex Review: Didn't find any major issues. Another round soon, please!
+
+**Reviewed commit:** `eb5296937b3`
+"""
+
 
 def _kommentar(body: str, autor: str = ccr.CODEX_LOGIN) -> dict:
     return {"user": {"login": autor}, "body": body}
@@ -184,11 +191,28 @@ class DasUrteilGehoertZumHead(unittest.TestCase):
         zustand, _ = _entscheide(reviews=reviews)
         self.assertEqual(zustand, ccr.BESTANDEN)
 
-    def test_die_befundlos_form_nennt_keinen_commit_und_zaehlt_trotzdem(self):
-        """Eine fehlende Angabe wird nicht erfunden."""
+    def test_die_befundlos_form_ohne_commit_zaehlt_trotzdem(self):
+        """Eine fehlende Angabe wird nicht erfunden — so sah die Form bis zum
+        8.9.2026 aus."""
         body = "Codex Review: Didn't find any major issues. Swish!"
         zustand, _ = _entscheide(kommentare=[_kommentar(body)])
         self.assertEqual(zustand, ccr.BESTANDEN)
+
+    def test_die_befundlos_form_mit_passendem_commit_zaehlt(self):
+        zustand, _ = _entscheide(kommentare=[_kommentar(BEFUNDLOS_MIT_COMMIT)])
+        self.assertEqual(zustand, ccr.BESTANDEN)
+
+    def test_die_befundlos_form_zu_einem_anderen_commit_faellt(self):
+        """Die dritte Stelle derselben Klasse.
+
+        Seit dem 9.9.2026 traegt auch die Befundlos-Meldung «Reviewed commit».
+        Ohne Pruefung winkte eine alte Meldung neuen Code durch — wie zuvor
+        beim Review-Objekt und bei der Tabelle.
+        """
+        fremd = BEFUNDLOS_MIT_COMMIT.replace("eb5296937b3", "697ecdc0c1b")
+        zustand, grund = _entscheide(kommentare=[_kommentar(fremd)])
+        self.assertEqual(zustand, ccr.GEFALLEN)
+        self.assertIn("@codex review", grund)
 
 
 class DieBotAusnahme(unittest.TestCase):

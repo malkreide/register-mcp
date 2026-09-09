@@ -262,7 +262,8 @@ ohne dass jemand hineingesehen hat, und am 22.8. noch einmal 43.
   ```
 
   Der Schlusssatz wechselt bei jedem Lauf («Delightful!», «Keep it up!»,
-  «More of your lovely PRs please.»); stabil ist nur der Satz davor.
+  «More of your lovely PRs please.», «Another round soon, please!»); stabil
+  ist nur der Satz davor.
 
   Am 8.9.2026 kam auf `register-mcp` PR #102 dieser Satz **nicht**. Stattdessen
   eine Tabelle unter der Überschrift `## Codex Review Summary`, die schon beim
@@ -276,10 +277,20 @@ ohne dass jemand hineingesehen hat, und am 22.8. noch einmal 43.
   nur in die andere Richtung.
 
   PR #104 lieferte am selben Tag dieselbe Form ein zweites Mal (erstellt
-  04:31:45, aktualisiert 04:33:20, Commit `97f2aa7`). Zwei Treffer für eine
-  Form belegen aber nicht das Verschwinden der anderen, und beide fallen auf
-  denselben Tag: Ob die alte Form weg ist oder beide nebeneinander laufen,
-  bleibt **ungemessen**.
+  04:31:45, aktualisiert 04:33:20, Commit `97f2aa7`).
+
+  **Am 9.9.2026 ist die Frage entschieden: Beide Formen laufen nebeneinander.**
+  Für denselben Review auf PR #108 (Commit `1503a1a`) kamen *beide* — die
+  Tabelle ging um 03:59:13 auf `✅ Completed`, und eine Sekunde davor stand
+  der alte Wortlaut als eigener Kommentar da. Wer nur eine Form kennt, zählt
+  also nicht falsch, aber wer aus dem Fehlen der einen auf «nicht geprüft»
+  schliesst, schon.
+
+  **Und die ältere Form nennt jetzt ihren Commit** — «**Reviewed commit:**
+  `1503a1ad96`». Bis zum 8.9.2026 tat sie das nicht, und dieser Abschnitt hat
+  das ausdrücklich behauptet. Das ist kein Schönheitsfehler: Der Codex-Gate
+  liess die Meldung ungeprüft durch, weil hier stand, es gebe nichts zu
+  prüfen.
 
   Die Tabelle kann dafür etwas, was keine der anderen Formen konnte: Sie ist
   schon da, **während** der Review läuft, und nennt den Commit. «Läuft noch»
@@ -508,9 +519,9 @@ Codex jederzeit ändern kann — am 8.9.2026 ist genau das passiert. Bei einem
 und zitiert ihn wörtlich. Wer ihn rot sieht, liest die Meldung und weiss, ob
 Codex geschwiegen hat oder bloss das Skript veraltet ist.
 
-**Ein Urteil gilt immer nur seinem Commit — auf beiden Wegen.** Die erste
+**Ein Urteil gilt immer nur seinem Commit — auf allen drei Wegen.** Die erste
 Fassung prüfte das nur bei der Summary-Tabelle; im Review-Zweig genügte der
-Autor. Am 9.9.2026 auf PR #108 war der Gate für Head `1503a1a` nach acht
+Autor, und die Befundlos-Meldung ging ganz ungeprüft durch. Am 9.9.2026 auf PR #108 war der Gate für Head `1503a1a` nach acht
 Sekunden grün, weil ein Review-Objekt zu `697ecdc` vorlag — **28 Sekunden
 bevor** Codex den Review für `1503a1a` überhaupt begann. Ein grünes Häkchen
 für Ungeprüftes, also genau das, wogegen der Gate gebaut ist.
@@ -519,6 +530,12 @@ Aufgefallen ist das nicht am Check, sondern am Vergleich zweier Zeitstempel:
 Job-Ende 03:55:35 gegen Review-Start 03:56:03. Ein Gate, der zu schnell grün
 wird, ist verdächtig — die gemessene Dauer liegt bei 79–105 Sekunden, nicht
 bei acht.
+
+Die dritte Stelle kam eine halbe Stunde später und aus derselben Quelle: Weil
+die ältere Befundlos-Form seit dem 9.9.2026 einen Commit nennt, war auch dort
+eine Prüfung möglich und nötig. **Dreimal derselbe Fehler an drei Stellen** —
+das ist kein Zufall, sondern die Bauart: Jeder Weg, auf dem ein Urteil
+hereinkommt, braucht dieselbe Frage «für welchen Commit?».
 
 Das Kontingent hängt am Konto, nicht am Repo, und Code-Reviews haben einen
 eigenen Topf — nur GitHub-getriggerte Reviews zählen hinein. ChatGPT-Pläne

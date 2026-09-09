@@ -72,7 +72,9 @@ API = "https://api.github.com"
 MARKER_TABELLE = "<!-- codex-pull-request-review-summary -->"
 
 # Die Befundlos-Meldung der aelteren Form. Der Schlusssatz wechselt bei jedem
-# Lauf («Swish!», «Delightful!»), stabil ist nur dieser Satz.
+# Lauf («Swish!», «Delightful!», «Another round soon, please!»), stabil ist nur
+# dieser Satz. Seit dem 9.9.2026 traegt sie zudem «Reviewed commit: `<sha>`» —
+# der wird geprueft, denn auch dieses Urteil gilt nur seinem Commit.
 TEXT_BEFUNDLOS = "Didn't find any major issues"
 
 # Die beiden Ausfallmeldungen. Sie sind KEIN Urteil — sie sagen, dass Codex gar
@@ -111,16 +113,21 @@ def _tabellen_zustand(body: str) -> tuple[str | None, str | None]:
     elif "Running" in body:
         zustand = "running"
 
-    # Der Commit steht als kurzer SHA in Backticks in der Tabellenzeile. Eine
-    # Zeichenklasse statt einer Regex ueber die ganze Zeile: Die Tabelle traegt
-    # mehrere Backtick-Felder, und nur eines davon sieht aus wie ein SHA.
-    commit = None
+    return zustand, _commit_aus_backticks(body)
+
+
+def _commit_aus_backticks(body: str) -> str | None:
+    """Der erste SHA-artige Backtick-Wert im Text — oder None.
+
+    Eine Zeichenklasse statt einer Regex ueber die Zeile: Sowohl die Tabelle
+    als auch die Befundlos-Meldung tragen mehrere Backtick-Felder, und nur
+    eines davon sieht aus wie ein SHA.
+    """
     for stueck in body.split("`"):
         kandidat = stueck.strip()
         if 7 <= len(kandidat) <= 40 and all(z in "0123456789abcdef" for z in kandidat):
-            commit = kandidat
-            break
-    return zustand, commit
+            return kandidat
+    return None
 
 
 def _passt_zum_head(commit: str | None, head_sha: str) -> bool:
@@ -186,6 +193,7 @@ def entscheide(
 
     zustand_tabelle = None
     commit_tabelle = None
+    befundlos_veraltet = None
     unbekannt = []
 
     for kommentar in kommentare:
@@ -198,7 +206,11 @@ def entscheide(
             zustand_tabelle, commit_tabelle = _tabellen_zustand(body)
             continue
         if TEXT_BEFUNDLOS in body:
-            return BESTANDEN, "Befundlos-Meldung vorhanden."
+            commit = _commit_aus_backticks(body)
+            if _passt_zum_head(commit, head_sha):
+                return BESTANDEN, f"Befundlos-Meldung fuer {commit or 'diesen Stand'}."
+            befundlos_veraltet = commit
+            continue
         if TEXT_KONTINGENT in body:
             return (
                 GEFALLEN,
@@ -216,6 +228,8 @@ def entscheide(
         return WARTEN, "Summary-Tabelle steht auf Running."
     if review_veraltet is not None:
         return GEFALLEN, _veraltet(review_veraltet, head_sha, "Review-Objekt vorhanden")
+    if befundlos_veraltet is not None:
+        return GEFALLEN, _veraltet(befundlos_veraltet, head_sha, "Befundlos-Meldung vorhanden")
 
     if unbekannt:
         gefunden = "\n  ".join(unbekannt)
