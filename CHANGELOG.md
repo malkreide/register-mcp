@@ -9,6 +9,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Hinzugefuegt
 
+- **Ein Gate, der einen PR aufhaelt, bis Codex ihn angesehen hat**
+  (`.github/workflows/codex-gate.yml`, `scripts/check_codex_review.py`,
+  `tests/test_check_codex_review.py`, 21 Faelle).
+
+  Anlass: Am 8./9.9.2026 lagen zwischen «ready for review» und Merge dreimal
+  drei bis fuenf Sekunden (#102, #104, #105), waehrend Codex gemessen 79-105
+  Sekunden bis zum Urteil braucht. Der Review fiel jedes Mal nicht aus — er lief
+  weiter, nur waere ein Befund auf einem gemergten PR gelandet.
+
+  **Die naheliegende Loesung gibt es nicht.** `CLAUDE.md` hat eine Fassung lang
+  ein Ruleset mit «dem Codex-Check als required» empfohlen, ohne das zu messen.
+  Nachgezaehlt auf PR #105: fuenf Check-Runs, alle aus `ci.yml`, und
+  `total_count: 0` bei den Commit-Status. Codex hinterlaesst hier nur einen
+  Issue-Kommentar; ein Ruleset kann aber nur verlangen, was als Check gemeldet
+  wird. Das Skript ist der fehlende Check.
+
+  Was als Urteil gilt, ist woertlich die Definition aus `CLAUDE.md`:
+  Review-Objekt, Befundlos-Meldung oder Summary-Tabelle auf `Completed`;
+  `Running` genuegt nicht. Ueber den Inhalt eines Befunds urteilt der Gate
+  nicht. Die beiden Ausfallmeldungen (Kontingent, Environment) machen ihn rot,
+  denn sie heissen «hat nicht hingesehen».
+
+  Zwei Ausnahmen, beide gemessen: Drafts (Codex laeuft nicht an, mergen geht
+  ohnehin nicht) und Bot-Autoren (#101 und #103 tragen null
+  Codex-Kommentare — ohne die Ausnahme haengt jeder Dependabot-PR fest, und ein
+  Gate, der alles aufhaelt, wird abgeschaltet).
+
+  Eigener Workflow statt Job in `ci.yml`, weil `ready_for_review` in der Vorgabe
+  von `pull_request` **nicht** enthalten ist — genau der Moment, um den es geht.
+  An `ci.yml` gehaengt liefe die ganze Matrix bei jedem Draft-Umschalten
+  doppelt.
+
+  Gegenprobe, acht Zusicherungen einzeln neutralisiert: `Running` als fertig
+  gewertet, Bot- und Draft-Ausnahme entfernt, jeder Autor als Codex gewertet,
+  Commit-Pruefung entschaerft, Unbekanntes nur abgewartet, Berechtigung
+  entfernt — jedes Mal fielen genau die zugehoerigen Tests.
+
+  **Der neunte Versuch fiel nicht, und das war der wichtigste.** `ready_for_review`
+  aus der `types:`-Zeile entfernt liess alle 21 Tests gruen: Der Test greppte
+  die ganze Datei, und der Name steht auch im Kopfkommentar. Ein Muster, das
+  die Prosa trifft statt die Konfiguration — dieselbe Klasse wie das
+  Falschzitat in `CLAUDE.md` vom Vortag. Der Test liest jetzt die `types:`-Zeile
+  und faellt sowohl beim Entfernen des Namens als auch der ganzen Zeile.
+
+  **Noch folgenlos, bis jemand ihn scharf stellt:** Der Check «Codex hat den PR
+  angesehen» wirkt erst, wenn er im UI als *required* gefuehrt wird. Ein roter
+  Check, den niemand abwarten muss, aendert nichts.
+
+
 - **Die Labels aus `.github/dependabot.yml` sind pruefbar**
   (`scripts/check_dependabot_labels.py`, `tests/test_dependabot_labels.py`).
   Dependabot legt Labels nicht an: Steht unter `labels:` ein Name, den das Repo

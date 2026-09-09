@@ -409,8 +409,46 @@ bloss den Zustand.
 
 Ein Merge drei Sekunden nach «ready» ist damit kein knappes Timing, sondern
 eine Reihenfolge, die gar nicht aufgehen kann: Der Auslöser liegt nach dem
-Merge. Wer die Wartezeit nicht abwarten will, braucht ein Ruleset, das den
-Codex-Check als *required* führt — Disziplin im Sekundentakt ist keins.
+Merge. Disziplin im Sekundentakt hilft dagegen nicht — dreimal in Folge
+gemergt hat, wer die Regel gerade selbst gelesen hatte.
+
+**Ein Ruleset auf «den Codex-Check» geht aber nicht: Es gibt keinen.** Diese
+Datei hat das eine Fassung lang als Lösung empfohlen, ohne es zu messen. Auf
+PR #105 nachgezählt: fünf Check-Runs, alle aus `ci.yml`, und
+`total_count: 0` bei den Commit-Status. Codex hinterlässt in diesem Repo nur
+einen Issue-Kommentar. Ein Ruleset kann aber nur verlangen, was als Check
+gemeldet wird.
+
+Deshalb liegt der fehlende Check jetzt im Repo: `.github/workflows/
+codex-gate.yml` ruft `scripts/check_codex_review.py`, das wartet, bis ein
+Urteil vorliegt, und sonst rot wird. Was als Urteil gilt, ist wörtlich die
+Definition von oben — Review-Objekt, Befundlos-Meldung oder Summary-Tabelle
+auf `✅ Completed`; `🔄 Running` genügt nicht. Über den *Inhalt* eines Befunds
+urteilt der Gate nicht; ihn zu beantworten bleibt Sache des Autors.
+
+Zwei Ausnahmen, beide gemessen und beide nötig:
+
+- **Drafts** — Codex läuft darauf nicht an, und mergen lässt sich ein Draft
+  ohnehin nicht.
+- **Bot-Autoren** — Codex prüft hier keine Dependabot-PRs: #101 und #103
+  tragen null Codex-Kommentare (#101s einziger Kommentar war Dependabots
+  eigene Schlussnotiz). Ohne die Ausnahme hinge jeder Dependency-PR dauerhaft
+  fest, der Gate würde abgeschaltet, und ein abgeschalteter Gate prüft nichts.
+
+Der Gate ist ein eigener Workflow, weil `ci.yml` auf der Vorgabe von
+`pull_request` läuft und `ready_for_review` dort **nicht** enthalten ist —
+genau der Moment, um den es geht. Ihn an `ci.yml` zu hängen hiesse, die ganze
+Matrix bei jedem Umschalten von Draft auf ready ein zweites Mal zu fahren.
+
+Damit er wirkt, muss der Check «Codex hat den PR angesehen» im UI als
+*required* gesetzt werden. Bis das geschehen ist, ist er sichtbar, aber
+folgenlos — ein roter Check, den niemand abwarten muss, ändert nichts.
+
+Und die Einschränkung, die man kennen muss: Der Gate hängt an Textformen, die
+Codex jederzeit ändern kann — am 8.9.2026 ist genau das passiert. Bei einem
+*unbekannten* Codex-Text fällt er deshalb nicht still durch, sondern bricht ab
+und zitiert ihn wörtlich. Wer ihn rot sieht, liest die Meldung und weiss, ob
+Codex geschwiegen hat oder bloss das Skript veraltet ist.
 
 Das Kontingent hängt am Konto, nicht am Repo, und Code-Reviews haben einen
 eigenen Topf — nur GitHub-getriggerte Reviews zählen hinein. ChatGPT-Pläne
@@ -531,6 +569,11 @@ uv lock --locked          # Job `lockfile`, uv 0.8.x
 
 Job `docker` baut zusätzlich das Image und prüft: Start ohne `MCP_API_KEY`
 scheitert, Container läuft als User `mcp`.
+
+`.github/workflows/codex-gate.yml` läuft **daneben**, nicht in `ci.yml`, und
+hat eigene Auslöser (`ready_for_review` gehört dazu). Sein Job heisst «Codex
+hat den PR angesehen»; die offline entscheidbare Hälfte liegt in
+`tests/test_check_codex_review.py` und läuft im Gate mit.
 
 **Live-Tests: geplanter Workflow vorhanden**, kein DRIFT-005.
 `.github/workflows/live-tests.yml` läuft per `cron: "31 5 * * 1"` (wöchentlich)

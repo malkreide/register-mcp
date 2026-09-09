@@ -1,0 +1,49 @@
+# Haelt einen PR auf, bis Codex ihn wirklich angesehen hat.
+#
+# Bewusst ein eigener Workflow und nicht ein Job in `ci.yml`: Der Ausloeser ist
+# ein anderer. `ci.yml` laeuft auf der Vorgabe von `pull_request` (opened,
+# synchronize, reopened) — `ready_for_review` gehoert NICHT dazu. Genau in dem
+# Moment aber laeuft Codex an. Haenge man den Gate an `ci.yml`, muesste dort
+# `ready_for_review` ergaenzt werden, und die ganze Matrix liefe bei jedem
+# Umschalten von Draft auf ready ein zweites Mal, ohne dass sich eine Zeile
+# geaendert hat.
+#
+# `synchronize` ist absichtlich dabei: Nach einem Push betrifft das vorhandene
+# Urteil einen anderen Commit, und der Gate soll das melden statt es zu
+# ueberlesen. Codex laeuft auf einen blossen Push nicht neu an — die Meldung
+# nennt deshalb den Ausweg (`@codex review` kommentieren).
+name: Codex-Gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  # Ohne diese Zeile sieht das Skript keine Kommentare und waere dauerhaft rot.
+  pull-requests: read
+
+jobs:
+  codex:
+    name: Codex hat den PR angesehen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      # Kein `pip install`: Das Skript kommt mit der Standardbibliothek aus.
+      # Ein Gate, das Abhaengigkeiten zieht, faellt auch dann, wenn PyPI hakt —
+      # und das waere keine Auskunft ueber Codex.
+      - name: Auf das Codex-Urteil warten
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMMER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_IST_DRAFT: ${{ github.event.pull_request.draft }}
+          PR_AUTOR_TYP: ${{ github.event.pull_request.user.type }}
+        run: python scripts/check_codex_review.py
