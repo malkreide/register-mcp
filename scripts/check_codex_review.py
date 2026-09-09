@@ -136,6 +136,22 @@ def _passt_zum_head(commit: str | None, head_sha: str) -> bool:
     return head_sha.startswith(commit) or commit.startswith(head_sha[:7])
 
 
+def _veraltet(commit: str | None, head_sha: str, was: str) -> str:
+    """Meldung fuer ein Urteil, das einem anderen Commit gilt.
+
+    Beide Wege koennen veralten — die Tabelle wie das Review-Objekt. Der Text
+    steht deshalb an einer Stelle: Zwei Fassungen davon waeren zwei Stellen,
+    die auseinanderlaufen koennen, und der Hinweis auf `@codex review` ist der
+    einzige Ausweg, den der Leser hat.
+    """
+    kurz = (commit or "?")[:7]
+    return (
+        f"{was}, aber fuer {kurz} — Head ist {head_sha[:7]}.\n"
+        "Codex laeuft auf einen blossen Push nicht neu an. "
+        "`@codex review` auf dem PR kommentieren."
+    )
+
+
 def entscheide(
     *,
     ist_draft: bool,
@@ -158,10 +174,15 @@ def entscheide(
             "Beim Umschalten auf «ready for review» laeuft dieser Gate erneut."
         )
 
+    review_veraltet = None
     for review in reviews:
         autor = (review.get("user") or {}).get("login", "")
-        if _ist_codex(autor):
-            return BESTANDEN, "Review-Objekt von Codex vorhanden."
+        if not _ist_codex(autor):
+            continue
+        commit = review.get("commit_id")
+        if _passt_zum_head(commit, head_sha):
+            return BESTANDEN, f"Review-Objekt von Codex fuer {(commit or 'diesen Stand')[:7]}."
+        review_veraltet = commit
 
     zustand_tabelle = None
     commit_tabelle = None
@@ -190,15 +211,11 @@ def entscheide(
     if zustand_tabelle == "completed":
         if _passt_zum_head(commit_tabelle, head_sha):
             return BESTANDEN, f"Summary-Tabelle: Completed fuer {commit_tabelle or 'diesen Stand'}."
-        grund = (
-            f"Summary-Tabelle ist Completed, aber fuer {commit_tabelle} — "
-            f"Head ist {head_sha[:7]}.\n"
-            "Codex laeuft auf einen blossen Push nicht neu an. "
-            "`@codex review` auf dem PR kommentieren."
-        )
-        return GEFALLEN, grund
+        return GEFALLEN, _veraltet(commit_tabelle, head_sha, "Summary-Tabelle ist Completed")
     if zustand_tabelle == "running":
         return WARTEN, "Summary-Tabelle steht auf Running."
+    if review_veraltet is not None:
+        return GEFALLEN, _veraltet(review_veraltet, head_sha, "Review-Objekt vorhanden")
 
     if unbekannt:
         gefunden = "\n  ".join(unbekannt)

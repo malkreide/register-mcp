@@ -50,6 +50,18 @@ def _kommentar(body: str, autor: str = ccr.CODEX_LOGIN) -> dict:
     return {"user": {"login": autor}, "body": body}
 
 
+def _review(commit_id: str | None, autor: str = ccr.CODEX_LOGIN) -> dict:
+    """Ein Review-Objekt, wie die API es liefert — mit `commit_id`.
+
+    Die erste Fassung dieses Tests liess das Feld weg, und genau deshalb fiel
+    nicht auf, dass der Review-Zweig den Commit gar nicht prueft.
+    """
+    review = {"user": {"login": autor}, "body": "💡 Codex Review"}
+    if commit_id is not None:
+        review["commit_id"] = commit_id
+    return review
+
+
 def _entscheide(**abweichung):
     argumente = {
         "ist_draft": False,
@@ -85,7 +97,7 @@ class DieBeobachtetenFormen(unittest.TestCase):
 
     def test_review_objekt_laesst_durch(self):
         """Ein Befund ist ein Urteil. Ihn zu beheben ist Sache des Autors."""
-        reviews = [{"user": {"login": ccr.CODEX_LOGIN}, "body": "💡 Codex Review"}]
+        reviews = [_review(HEAD)]
         zustand, _ = _entscheide(reviews=reviews)
         self.assertEqual(zustand, ccr.BESTANDEN)
 
@@ -146,6 +158,31 @@ class DasUrteilGehoertZumHead(unittest.TestCase):
         zustand, grund = _entscheide(kommentare=[_kommentar(TABELLE_FREMDER_COMMIT)])
         self.assertEqual(zustand, ccr.GEFALLEN)
         self.assertIn("@codex review", grund)
+
+    def test_ein_review_objekt_zu_einem_anderen_commit_faellt(self):
+        """Das Falsch-Gruen vom 9.9.2026 auf PR #108.
+
+        Der Review-Zweig pruefte nur den Autor, nicht den Commit. Auf dem
+        neuen Head `1503a1a` lag nur ein Review zu `697ecdc` vor — der Gate
+        war nach acht Sekunden gruen, 28 Sekunden BEVOR Codex den Review fuer
+        diesen Commit ueberhaupt begann. Ein gruenes Haekchen fuer
+        Ungeprueftes, also genau das, wogegen der Gate gebaut ist.
+        """
+        zustand, grund = _entscheide(reviews=[_review("697ecdc0c1b75cf6c61018bfdb0f0650")])
+        self.assertEqual(zustand, ccr.GEFALLEN)
+        self.assertIn("@codex review", grund)
+
+    def test_ein_review_ohne_commit_angabe_zaehlt(self):
+        """Eine fehlende Angabe wird nicht erfunden — wie bei der aelteren
+        Befundlos-Form, die auch keinen Commit nennt."""
+        zustand, _ = _entscheide(reviews=[_review(None)])
+        self.assertEqual(zustand, ccr.BESTANDEN)
+
+    def test_ein_passendes_review_neben_einem_veralteten_zaehlt(self):
+        """Nach `@codex review` stehen beide da. Das juengere gilt."""
+        reviews = [_review("697ecdc0c1b75cf6c61018bfdb0f0650"), _review(HEAD)]
+        zustand, _ = _entscheide(reviews=reviews)
+        self.assertEqual(zustand, ccr.BESTANDEN)
 
     def test_die_befundlos_form_nennt_keinen_commit_und_zaehlt_trotzdem(self):
         """Eine fehlende Angabe wird nicht erfunden."""

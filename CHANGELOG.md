@@ -113,6 +113,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   auseinandergelaufen, weil nur eine Fassung nachgezogen wurde.
 
 
+### Behoben — der Codex-Gate wurde gruen, ohne den aktuellen Commit zu pruefen
+
+Der Review-Zweig prueffte nur den Autor des Review-Objekts, nicht dessen
+`commit_id` — anders als der Tabellen-Zweig, wo die Pruefung von Anfang an
+drin war.
+
+Gemessen auf PR #108: Head `1503a1a`, Gate-Lauf 03:55:27-03:55:35, also acht
+Sekunden bis `success`. Zu dem Zeitpunkt lag nur das Review-Objekt zu
+`697ecdc` vor; Codex begann den Review fuer `1503a1a` erst um 03:56:03 — 28
+Sekunden spaeter. Ein gruenes Haekchen fuer Ungeprueftes, genau das, wogegen
+der Gate gebaut ist.
+
+Aufgefallen ist es nicht am Check selbst, sondern am Vergleich zweier
+Zeitstempel: Job-Ende gegen Review-Start. Die gemessene Dauer eines echten
+Laufs liegt bei 79-105 Sekunden; acht Sekunden waren zu schnell, um ein Urteil
+zu sein.
+
+Dieselbe Klasse wie der P1-Befund aus dem Codex-Review auf demselben PR (ein
+veraltetes Urteil zaehlt fuer neuen Code), nur auf dem anderen der beiden
+Wege. Die Meldung fuer beide Faelle steht jetzt in einer Funktion
+(`_veraltet`), damit sie nicht auseinanderlaufen.
+
+Der Testfall lag daneben, weil er ein Review-Objekt **ohne** `commit_id`
+baute — eine vereinfachte Eingabe kann nicht zeigen, dass ein Feld ungeprueft
+bleibt. Er nutzt jetzt eine Form mit `commit_id`, dazu drei Faelle: passender
+Commit, fremder Commit, fehlende Angabe (zaehlt, wird nicht erfunden), sowie
+ein passendes Review neben einem veralteten.
+
+Gegenprobe: Commit-Pruefung im Review-Zweig entschaerft -> der neue Test
+faellt; die Meldung fuer das veraltete Review unterdrueckt -> derselbe Test
+faellt.
+
 ### Behoben — acht Befunde am Dependabot-Label-Check, drei davon stille Fehlalarme
 
 Der Check aus #93 ist gemergt worden, ohne dass ihn jemand ausser dem Autor

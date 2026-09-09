@@ -508,6 +508,18 @@ Codex jederzeit ändern kann — am 8.9.2026 ist genau das passiert. Bei einem
 und zitiert ihn wörtlich. Wer ihn rot sieht, liest die Meldung und weiss, ob
 Codex geschwiegen hat oder bloss das Skript veraltet ist.
 
+**Ein Urteil gilt immer nur seinem Commit — auf beiden Wegen.** Die erste
+Fassung prüfte das nur bei der Summary-Tabelle; im Review-Zweig genügte der
+Autor. Am 9.9.2026 auf PR #108 war der Gate für Head `1503a1a` nach acht
+Sekunden grün, weil ein Review-Objekt zu `697ecdc` vorlag — **28 Sekunden
+bevor** Codex den Review für `1503a1a` überhaupt begann. Ein grünes Häkchen
+für Ungeprüftes, also genau das, wogegen der Gate gebaut ist.
+
+Aufgefallen ist das nicht am Check, sondern am Vergleich zweier Zeitstempel:
+Job-Ende 03:55:35 gegen Review-Start 03:56:03. Ein Gate, der zu schnell grün
+wird, ist verdächtig — die gemessene Dauer liegt bei 79–105 Sekunden, nicht
+bei acht.
+
 Das Kontingent hängt am Konto, nicht am Repo, und Code-Reviews haben einen
 eigenen Topf — nur GitHub-getriggerte Reviews zählen hinein. ChatGPT-Pläne
 fahren ein rollendes Fünf-Stunden-Fenster plus Wochenlimits; welches greift,
