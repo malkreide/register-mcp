@@ -391,21 +391,51 @@ PR #104 lief 19 Minuten später gleich ab — ready 04:31:35, gemergt 04:31:38,
 also wieder nach drei Sekunden. Aus zwei Läufen wird eine Spanne, und die
 beantwortet die praktische Frage, die eine Einzelmessung offen lässt:
 
-| gemessen ab «ready» | #102 | #104 |
-| --- | --- | --- |
-| Merge | +3 s | +3 s |
-| Codex-Kommentar erscheint (`🔄 Running`) | +8 s | +10 s |
-| `✅ Completed` | +79 s | +105 s |
+| gemessen ab «ready» | #102 | #104 | #105 | #106 |
+| --- | --- | --- | --- | --- |
+| Merge | +3 s | +3 s | +5 s | +5 s |
+| Codex-Kommentar erscheint (`🔄 Running`) | +8 s | +10 s | +11 s | +9 s |
+| `✅ Completed` | +79 s | +105 s | +94 s | +101 s |
 
 Zu warten sind also **rund zwei Minuten, nicht ein paar Sekunden**. Wer nach
 dem Auftauchen des Kommentars mergt, ist genauso zu früh wie vorher: Zwischen
-«läuft» und «fertig» liegt der ganze Review (71 s bzw. 95 s).
+«läuft» und «fertig» liegt der ganze Review.
+
+Vier Läufe, alle zwischen 79 und 105 Sekunden — auch #106 mit neuem Skript,
+21 Tests und einem Workflow. Die Dauer hängt hier also nicht sichtbar am
+Umfang des Diffs.
 
 Die Startzeit des Reviews steht nur *während* des Laufs in der Tabelle
 («Running since»); danach überschreibt sie der Abschlusszeitpunkt. Für #102
 ist sie deshalb belegt (04:12:06), für #104 nicht — dort war die Tabelle beim
 Lesen schon `✅ Completed`. Wer spät hinsieht, verliert die Startzeit, nicht
 bloss den Zustand.
+
+**Und der gelesene Zustand kann minutenlang veraltet sein.** Am 9.9.2026 gab
+`get_comments` auf #106 um 03:33 die Tabelle als `🔄 Running` mit
+`updated_at` 03:28:26 zurück — während derselbe Endpunkt, vom Actions-Runner
+aus abgefragt, schon um 03:29:58 `✅ Completed` sah. Der Job-Log ist die
+Gegenprobe:
+
+```
+Summary-Tabelle steht auf Running. Erneut in 15s.   (5×)
+Codex-Gate OK — Summary-Tabelle: Completed fuer 55a203d.
+```
+
+Woran die Verzögerung liegt — an einem Cache im MCP-Werkzeug oder auf
+GitHubs Seite — ist **ungemessen**. Belegt ist nur, dass zwei Lesewege
+derselben Sache um Minuten auseinanderlagen.
+
+Praktisch: Ein einzelner Blick auf den Kommentarzustand belegt kein «läuft
+noch». Wer daraus schliesst, Codex sei langsam oder hänge, misst seinen
+Lesepfad. Genau das ist hier passiert — auf die veraltete Lesung hin wurde
+eine Frist als zu knapp «behoben», die es nicht war, und beinahe eine falsche
+Dauer in diesen Abschnitt geschrieben. Die Laufzeit steht im Job-Log, nicht im
+Kommentar.
+
+Ein Merge beendet den Review übrigens nicht. Auf #106 lief der Gate-Job über
+den Merge hinaus weiter und wurde nicht abgebrochen; das Urteil kam 96
+Sekunden nach dem Merge. «Gemergt» heisst also nicht «fertig geprüft».
 
 Ein Merge drei Sekunden nach «ready» ist damit kein knappes Timing, sondern
 eine Reihenfolge, die gar nicht aufgehen kann: Der Auslöser liegt nach dem

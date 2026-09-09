@@ -161,6 +161,44 @@ zurueckgenommen -> 1; Modul-Alias entfernt -> 4. Von 19 auf 29 Tests.
 
 ### Geaendert
 
+- **Der Codex-Gate trennt beim Fristablauf «laeuft noch» von «schweigt».** Die
+  erste Fassung schrieb in beiden Faellen «bleibt es still, hat er nicht
+  geprueft». Fuer einen laufenden Review ist das die falsche Auskunft: Sie
+  schickt jemanden Kontingent und Environment pruefen, waehrend Codex
+  arbeitet. `ablauf_grund()` nennt jetzt im Running-Fall den Stellhebel
+  (`CODEX_FRIST_SEKUNDEN`) und im Schweigen-Fall, dass ein Merge ungedeckt
+  waere. Vier Faelle dazu, jeder einzeln gegengeprobt.
+
+  Die Frist selbst bleibt bei 300 s. Zwischenzeitlich war sie auf 1200 s
+  gehoben worden, weil `get_comments` die Tabelle von #106 um 03:33 noch als
+  `Running` zeigte — das sah nach einem Review aus, der laenger als fuenf
+  Minuten braucht. Der Job-Log widerlegt es: Codex war um 03:29:58 fertig,
+  101 s nach «ready». Die Anhebung ist zurueckgenommen; der Test prueft jetzt
+  den *Abstand* zur gemessenen Dauer (>= 250 s) statt die Zahl selbst.
+
+- **Der erste echte Lauf des Gates ist belegt** (#106, Job «Codex hat den PR
+  angesehen»): Draft-Zweig beim Anlegen (`success` nach 6 s), nach dem
+  Umschalten auf ready sieben Poll-Runden ueber 95 s bis
+  `Codex-Gate OK — Summary-Tabelle: Completed fuer 55a203d`. Damit ist auch
+  die Verdrahtung belegt und nicht nur die Unit-Tests: `PR_IST_DRAFT` und
+  `PR_AUTOR_TYP` kommen korrekt aus dem Ereignis.
+
+  Der Merge (5 s nach ready) hat den Job **nicht** abgebrochen — er lief
+  weiter und urteilte 96 s spaeter. «Gemergt» heisst nicht «fertig geprueft».
+
+- **`CLAUDE.md`: der gelesene Kommentarzustand kann minutenlang veralten.**
+  `get_comments` gab #106 um 03:33 als `Running` mit `updated_at` 03:28:26,
+  waehrend derselbe Endpunkt vom Actions-Runner aus um 03:29:58 `Completed`
+  sah. Woran die Verzoegerung liegt (Cache im Werkzeug oder bei GitHub), ist
+  ungemessen; belegt ist nur der Auseinanderfall zweier Lesewege. Ein
+  einzelner Blick belegt also kein «laeuft noch» — die Laufzeit steht im
+  Job-Log.
+
+  Die Zeittabelle traegt jetzt vier Laeufe (79-105 s) statt zwei. Auch #106
+  mit Skript, 21 Tests und Workflow lag bei 101 s: Die Dauer haengt hier
+  nicht sichtbar am Umfang des Diffs.
+
+
 - **Die Codex-Wartezeit steht als Spanne statt als Einzelmessung.** PR #104
   lieferte 19 Minuten nach #102 einen zweiten vollstaendigen Ablauf, und beide
   Male lagen zwischen «ready for review» und Merge drei Sekunden. Gemessen ab

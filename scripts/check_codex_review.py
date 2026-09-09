@@ -198,6 +198,33 @@ def entscheide(
     return WARTEN, "Noch keine Aeusserung von Codex."
 
 
+def ablauf_grund(grund: str, frist: int) -> str:
+    """Warum die Frist verstrich — «laeuft noch» ist etwas anderes als «schweigt».
+
+    Der Unterschied entscheidet, was jemand tut. Steht die Tabelle auf `Running`,
+    hat Codex angefangen und ist bloss langsam: warten oder die Frist heben.
+    Kam gar nichts, hat er nicht geprueft, und der Merge waere ungedeckt.
+
+    Die erste Fassung kannte den Unterschied nicht und schrieb in beiden Faellen
+    «bleibt es still, hat er nicht geprueft». Das ist fuer den Running-Fall
+    falsch und schickt jemanden Kontingent und Environment pruefen, waehrend
+    der Review laeuft.
+    """
+    if "Running" in grund:
+        return (
+            f"{grund}\n"
+            "Codex laeuft noch — das ist kein Ausfall, sondern Dauer. Die Frist "
+            f"({frist}s) ist zu knapp: `CODEX_FRIST_SEKUNDEN` heben oder den Lauf "
+            "abwarten und den Job neu starten."
+        )
+    return (
+        f"{grund}\n"
+        "Codex hat sich nicht geaeussert. Ein Merge waere hier ungedeckt: "
+        "entweder ist der Review nicht angelaufen (Kontingent, Environment) "
+        "oder er wurde nie ausgeloest."
+    )
+
+
 def _hole(pfad: str, token: str) -> list[dict]:
     """Eine GitHub-Liste holen. Netzfehler sind hier kein Urteil, sondern ein Abbruch."""
     anfrage = urllib.request.Request(
@@ -267,12 +294,7 @@ def main() -> int:
             return 1
 
         if time.monotonic() >= ende:
-            print(
-                f"Codex-Gate rot — nach {frist}s liegt kein Urteil vor: {grund}\n"
-                "Gemessen brauchte Codex 79-105 Sekunden ab «ready for review». "
-                "Bleibt es still, hat er nicht geprueft.",
-                file=sys.stderr,
-            )
+            print(f"Codex-Gate rot — nach {frist}s: {ablauf_grund(grund, frist)}", file=sys.stderr)
             return 1
         print(f"{grund} Erneut in {takt}s.")
         time.sleep(takt)
