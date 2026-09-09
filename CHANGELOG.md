@@ -161,6 +161,48 @@ zurueckgenommen -> 1; Modul-Alias entfernt -> 4. Von 19 auf 29 Tests.
 
 ### Geaendert
 
+- **Der Codex-Gate faellt jetzt auf Drafts, statt sie durchzulassen** — das
+  schliesst ein Zeitfenster, in dem ein als *required* gefuehrter Check gruen
+  gelesen haette.
+
+  Beim Umschalten auf «ready for review» aendert sich der Commit nicht. Bis
+  der neue Lauf angelegt ist, bleibt der bestandene Draft-Lauf der juengste
+  fuer diesen Commit — auf PR #106 gemessen zwei Sekunden (ready 03:28:17,
+  neuer Lauf 03:28:19). Genau in diesem Fenster lagen die Merges: fuenfmal in
+  Folge drei bis neun Sekunden nach «ready» (#102, #104, #105, #106, #107).
+
+  Ein roter Draft-Lauf blockiert nichts Echtes, weil ein Draft nicht mergebar
+  ist; die Meldung sagt darum ausdruecklich, dass das der erwartete Zustand
+  ist. Ein roter Check ohne Erklaerung sieht aus wie ein Defekt, und ein Gate,
+  den man fuer defekt haelt, wird abgeschaltet.
+
+  **`converted_to_draft` gehoert in die `types:`.** Der erste Anlauf deckte nur
+  den neu angelegten Draft ab. Wird ein bereits gepruefter PR zurueck auf Draft
+  gestellt, aendert sich der Commit nicht — ohne diesen Ausloeser laeuft nichts,
+  der **gruene** Lauf bleibt der juengste, und beim naechsten «ready» ist
+  dasselbe Fenster wieder offen. Befund aus dem Codex-Review auf PR #108, als
+  P1 gemeldet und zutreffend.
+
+  **Kein `if:` auf `!draft`:** Ein uebersprungener Job meldet die Conclusion
+  `skipped`, und die zaehlt fuer einen required-Check als bestanden. Das
+  Fenster bliebe offen. Der Job muss laufen und rot werden.
+
+  Die Bot-Ausnahme steht jetzt **vor** der Draft-Pruefung, sonst haenge ein
+  Dependabot-Draft am Fall fest, den es nur wegen menschlicher PRs gibt. Der
+  Draft-Fall braucht dabei keinen einzigen API-Aufruf — der Zustand steht im
+  Ereignis.
+
+  Gegenprobe, vier Zusicherungen einzeln neutralisiert: Draft besteht wieder,
+  Bot-Ausnahme hinter den Draft geschoben, «erwartet» aus der Meldung
+  entfernt, «ready for review» aus der Meldung entfernt — jedes Mal fielen
+  genau die zugehoerigen Tests. 28 Faelle (drei neu).
+
+- **`CLAUDE.md` nennt die Bypass-Liste.** Steht im Ruleset «Repository admin»
+  als Bypass-Actor, kann der Eigentuemer weiter in Sekunden mergen und die
+  Regel ist Dekoration — dasselbe gruene Haekchen fuer Ungeprueftes, gegen das
+  der Abschnitt geschrieben ist.
+
+
 - **Der Codex-Gate trennt beim Fristablauf «laeuft noch» von «schweigt».** Die
   erste Fassung schrieb in beiden Faellen «bleibt es still, hat er nicht
   geprueft». Fuer einen laufenden Review ist das die falsche Auskunft: Sie

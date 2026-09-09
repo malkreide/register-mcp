@@ -456,14 +456,35 @@ Definition von oben — Review-Objekt, Befundlos-Meldung oder Summary-Tabelle
 auf `✅ Completed`; `🔄 Running` genügt nicht. Über den *Inhalt* eines Befunds
 urteilt der Gate nicht; ihn zu beantworten bleibt Sache des Autors.
 
-Zwei Ausnahmen, beide gemessen und beide nötig:
+Eine Ausnahme, gemessen und nötig: **Bot-Autoren.** Codex prüft hier keine
+Dependabot-PRs — #101 und #103 tragen null Codex-Kommentare (#101s einziger
+Kommentar war Dependabots eigene Schlussnotiz). Ohne die Ausnahme hinge jeder
+Dependency-PR dauerhaft fest, der Gate würde abgeschaltet, und ein
+abgeschalteter Gate prüft nichts.
 
-- **Drafts** — Codex läuft darauf nicht an, und mergen lässt sich ein Draft
-  ohnehin nicht.
-- **Bot-Autoren** — Codex prüft hier keine Dependabot-PRs: #101 und #103
-  tragen null Codex-Kommentare (#101s einziger Kommentar war Dependabots
-  eigene Schlussnotiz). Ohne die Ausnahme hinge jeder Dependency-PR dauerhaft
-  fest, der Gate würde abgeschaltet, und ein abgeschalteter Gate prüft nichts.
+**Auf Drafts fällt der Gate, und das ist Absicht.** Die erste Fassung liess
+sie durchgehen — Codex läuft darauf nicht an, mergen lässt sich ein Draft
+ohnehin nicht, ein roter Check schien nur Lärm. Das öffnete ein Zeitfenster:
+Beim Umschalten auf «ready» ändert sich der Commit nicht, und bis der neue
+Lauf angelegt ist, bleibt der bestandene Draft-Lauf der jüngste für diesen
+Commit. Auf #106 gemessen zwei Sekunden (ready 03:28:17, neuer Lauf 03:28:19).
+Ein *required* geführter Check läse dort grün — und genau in diesem Fenster
+lagen die Merges: fünfmal in Folge drei bis neun Sekunden nach «ready».
+
+Ein roter Draft-Lauf schliesst das Fenster, ohne etwas Echtes zu blockieren;
+die Meldung sagt ausdrücklich, dass das der erwartete Zustand ist. **Nicht zu
+verwechseln mit «den Job auf Drafts überspringen»:** Ein per `if:`
+übersprungener Job meldet die Conclusion `skipped`, und die zählt für einen
+required-Check als bestanden. Das Fenster bliebe offen.
+
+**Und `converted_to_draft` gehört in die `types:`, nicht nur
+`ready_for_review`.** Der rote Draft-Lauf entsteht nur, wenn beim Übergang *in*
+den Draft-Zustand überhaupt etwas läuft. Wird ein bereits geprüfter PR zurück
+auf Draft gestellt, ändert sich der Commit nicht — ohne diesen Auslöser bleibt
+der **grüne** Lauf der jüngste für diesen Commit, und beim nächsten «ready» ist
+dasselbe Fenster wieder offen. Der Fall kam nicht aus dem Entwurf, sondern aus
+dem Codex-Review auf PR #108; der erste Anlauf deckte nur den Weg über einen
+neu angelegten Draft ab.
 
 Der Gate ist ein eigener Workflow, weil `ci.yml` auf der Vorgabe von
 `pull_request` läuft und `ready_for_review` dort **nicht** enthalten ist —
@@ -471,8 +492,15 @@ genau der Moment, um den es geht. Ihn an `ci.yml` zu hängen hiesse, die ganze
 Matrix bei jedem Umschalten von Draft auf ready ein zweites Mal zu fahren.
 
 Damit er wirkt, muss der Check «Codex hat den PR angesehen» im UI als
-*required* gesetzt werden. Bis das geschehen ist, ist er sichtbar, aber
-folgenlos — ein roter Check, den niemand abwarten muss, ändert nichts.
+*required* gesetzt werden (Settings → Rules → Ruleset auf den
+Standard-Branch, «Require status checks to pass»). Bis das geschehen ist, ist
+er sichtbar, aber folgenlos — ein roter Check, den niemand abwarten muss,
+ändert nichts.
+
+**Die Bypass-Liste dabei leer lassen.** Steht dort «Repository admin», kann
+der Eigentümer weiter in Sekunden mergen, und die Regel ist Dekoration —
+dasselbe grüne Häkchen für Ungeprüftes, gegen das der ganze Abschnitt
+geschrieben ist.
 
 Und die Einschränkung, die man kennen muss: Der Gate hängt an Textformen, die
 Codex jederzeit ändern kann — am 8.9.2026 ist genau das passiert. Bei einem
