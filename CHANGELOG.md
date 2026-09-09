@@ -112,6 +112,30 @@ zurueckgenommen -> 1; Modul-Alias entfernt -> 4. Von 19 auf 29 Tests.
 
 ### Geaendert
 
+- **Die Codex-Wartezeit steht als Spanne statt als Einzelmessung.** PR #104
+  lieferte 19 Minuten nach #102 einen zweiten vollstaendigen Ablauf, und beide
+  Male lagen zwischen «ready for review» und Merge drei Sekunden. Gemessen ab
+  «ready»: Merge +3 s / +3 s, Codex-Kommentar erscheint +8 s / +10 s,
+  `Completed` +79 s / +105 s.
+
+  Damit ist die praktische Frage beantwortet, die eine Einzelmessung offen
+  laesst: Zu warten sind rund **zwei Minuten**, nicht ein paar Sekunden. Und
+  wer beim Auftauchen des Kommentars mergt, ist genauso zu frueh — zwischen
+  «laeuft» und «fertig» liegt der ganze Review (71 s bzw. 95 s).
+
+  Nebenbefund, der die «aendert sich unter der Hand»-Regel schaerft: Die
+  Startzeit des Reviews steht nur *waehrend* des Laufs in der Tabelle
+  («Running since») und wird danach vom Abschlusszeitpunkt ueberschrieben.
+  Fuer #102 ist sie belegt (04:12:06), fuer #104 nicht — dort war die Tabelle
+  beim Lesen schon `Completed`. Wer spaet hinsieht, verliert die Startzeit,
+  nicht bloss den Zustand.
+
+  Die Befundlos-Form kam auf #104 ein zweites Mal als Summary-Tabelle
+  (erstellt 04:31:45, aktualisiert 04:33:20, Commit `97f2aa7`), wieder ohne
+  Review-Objekt und ohne «Swish!». Zwei Treffer fuer eine Form belegen aber
+  nicht das Verschwinden der anderen, und beide fallen auf denselben Tag —
+  das **ungemessen** bleibt deshalb stehen, praeziser begruendet.
+
 - **Der Codex-Abschnitt in `CLAUDE.md` trug selbst einen Fehlalarm.** Er
   beschrieb die Befundlos-Meldung als einen einzigen Wortlaut
   («Codex Review: Didn't find any major issues. Swish!»). Auf PR #102 kam der

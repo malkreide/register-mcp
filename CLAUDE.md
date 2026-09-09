@@ -273,8 +273,13 @@ ohne dass jemand hineingesehen hat, und am 22.8. noch einmal 43.
 
   Wer nach «Swish!» greppt, findet das nicht und zählt einen sauberen Review
   als ungeprüft — genau der Fehlalarm, den dieser Abschnitt verhindern soll,
-  nur in die andere Richtung. Ob die alte Form damit weg ist oder beide
-  nebeneinander laufen, ist **ungemessen**: Belegt ist je ein Tag pro Form.
+  nur in die andere Richtung.
+
+  PR #104 lieferte am selben Tag dieselbe Form ein zweites Mal (erstellt
+  04:31:45, aktualisiert 04:33:20, Commit `97f2aa7`). Zwei Treffer für eine
+  Form belegen aber nicht das Verschwinden der anderen, und beide fallen auf
+  denselben Tag: Ob die alte Form weg ist oder beide nebeneinander laufen,
+  bleibt **ungemessen**.
 
   Die Tabelle kann dafür etwas, was keine der anderen Formen konnte: Sie ist
   schon da, **während** der Review läuft, und nennt den Commit. «Läuft noch»
@@ -381,6 +386,26 @@ Zeitpunkt, an dem man auf sie noch reagieren kann: Ein Befund wäre auf einem
 bereits gemergten PR gelandet. Hier ging es gut aus, und das ist der
 gefährliche Teil — ein Verfahren, das nur wegen des Ergebnisses nicht
 auffällt, fällt beim nächsten Mal auch nicht auf.
+
+PR #104 lief 19 Minuten später gleich ab — ready 04:31:35, gemergt 04:31:38,
+also wieder nach drei Sekunden. Aus zwei Läufen wird eine Spanne, und die
+beantwortet die praktische Frage, die eine Einzelmessung offen lässt:
+
+| gemessen ab «ready» | #102 | #104 |
+| --- | --- | --- |
+| Merge | +3 s | +3 s |
+| Codex-Kommentar erscheint (`🔄 Running`) | +8 s | +10 s |
+| `✅ Completed` | +79 s | +105 s |
+
+Zu warten sind also **rund zwei Minuten, nicht ein paar Sekunden**. Wer nach
+dem Auftauchen des Kommentars mergt, ist genauso zu früh wie vorher: Zwischen
+«läuft» und «fertig» liegt der ganze Review (71 s bzw. 95 s).
+
+Die Startzeit des Reviews steht nur *während* des Laufs in der Tabelle
+(«Running since»); danach überschreibt sie der Abschlusszeitpunkt. Für #102
+ist sie deshalb belegt (04:12:06), für #104 nicht — dort war die Tabelle beim
+Lesen schon `✅ Completed`. Wer spät hinsieht, verliert die Startzeit, nicht
+bloss den Zustand.
 
 Ein Merge drei Sekunden nach «ready» ist damit kein knappes Timing, sondern
 eine Reihenfolge, die gar nicht aufgehen kann: Der Auslöser liegt nach dem
