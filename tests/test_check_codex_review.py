@@ -11,6 +11,7 @@ Fassung prueft, kann nicht zeigen, dass das Muster auf dem echten Text greift.
 
 from __future__ import annotations
 
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -169,6 +170,44 @@ class DieBeidenAusnahmen(unittest.TestCase):
     def test_ein_mensch_geniesst_die_bot_ausnahme_nicht(self):
         zustand, _ = _entscheide(autor_typ="User")
         self.assertEqual(zustand, ccr.WARTEN)
+
+
+class WennDieFristVerstreicht(unittest.TestCase):
+    """«Laeuft noch» und «schweigt» verlangen Verschiedenes.
+
+    Die erste Fassung kannte den Unterschied nicht und schrieb in beiden
+    Faellen «bleibt es still, hat er nicht geprueft». Fuer einen laufenden
+    Review ist das falsch: Es schickt jemanden Kontingent und Environment
+    pruefen, waehrend Codex arbeitet.
+    """
+
+    def test_laufender_review_wird_nicht_als_ausfall_gemeldet(self):
+        text = ccr.ablauf_grund("Summary-Tabelle steht auf Running.", 300)
+        self.assertIn("laeuft noch", text)
+        self.assertNotIn("hat sich nicht geaeussert", text)
+
+    def test_laufender_review_nennt_den_stellhebel(self):
+        text = ccr.ablauf_grund("Summary-Tabelle steht auf Running.", 300)
+        self.assertIn("CODEX_FRIST_SEKUNDEN", text)
+
+    def test_schweigen_wird_als_ungedeckt_gemeldet(self):
+        text = ccr.ablauf_grund("Noch keine Aeusserung von Codex.", 300)
+        self.assertIn("ungedeckt", text)
+        self.assertNotIn("laeuft noch", text)
+
+    def test_die_frist_hat_abstand_zur_gemessenen_dauer(self):
+        """Gemessen brauchte Codex 79-105s (vier Laeufe, #102/#104/#105/#106).
+        Die Vorgabe muss davon deutlich weg sein, sonst wird der Gate rot,
+        waehrend Codex korrekt arbeitet — und ein Gate, der grundlos
+        blockiert, wird abgeschaltet.
+
+        Geprueft wird der Abstand, nicht die Zahl: Ein Test, der die Vorgabe
+        bloss wiederholt, faellt bei jeder Aenderung und sagt nie, warum.
+        """
+        quelle = Path(ccr.__file__).read_text(encoding="utf-8")
+        treffer = re.search(r'"CODEX_FRIST_SEKUNDEN", "(\d+)"', quelle)
+        self.assertIsNotNone(treffer, "keine Vorgabe fuer CODEX_FRIST_SEKUNDEN gefunden")
+        self.assertGreaterEqual(int(treffer.group(1)), 250, "zu nah an den gemessenen 105s")
 
 
 class DerGateIstRegistriert(unittest.TestCase):
