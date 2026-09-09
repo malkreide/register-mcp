@@ -477,6 +477,15 @@ verwechseln mit «den Job auf Drafts überspringen»:** Ein per `if:`
 übersprungener Job meldet die Conclusion `skipped`, und die zählt für einen
 required-Check als bestanden. Das Fenster bliebe offen.
 
+**Und `converted_to_draft` gehört in die `types:`, nicht nur
+`ready_for_review`.** Der rote Draft-Lauf entsteht nur, wenn beim Übergang *in*
+den Draft-Zustand überhaupt etwas läuft. Wird ein bereits geprüfter PR zurück
+auf Draft gestellt, ändert sich der Commit nicht — ohne diesen Auslöser bleibt
+der **grüne** Lauf der jüngste für diesen Commit, und beim nächsten «ready» ist
+dasselbe Fenster wieder offen. Der Fall kam nicht aus dem Entwurf, sondern aus
+dem Codex-Review auf PR #108; der erste Anlauf deckte nur den Weg über einen
+neu angelegten Draft ab.
+
 Der Gate ist ein eigener Workflow, weil `ci.yml` auf der Vorgabe von
 `pull_request` läuft und `ready_for_review` dort **nicht** enthalten ist —
 genau der Moment, um den es geht. Ihn an `ci.yml` zu hängen hiesse, die ganze

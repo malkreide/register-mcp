@@ -176,6 +176,13 @@ zurueckgenommen -> 1; Modul-Alias entfernt -> 4. Von 19 auf 29 Tests.
   ist. Ein roter Check ohne Erklaerung sieht aus wie ein Defekt, und ein Gate,
   den man fuer defekt haelt, wird abgeschaltet.
 
+  **`converted_to_draft` gehoert in die `types:`.** Der erste Anlauf deckte nur
+  den neu angelegten Draft ab. Wird ein bereits gepruefter PR zurueck auf Draft
+  gestellt, aendert sich der Commit nicht — ohne diesen Ausloeser laeuft nichts,
+  der **gruene** Lauf bleibt der juengste, und beim naechsten «ready» ist
+  dasselbe Fenster wieder offen. Befund aus dem Codex-Review auf PR #108, als
+  P1 gemeldet und zutreffend.
+
   **Kein `if:` auf `!draft`:** Ein uebersprungener Job meldet die Conclusion
   `skipped`, und die zaehlt fuer einen required-Check als bestanden. Das
   Fenster bliebe offen. Der Job muss laufen und rot werden.

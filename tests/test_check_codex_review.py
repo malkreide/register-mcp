@@ -262,10 +262,29 @@ class DerGateIstRegistriert(unittest.TestCase):
         Fehlalarm — ein Muster, das die Prosa trifft statt die Konfiguration —
         ist bei der Gegenprobe aufgefallen.
         """
+        self.assertIn("ready_for_review", self._typen_zeile())
+
+    def test_workflow_laeuft_auch_beim_zurueckstellen_auf_draft(self):
+        """Sonst bleibt der GRUENE Lauf der juengste fuer denselben Commit.
+
+        Wird ein bereits gepruefter PR zurueck auf Draft gestellt, aendert sich
+        der Commit nicht. Ohne `converted_to_draft` laeuft nichts, der gruene
+        Lauf bleibt stehen, und beim naechsten «ready» ist dasselbe Fenster
+        wieder offen, das der rote Draft-Lauf schliessen soll. Befund aus dem
+        Codex-Review auf PR #108.
+        """
+        self.assertIn("converted_to_draft", self._typen_zeile())
+
+    def _typen_zeile(self) -> str:
+        """Die `types:`-Zeile, nicht die Datei.
+
+        Der Kopfkommentar erklaert dieselben Namen, und ein `assertIn` ueber den
+        ganzen Text blieb gruen, als der Ausloeser aus `types:` entfernt wurde.
+        """
         zeilen = self.WORKFLOW.read_text(encoding="utf-8").splitlines()
         typen = [z for z in zeilen if z.strip().startswith("types:")]
         self.assertEqual(len(typen), 1, f"erwartet: genau eine types-Zeile, gefunden: {typen}")
-        self.assertIn("ready_for_review", typen[0])
+        return typen[0]
 
     def test_workflow_darf_pull_requests_lesen(self):
         """Ohne die Berechtigung sieht der Gate keine Kommentare und waere
