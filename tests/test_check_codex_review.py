@@ -154,12 +154,7 @@ class DasUrteilGehoertZumHead(unittest.TestCase):
         self.assertEqual(zustand, ccr.BESTANDEN)
 
 
-class DieBeidenAusnahmen(unittest.TestCase):
-    def test_draft_geht_durch(self):
-        """Codex laeuft darauf nicht an, und mergen laesst sich ein Draft nicht."""
-        zustand, _ = _entscheide(ist_draft=True)
-        self.assertEqual(zustand, ccr.BESTANDEN)
-
+class DieBotAusnahme(unittest.TestCase):
     def test_bot_autor_geht_durch(self):
         """Gemessen: #101 und #103 tragen null Codex-Kommentare. Ohne diese
         Ausnahme haengt jeder Dependabot-PR fest, und ein Gate, das alles
@@ -170,6 +165,40 @@ class DieBeidenAusnahmen(unittest.TestCase):
     def test_ein_mensch_geniesst_die_bot_ausnahme_nicht(self):
         zustand, _ = _entscheide(autor_typ="User")
         self.assertEqual(zustand, ccr.WARTEN)
+
+    def test_die_bot_ausnahme_gilt_auch_im_draft(self):
+        """Sonst haenge ein Dependabot-Draft am Draft-Fall fest, den es nur
+        wegen menschlicher PRs gibt."""
+        zustand, _ = _entscheide(autor_typ="Bot", ist_draft=True)
+        self.assertEqual(zustand, ccr.BESTANDEN)
+
+
+class DerDraftDarfNichtBestehen(unittest.TestCase):
+    """Das Zeitfenster, das die erste Fassung offen liess.
+
+    Beim Umschalten auf «ready for review» aendert sich der Commit nicht. Bis
+    der neue Lauf angelegt ist, bleibt der Draft-Lauf der juengste fuer diesen
+    Commit — auf PR #106 zwei Sekunden (ready 03:28:17, neuer Lauf 03:28:19).
+    Bestand er, laese ein required-Check dort gruen, und genau in diesem
+    Fenster lagen die Merges.
+    """
+
+    def test_draft_faellt(self):
+        zustand, _ = _entscheide(ist_draft=True)
+        self.assertEqual(zustand, ccr.GEFALLEN)
+
+    def test_der_draft_faellt_nicht_wartend_sondern_endgueltig(self):
+        """WARTEN liesse den Job 300s pollen, ohne dass sich etwas aendern
+        kann: Codex laeuft auf einem Draft gar nicht erst an."""
+        zustand, _ = _entscheide(ist_draft=True)
+        self.assertNotEqual(zustand, ccr.WARTEN)
+
+    def test_die_meldung_nennt_den_zustand_als_erwartet(self):
+        """Ein roter Check ohne Erklaerung sieht aus wie ein Defekt, und ein
+        Gate, den man fuer defekt haelt, wird abgeschaltet."""
+        _, grund = _entscheide(ist_draft=True)
+        self.assertIn("erwartet", grund)
+        self.assertIn("ready for review", grund)
 
 
 class WennDieFristVerstreicht(unittest.TestCase):

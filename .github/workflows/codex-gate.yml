@@ -8,6 +8,13 @@
 # Umschalten von Draft auf ready ein zweites Mal, ohne dass sich eine Zeile
 # geaendert hat.
 #
+# Auf Drafts laeuft der Job bewusst mit und wird dort rot: Der Commit aendert
+# sich beim Umschalten auf «ready» nicht, und bis der neue Lauf angelegt ist,
+# bleibt der Draft-Lauf der juengste fuer diesen Commit (auf PR #106 zwei
+# Sekunden). Bestuende er, laese ein required-Check in diesem Fenster gruen.
+# Ein `if:` auf `!draft` hilft nicht: Ein uebersprungener Job meldet
+# `skipped`, und das zaehlt fuer einen required-Check als bestanden.
+#
 # `synchronize` ist absichtlich dabei: Nach einem Push betrifft das vorhandene
 # Urteil einen anderen Commit, und der Gate soll das melden statt es zu
 # ueberlesen. Codex laeuft auf einen blossen Push nicht neu an — die Meldung

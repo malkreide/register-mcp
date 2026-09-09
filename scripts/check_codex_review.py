@@ -22,16 +22,27 @@ Findings laesst es passieren; dass Befunde beantwortet oder behoben werden,
 steht in CLAUDE.md und ist Sache des Autors. Geprueft wird nur, ob ueberhaupt
 jemand hingesehen hat.
 
-Zwei Ausnahmen, beide gemessen und beide noetig:
+Eine Ausnahme, gemessen und noetig: **Bot-Autoren.** Codex prueft in diesem
+Repo keine Dependabot-PRs — #101 und #103 tragen null Codex-Kommentare (#101s
+einziger Kommentar war Dependabots eigene Schlussnotiz). Ohne die Ausnahme
+haenge jeder Dependency-PR dauerhaft fest; der Gate wuerde abgeschaltet, und
+ein abgeschalteter Gate prueft nichts.
 
-  - **Drafts.** Codex laeuft darauf gar nicht an, und mergen laesst sich ein
-    Draft ohnehin nicht. Ein Gate, das hier rot waere, blockierte nichts und
-    verbrauchte nur Laufzeit.
-  - **Bot-Autoren.** Codex prueft in diesem Repo keine Dependabot-PRs: #101 und
-    #103 tragen null Codex-Kommentare (#101s einziger Kommentar war
-    Dependabots eigene Schlussnotiz). Ohne diese Ausnahme haenge jeder
-    Dependency-PR dauerhaft fest — der Gate wuerde abgeschaltet, und ein
-    abgeschalteter Gate prueft nichts.
+**Drafts fallen, und das ist Absicht.** Die erste Fassung liess sie
+durchgehen: Codex laeuft darauf nicht an, mergen laesst sich ein Draft
+ohnehin nicht, ein roter Check schien also nur Laerm. Das oeffnete ein
+Zeitfenster. Beim Umschalten auf «ready for review» aendert sich der Commit
+nicht, und bis der neue Lauf angelegt ist, bleibt der bestandene Draft-Lauf
+der juengste fuer diesen Commit — auf PR #106 gemessen zwei Sekunden. Ein als
+*required* gefuehrter Check laese in diesem Fenster gruen, und genau dort
+lagen die Merges: fuenfmal in Folge drei bis neun Sekunden nach «ready».
+
+Ein roter Draft-Lauf schliesst das Fenster, ohne etwas Echtes zu blockieren.
+Die Meldung sagt darum ausdruecklich, dass das der erwartete Zustand ist.
+
+Nicht zu verwechseln mit «den Job auf Drafts ueberspringen»: Ein per `if:`
+uebersprungener Job meldet die Conclusion `skipped`, und die zaehlt fuer einen
+required-Check als bestanden. Das Fenster bliebe offen.
 
 Verwendung (in der CI, siehe .github/workflows/codex-gate.yml):
 
@@ -138,10 +149,14 @@ def entscheide(
     Reine Funktion, damit die Faelle offline pruefbar sind. Ein Gate, dessen
     Logik nur im Netz laeuft, wird von Tests nicht erreicht und driftet.
     """
-    if ist_draft:
-        return BESTANDEN, "Draft: Codex laeuft nicht an, und mergen laesst sich ein Draft nicht."
     if autor_typ == "Bot":
         return BESTANDEN, "Bot-Autor: Codex prueft diese PRs nicht (gemessen an #101 und #103)."
+    if ist_draft:
+        return GEFALLEN, (
+            "Draft: Codex laeuft darauf nicht an, es liegt also kein Urteil vor.\n"
+            "Das ist erwartet und blockiert nichts — ein Draft ist nicht mergebar. "
+            "Beim Umschalten auf «ready for review» laeuft dieser Gate erneut."
+        )
 
     for review in reviews:
         autor = (review.get("user") or {}).get("login", "")
@@ -266,6 +281,10 @@ def main() -> int:
     if zustand == BESTANDEN:
         print(f"Codex-Gate OK — {grund}")
         return 0
+    if zustand == GEFALLEN:
+        # Draft: ohne einen einzigen API-Aufruf, der Zustand steht im Ereignis.
+        print(f"Codex-Gate rot — {grund}", file=sys.stderr)
+        return 1
 
     ende = time.monotonic() + frist
     while True:
