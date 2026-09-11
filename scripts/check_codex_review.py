@@ -72,7 +72,9 @@ API = "https://api.github.com"
 MARKER_TABELLE = "<!-- codex-pull-request-review-summary -->"
 
 # Die Befundlos-Meldung der aelteren Form. Der Schlusssatz wechselt bei jedem
-# Lauf («Swish!», «Delightful!»), stabil ist nur dieser Satz.
+# Lauf («Swish!», «Delightful!», «Another round soon, please!»), stabil ist nur
+# dieser Satz. Seit dem 9.9.2026 traegt sie zudem «Reviewed commit: `<sha>`» —
+# der wird geprueft, denn auch dieses Urteil gilt nur seinem Commit.
 TEXT_BEFUNDLOS = "Didn't find any major issues"
 
 # Die beiden Ausfallmeldungen. Sie sind KEIN Urteil — sie sagen, dass Codex gar
@@ -111,16 +113,21 @@ def _tabellen_zustand(body: str) -> tuple[str | None, str | None]:
     elif "Running" in body:
         zustand = "running"
 
-    # Der Commit steht als kurzer SHA in Backticks in der Tabellenzeile. Eine
-    # Zeichenklasse statt einer Regex ueber die ganze Zeile: Die Tabelle traegt
-    # mehrere Backtick-Felder, und nur eines davon sieht aus wie ein SHA.
-    commit = None
+    return zustand, _commit_aus_backticks(body)
+
+
+def _commit_aus_backticks(body: str) -> str | None:
+    """Der erste SHA-artige Backtick-Wert im Text — oder None.
+
+    Eine Zeichenklasse statt einer Regex ueber die Zeile: Sowohl die Tabelle
+    als auch die Befundlos-Meldung tragen mehrere Backtick-Felder, und nur
+    eines davon sieht aus wie ein SHA.
+    """
     for stueck in body.split("`"):
         kandidat = stueck.strip()
         if 7 <= len(kandidat) <= 40 and all(z in "0123456789abcdef" for z in kandidat):
-            commit = kandidat
-            break
-    return zustand, commit
+            return kandidat
+    return None
 
 
 def _passt_zum_head(commit: str | None, head_sha: str) -> bool:
@@ -134,6 +141,22 @@ def _passt_zum_head(commit: str | None, head_sha: str) -> bool:
     if commit is None:
         return True
     return head_sha.startswith(commit) or commit.startswith(head_sha[:7])
+
+
+def _veraltet(commit: str | None, head_sha: str, was: str) -> str:
+    """Meldung fuer ein Urteil, das einem anderen Commit gilt.
+
+    Beide Wege koennen veralten — die Tabelle wie das Review-Objekt. Der Text
+    steht deshalb an einer Stelle: Zwei Fassungen davon waeren zwei Stellen,
+    die auseinanderlaufen koennen, und der Hinweis auf `@codex review` ist der
+    einzige Ausweg, den der Leser hat.
+    """
+    kurz = (commit or "?")[:7]
+    return (
+        f"{was}, aber fuer {kurz} — Head ist {head_sha[:7]}.\n"
+        "Codex laeuft auf einen blossen Push nicht neu an. "
+        "`@codex review` auf dem PR kommentieren."
+    )
 
 
 def entscheide(
@@ -158,13 +181,19 @@ def entscheide(
             "Beim Umschalten auf «ready for review» laeuft dieser Gate erneut."
         )
 
+    review_veraltet = None
     for review in reviews:
         autor = (review.get("user") or {}).get("login", "")
-        if _ist_codex(autor):
-            return BESTANDEN, "Review-Objekt von Codex vorhanden."
+        if not _ist_codex(autor):
+            continue
+        commit = review.get("commit_id")
+        if _passt_zum_head(commit, head_sha):
+            return BESTANDEN, f"Review-Objekt von Codex fuer {(commit or 'diesen Stand')[:7]}."
+        review_veraltet = commit
 
     zustand_tabelle = None
     commit_tabelle = None
+    befundlos_veraltet = None
     unbekannt = []
 
     for kommentar in kommentare:
@@ -177,7 +206,11 @@ def entscheide(
             zustand_tabelle, commit_tabelle = _tabellen_zustand(body)
             continue
         if TEXT_BEFUNDLOS in body:
-            return BESTANDEN, "Befundlos-Meldung vorhanden."
+            commit = _commit_aus_backticks(body)
+            if _passt_zum_head(commit, head_sha):
+                return BESTANDEN, f"Befundlos-Meldung fuer {commit or 'diesen Stand'}."
+            befundlos_veraltet = commit
+            continue
         if TEXT_KONTINGENT in body:
             return (
                 GEFALLEN,
@@ -190,15 +223,13 @@ def entscheide(
     if zustand_tabelle == "completed":
         if _passt_zum_head(commit_tabelle, head_sha):
             return BESTANDEN, f"Summary-Tabelle: Completed fuer {commit_tabelle or 'diesen Stand'}."
-        grund = (
-            f"Summary-Tabelle ist Completed, aber fuer {commit_tabelle} — "
-            f"Head ist {head_sha[:7]}.\n"
-            "Codex laeuft auf einen blossen Push nicht neu an. "
-            "`@codex review` auf dem PR kommentieren."
-        )
-        return GEFALLEN, grund
+        return GEFALLEN, _veraltet(commit_tabelle, head_sha, "Summary-Tabelle ist Completed")
     if zustand_tabelle == "running":
         return WARTEN, "Summary-Tabelle steht auf Running."
+    if review_veraltet is not None:
+        return GEFALLEN, _veraltet(review_veraltet, head_sha, "Review-Objekt vorhanden")
+    if befundlos_veraltet is not None:
+        return GEFALLEN, _veraltet(befundlos_veraltet, head_sha, "Befundlos-Meldung vorhanden")
 
     if unbekannt:
         gefunden = "\n  ".join(unbekannt)
