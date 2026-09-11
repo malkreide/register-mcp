@@ -53,6 +53,13 @@ BEFUNDLOS_MIT_COMMIT = """Codex Review: Didn't find any major issues. Another ro
 """
 
 
+# Woertlich aus PR #109: Der Koerper ist Markdown, nicht der gerenderte Satz.
+ENVIRONMENT_MARKDOWN = (
+    "To use Codex here, [create an environment for this repo]"
+    "(https://chatgpt.com/codex/cloud/settings/environments)."
+)
+
+
 def _kommentar(body: str, autor: str = ccr.CODEX_LOGIN) -> dict:
     return {"user": {"login": autor}, "body": body}
 
@@ -115,14 +122,34 @@ class AusfaelleSindKeinUrteil(unittest.TestCase):
     heissen doch: hat nicht hingesehen."""
 
     def test_kontingent_faellt(self):
-        zustand, grund = _entscheide(kommentare=[_kommentar(ccr.TEXT_KONTINGENT)])
+        body = "You have reached your Codex usage limits for code reviews."
+        zustand, grund = _entscheide(kommentare=[_kommentar(body)])
         self.assertEqual(zustand, ccr.GEFALLEN)
         self.assertIn("Kontingent", grund)
 
     def test_environment_faellt(self):
-        zustand, grund = _entscheide(kommentare=[_kommentar(ccr.TEXT_ENVIRONMENT)])
+        body = "To use Codex here, create an environment for this repo."
+        zustand, grund = _entscheide(kommentare=[_kommentar(body)])
         self.assertEqual(zustand, ccr.GEFALLEN)
         self.assertIn("Environment", grund)
+
+    def test_environment_als_markdown_faellt_ebenfalls(self):
+        """So kommt sie wirklich an — woertlich aus PR #109 am 11.9.2026.
+
+        `CLAUDE.md` zitiert die *gerenderte* Form; der Kommentarkoerper der API
+        ist Markdown mit einem Link mitten im Satz. Der Vergleich gegen den
+        ganzen Satz griff daran vorbei, und der Gate meldete «unbekannter
+        Text» statt «Environment fehlt».
+        """
+        zustand, grund = _entscheide(kommentare=[_kommentar(ENVIRONMENT_MARKDOWN)])
+        self.assertEqual(zustand, ccr.GEFALLEN)
+        self.assertIn("Environment", grund)
+
+    def test_die_ausfallmeldung_wird_woertlich_zitiert(self):
+        """Wer den Job rot sieht, will den Wortlaut sehen, den Codex schrieb —
+        samt Markdown, falls sich die Form wieder aendert."""
+        _, grund = _entscheide(kommentare=[_kommentar(ENVIRONMENT_MARKDOWN)])
+        self.assertIn("chatgpt.com/codex/cloud/settings/environments", grund)
 
     def test_schweigen_haelt_auf(self):
         zustand, _ = _entscheide(kommentare=[])

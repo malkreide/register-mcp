@@ -113,6 +113,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   auseinandergelaufen, weil nur eine Fassung nachgezogen wurde.
 
 
+### Behoben — der Codex-Gate erkannte die Environment-Meldung nicht
+
+Gesucht wurde der gerenderte Wortlaut
+(«To use Codex here, create an environment for this repo.»); der
+Kommentarkoerper der API ist aber Markdown mit einem Link mitten im Satz:
+
+```
+To use Codex here, [create an environment for this repo](https://chatgpt.com/…).
+```
+
+Auf PR #109 fiel der Gate deshalb am 11.9.2026 in den Unbekannt-Zweig und
+meldete «Codex hat etwas geschrieben, das dieses Skript nicht kennt», statt
+«Environment fehlt».
+
+Rot war er trotzdem, und er zitierte den Text woertlich — die Regel aus
+`CLAUDE.md`, einen unbekannten Text lieber zu zitieren als ihn in eine
+bekannte Schublade zu zwingen, hat sich hier an sich selbst ausgezahlt: Der
+Fehler war in einem Blick zu sehen, und der Gate hat in der sicheren Richtung
+geirrt.
+
+Geprueft wird jetzt auf **Fragmente** ohne Link-Kandidaten
+(`environment for this repo`, `Codex usage limits`) statt auf ganze Saetze.
+Die Meldung zitiert den echten Koerper statt der Konstante — wer den Job rot
+sieht, will den Wortlaut sehen, den Codex geschrieben hat.
+
+Ob die Kontingent-Meldung im Rohtext ebenfalls einen Link traegt, ist
+**ungemessen**; beobachtet wurde nur die gerenderte Form. Das Fragment ist
+trotzdem so gewaehlt, dass es beide Formen traefe.
+
+Gegenprobe, drei Zusicherungen einzeln neutralisiert: Environment-Fragment
+zum ganzen Satz -> `test_environment_als_markdown_faellt_ebenfalls` faellt;
+Kontingent-Fragment zum ganzen Satz -> `test_kontingent_faellt` faellt;
+Koerper nicht mehr zitiert -> `test_die_ausfallmeldung_wird_woertlich_zitiert`
+faellt.
+
 ### Behoben — der Codex-Gate wurde gruen, ohne den aktuellen Commit zu pruefen
 
 Betroffen waren **zwei** der drei Wege, auf denen ein Urteil hereinkommt.

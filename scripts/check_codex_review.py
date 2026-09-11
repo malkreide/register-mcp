@@ -80,8 +80,21 @@ TEXT_BEFUNDLOS = "Didn't find any major issues"
 # Die beiden Ausfallmeldungen. Sie sind KEIN Urteil — sie sagen, dass Codex gar
 # nicht hingesehen hat, und sind der Grund, warum «kein Kommentar» und «alles in
 # Ordnung» sich nicht an der Kommentarzahl unterscheiden lassen.
-TEXT_KONTINGENT = "You have reached your Codex usage limits for code reviews."
-TEXT_ENVIRONMENT = "To use Codex here, create an environment for this repo."
+#
+# Gesucht werden FRAGMENTE, nicht die ganzen Saetze: Der Kommentarkoerper kommt
+# als Markdown, nicht als gerenderter Text. Die Environment-Meldung traegt einen
+# Link mitten im Satz —
+#
+#     To use Codex here, [create an environment for this repo](https://…).
+#
+# — und ein Vergleich gegen den gerenderten Wortlaut greift daran vorbei. Genau
+# das ist am 11.9.2026 auf PR #109 passiert: Der Gate fiel in den
+# Unbekannt-Zweig, statt «Environment fehlt» zu melden. Rot war er trotzdem,
+# und er zitierte den Text woertlich — deshalb war der Fehler in einem Blick zu
+# sehen. Die Fragmente sind so gewaehlt, dass sie in beiden Formen vorkommen
+# und keinen Link-Kandidaten enthalten.
+FRAGMENT_KONTINGENT = "Codex usage limits"
+FRAGMENT_ENVIRONMENT = "environment for this repo"
 
 # Codex postet als App; der Login traegt das Bot-Suffix.
 CODEX_LOGIN = "chatgpt-codex-connector[bot]"
@@ -141,6 +154,16 @@ def _passt_zum_head(commit: str | None, head_sha: str) -> bool:
     if commit is None:
         return True
     return head_sha.startswith(commit) or commit.startswith(head_sha[:7])
+
+
+def _ausfall(was: str, body: str) -> str:
+    """Meldung fuer eine Ausfallmeldung — mit dem Koerper, wie er ankam.
+
+    Zitiert wird der echte Text und nicht die Konstante: Die Konstante ist nur
+    noch ein Fragment, und wer den Job rot sieht, will den Wortlaut sehen, den
+    Codex geschrieben hat — samt Markdown, falls sich die Form wieder aendert.
+    """
+    return f"Codex hat nicht geprueft — {was}:\n  {body.strip()[:400]}"
 
 
 def _veraltet(commit: str | None, head_sha: str, was: str) -> str:
@@ -211,13 +234,10 @@ def entscheide(
                 return BESTANDEN, f"Befundlos-Meldung fuer {commit or 'diesen Stand'}."
             befundlos_veraltet = commit
             continue
-        if TEXT_KONTINGENT in body:
-            return (
-                GEFALLEN,
-                f"Codex hat nicht geprueft — Kontingent erschoepft:\n  {TEXT_KONTINGENT}",
-            )
-        if TEXT_ENVIRONMENT in body:
-            return GEFALLEN, f"Codex hat nicht geprueft — Environment fehlt:\n  {TEXT_ENVIRONMENT}"
+        if FRAGMENT_KONTINGENT in body:
+            return GEFALLEN, _ausfall("Kontingent erschoepft", body)
+        if FRAGMENT_ENVIRONMENT in body:
+            return GEFALLEN, _ausfall("Environment fehlt", body)
         unbekannt.append(body.strip()[:400])
 
     if zustand_tabelle == "completed":
