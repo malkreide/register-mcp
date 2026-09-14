@@ -311,6 +311,24 @@ ohne dass jemand hineingesehen hat, und am 22.8. noch einmal 43.
   To use Codex here, create an environment for this repo.
   ```
 
+  **Das ist die gerenderte Form.** Der Kommentarkörper aus der API ist
+  Markdown und trägt einen Link mitten im Satz:
+
+  ```
+  To use Codex here, [create an environment for this repo](https://chatgpt.com/…).
+  ```
+
+  Wer gegen den gerenderten Wortlaut vergleicht, greift daran vorbei. Genau
+  das ist am 11.9.2026 auf PR #109 passiert: Der Codex-Gate meldete
+  «unbekannter Text» statt «Environment fehlt». Rot war er trotzdem, und er
+  zitierte den Text wörtlich — deshalb war der Fehler in einem Blick zu sehen.
+  Das ist die Regel weiter unten, die sich hier selbst ausgezahlt hat.
+
+  Wer auf diese Meldungen prüft, nimmt deshalb ein **Fragment** ohne
+  Link-Kandidaten (`environment for this repo`, `Codex usage limits`), nicht
+  den ganzen Satz. Ob die Kontingent-Meldung im Rohtext ebenfalls einen Link
+  trägt, ist **ungemessen** — beobachtet wurde nur die gerenderte Form.
+
 Der vierte kam erst zum Vorschein, als der dritte wegfiel, und das ist kein
 Zufall: Die Prüfungen liegen hintereinander. Dass es diese Reihenfolge ist und
 nicht die umgekehrte, lässt sich an einem einzigen Repo ablesen — in
