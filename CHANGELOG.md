@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Entfernt
+
+- **Das Codex-Gate ist weg:** `.github/workflows/codex-gate.yml`,
+  `scripts/check_codex_review.py` und `tests/test_check_codex_review.py`; dazu
+  die Codex-Zeile im PR-Template samt dem dadurch leeren Abschnitt
+  `## Checkliste`, der Abschnitt «Wenn Codex gar nicht erst hinsieht» in
+  `CLAUDE.md` (363 Zeilen) und der Gate-Absatz in Teil 2.
+
+  **Eine etwaige Branch-Protection-Regel muss von Hand weg.** Diese Einstellung
+  sperrt der Agent-Proxy mit HTTP 403; bleibt ein required Kontext stehen,
+  waehrend der Workflow weg ist, haelt er jeden PR auf.
+
+  Stehen bleiben die Herkunftsangabe in `tests/test_retry_policy.py`, die
+  Branch-Namen der Zwei-Agenten-Anekdote und die bisherigen Eintraege hier.
+
 ### Hinzugefuegt
 
 - **Ein Gate, der einen PR aufhaelt, bis Codex ihn angesehen hat**
