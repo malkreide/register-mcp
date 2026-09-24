@@ -1,6 +1,6 @@
 # Lokales Gate, deckungsgleich mit dem Lint-Schritt in `.github/workflows/ci.yml`.
 #
-# `rev` traegt denselben Pin wie `pyproject.toml [dev]`: ruff 0.16.6. Das sind
+# `rev` traegt denselben Pin wie `pyproject.toml [dev]`: ruff 0.16.7. Das sind
 # die beiden fuehrenden Stellen; die CI installiert kein eigenes ruff mehr,
 # sondern nimmt es aus dem dev-Extra. Beide werden gemeinsam angehoben — laufen
 # sie auseinander, meldet eine davon Abweichungen, die niemand verursacht hat,
@@ -13,7 +13,7 @@
 # abgeschalteter Hook prueft nichts.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.6
+    rev: v0.16.7
     hooks:
       - id: ruff-check
         files: ^(src|tests|scripts|docs)/
