@@ -49,7 +49,7 @@ Out of scope:
 - Zefix-side API behaviour or data quality (report to `zefix@bj.admin.ch`)
 - Issues only reproducible in a fork with modified middleware / auth removed
 - Findings in dependencies — please file with the upstream project; we patch
-  via Dependabot weekly.
+  via Dependabot monthly (grouped).
 
 ## Hardening Notes for Operators
 
