@@ -49,7 +49,7 @@ Ausserhalb des Geltungsbereichs:
 - Zefix-seitiges API-Verhalten oder Datenqualität (an `zefix@bj.admin.ch` melden)
 - Probleme, die nur in einem Fork mit modifizierter Middleware / entfernter Auth reproduzierbar sind
 - Findings in Abhängigkeiten — bitte beim Upstream-Projekt melden; wir patchen
-  wöchentlich via Dependabot.
+  monatlich gebündelt via Dependabot.
 
 ## Hardening-Hinweise für Betreiber
 
