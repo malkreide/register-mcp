@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-27
+
+Der Server spricht MCP-Spec `2026-07-28` jetzt auch ueber HTTP nativ. Bisher
+erreichte die moderne Aera (Pro-Request-Envelope, `server/discover`,
+Frischehinweise) nur stdio; in der Cloud gab es nur SSE, das den Envelope
+nicht kennt. Die Werkzeuge selbst antworten unveraendert.
+
+**Upgrade — warum Minor und nicht Patch:** Container-Image und `compose.yaml`
+starten jetzt mit `MCP_TRANSPORT=streamable-http` auf `POST /mcp`. Clients, die
+auf `…/sse` zeigen, muessen auf `…/mcp` umstellen, oder das Deployment setzt
+`MCP_TRANSPORT=sse` ausdruecklich. Wer auf das Log-Ereignis `sse_app_built`
+alarmiert, zieht den Namen auf `http_app_built` nach. stdio (`uvx
+register-mcp`, Claude Desktop) ist nicht betroffen.
+
+Fuer SSE-Deployments ist 0.7.0 zugleich ein Fix: bis 0.6.1 wies die SSE-App
+jeden oeffentlichen Host-Header mit HTTP 421 ab (siehe unten).
+
+Neu im Verhalten ist ausserdem: `tools/list` und `server/discover` tragen
+Frischehinweise (SEP-2549, `ttlMs` 300000, `cacheScope` `public`), Clients
+muessen also nicht mehr bei jeder Verbindung neu auflisten. Der Rest seit 0.6.1
+ist Werkzeugkette ohne Wirkung auf das ausgelieferte Paket: Protokoll-Gate,
+Dependabot-Label-Check, das inzwischen wieder entfernte Codex-Gate,
+ruff-Anhebungen bis 0.16.9.
+
 ### Geaendert — nativ auf Spec 2026-07-28 ueber HTTP
 
 - **Neuer Transport `MCP_TRANSPORT=streamable-http`** (`POST /mcp`). Er ist der

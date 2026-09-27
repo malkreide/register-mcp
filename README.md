@@ -2,7 +2,7 @@
 
 # register-mcp
 
-![Version](https://img.shields.io/badge/version-0.6.1-blue)
+![Version](https://img.shields.io/badge/version-0.7.0-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
@@ -104,7 +104,7 @@ Two HTTP transports are available:
 session held in a single process, so a second instance needs no sticky
 sessions.
 
-> ⚠️ **Upgrade note (after 0.6.1):** the container image and `compose.yaml` now
+> ⚠️ **Upgrade note (0.7.0):** the container image and `compose.yaml` now
 > default to `streamable-http`. Clients configured with `…/sse` must switch to
 > `…/mcp`, or the deployment sets `MCP_TRANSPORT=sse` explicitly.
 
