@@ -1,4 +1,4 @@
-"""ASGI middleware for the SSE transport: bearer-token auth and rate limiting."""
+"""ASGI middleware for the HTTP transports (streamable-http, SSE): bearer-token auth and rate limiting."""
 
 from __future__ import annotations
 

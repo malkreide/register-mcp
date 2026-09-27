@@ -91,19 +91,48 @@ jobs:
           provenance: false
           sbom: false
       - name: Smoke test — image refuses to start without MCP_API_KEY
+        # Both HTTP transports: the image default (streamable-http) and SSE.
         run: |
-          set +e
-          out=$(docker run --rm -e MCP_TRANSPORT=sse register-mcp:ci 2>&1)
-          rc=$?
-          echo "$out"
-          if [ "$rc" -eq 0 ]; then
-            echo "::error::Image started without MCP_API_KEY (should have exited non-zero)"
-            exit 1
-          fi
-          echo "$out" | grep -q "MCP_API_KEY" || {
-            echo "::error::Expected MCP_API_KEY guidance in stderr"
-            exit 1
-          }
+          for t in "" sse; do
+            set +e
+            if [ -z "$t" ]; then
+              out=$(docker run --rm register-mcp:ci 2>&1)
+            else
+              out=$(docker run --rm -e MCP_TRANSPORT="$t" register-mcp:ci 2>&1)
+            fi
+            rc=$?
+            set -e
+            echo "$out"
+            if [ "$rc" -eq 0 ]; then
+              echo "::error::Image (transport=${t:-default}) started without MCP_API_KEY"
+              exit 1
+            fi
+            echo "$out" | grep -q "MCP_API_KEY" || {
+              echo "::error::Expected MCP_API_KEY guidance in stderr (transport=${t:-default})"
+              exit 1
+            }
+          done
+      - name: Smoke test — a 2026-07-28 request reaches the running image
+        # The unit suite drives the ASGI app in-process; this sends the same
+        # request through uvicorn in the shipped image, under a non-localhost
+        # Host header, as a reverse proxy would.
+        run: |
+          docker run -d --name smoke -p 8000:8000 -e MCP_API_KEY=smoke register-mcp:ci
+          trap 'docker logs smoke; docker rm -f smoke >/dev/null' EXIT
+          body='{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"ci","version":"0"},"io.modelcontextprotocol/clientCapabilities":{}}}}'
+          for i in $(seq 1 30); do
+            out=$(curl -sS http://127.0.0.1:8000/mcp \
+              -H "Host: register-mcp.example.com" \
+              -H "Authorization: Bearer smoke" \
+              -H "Accept: application/json, text/event-stream" \
+              -H "Content-Type: application/json" \
+              -H "MCP-Protocol-Version: 2026-07-28" \
+              -H "Mcp-Method: tools/list" \
+              -d "$body" 2>/dev/null) && break
+            sleep 1
+          done
+          echo "$out" | head -c 400; echo
+          echo "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin)["result"]; assert r["ttlMs"] > 0 and r["cacheScope"] == "public" and r["tools"], r'
       - name: Smoke test — non-root user
         run: |
           user=$(docker run --rm --entrypoint id register-mcp:ci -un)

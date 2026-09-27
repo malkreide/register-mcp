@@ -5,7 +5,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      MCP_TRANSPORT: sse
+      MCP_TRANSPORT: streamable-http
       PORT: "8000"
       MCP_API_KEY: ${MCP_API_KEY:?set MCP_API_KEY in your shell or .env}
       MCP_RATE_LIMIT: "60"

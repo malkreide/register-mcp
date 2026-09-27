@@ -53,7 +53,7 @@ Ausserhalb des Geltungsbereichs:
 
 ## Hardening-Hinweise für Betreiber
 
-Beim öffentlichen Betrieb des SSE-Transports gilt zusätzlich zum eingebauten
+Beim öffentlichen Betrieb eines HTTP-Transports (`streamable-http` oder `sse`) gilt zusätzlich zum eingebauten
 `MCP_API_KEY` + Rate Limit:
 
 1. Setze ein echtes Gateway (Cloudflare Access, Railway Internal Networking,

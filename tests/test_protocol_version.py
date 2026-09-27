@@ -28,10 +28,12 @@ Nachgemessen statt aus Konstantennamen geschlossen: die Aushandlung steht in
 
 — sie haengt an keinem Transport, gilt also fuer stdio ebenso wie fuer HTTP.
 
-Ohne gemessenen Teil: dieses Repo baut keine ASGI-App, durch die sich ein
-`initialize` schicken liesse. Die Zusicherungen unten haengen deshalb an den
-SDK-Konstanten. Das ist die schwaechere Form, und sie steht hier benannt statt
-unausgesprochen.
+Die Zusicherungen hier haengen an den SDK-Konstanten. Gemessen wird in
+`tests/test_streamable_http.py`: dort gehen `server/discover`, `tools/list`,
+`tools/call` als 2026-07-28-Anfragen und ein `initialize` durch die App, die
+`main()` mit `MCP_TRANSPORT=streamable-http` ausliefert. Bis zum 2026-09-27
+fehlte diese Haelfte — es gab nur die SSE-App, und die erreicht die moderne
+Aera nicht.
 """
 
 from __future__ import annotations

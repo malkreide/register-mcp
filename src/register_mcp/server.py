@@ -367,7 +367,7 @@ mcp = MCPServer(
 transport = os.environ.get("MCP_TRANSPORT", "stdio")
 # mcp 2.x: MCPServer.settings no longer carries host/port, so the bind address
 # lives here and is handed to uvicorn directly in main().
-BIND_HOST = "0.0.0.0"  # noqa: S104 — SSE deployment target is a container
+BIND_HOST = "0.0.0.0"  # noqa: S104 — HTTP deployment target is a container
 BIND_PORT = int(os.environ.get("PORT", "8000"))
 
 # ---------------------------------------------------------------------------
@@ -2072,33 +2072,83 @@ DEFAULT_RATE_LIMIT = int(os.environ.get("MCP_RATE_LIMIT", "60"))
 DEFAULT_RATE_WINDOW = float(os.environ.get("MCP_RATE_WINDOW", "60"))
 
 
-def _build_sse_app():
-    """Build the SSE Starlette app with auth + rate-limit middleware.
+# Streamable HTTP ist der Transport, ueber den Spec 2026-07-28 HTTP ueberhaupt
+# kennt: jede Anfrage ein eigenstaendiger POST mit `_meta`-Envelope und
+# `Mcp-Method`-Header, ohne `initialize` und ohne `Mcp-Session-Id`. Das SDK
+# leitet solche Anfragen am `MCP-Protocol-Version`-Header in den modernen
+# Einstieg; ein `initialize` mit `2025-11-25` oder aelter landet weiterhin im
+# Handshake-Pfad desselben Endpunkts.
+#
+# `stateless_http=True` gilt nur fuer diesen Handshake-Pfad: ohne Sitzung im
+# Speicher braucht ein zweiter Container keine Sticky Sessions, und die 2026er
+# Anfragen sind ohnehin zustandslos. `json_response=True`, weil kein Tool
+# Fortschritt meldet oder zurueckfragt — ein SSE-Strom truege eine Antwort, die
+# in einen JSON-Koerper passt.
+STREAMABLE_HTTP_PATH = "/mcp"
+HTTP_TRANSPORTS = ("streamable-http", "sse")
 
-    Requires `MCP_API_KEY` env var to be set. Fails loud at startup otherwise —
-    no implicit "auth disabled" mode is supported for SSE.
-    """
-    from ._middleware import BearerAuthMiddleware, RateLimitMiddleware
 
+def _require_api_key(transport_name: str) -> str:
     api_key = os.environ.get("MCP_API_KEY", "").strip()
     if not api_key:
         raise SystemExit(
-            "MCP_API_KEY must be set when MCP_TRANSPORT=sse. "
+            f"MCP_API_KEY must be set when MCP_TRANSPORT={transport_name}. "
             "Generate a random key (e.g. `openssl rand -hex 32`) and pass it via env."
         )
+    return api_key
 
-    app = mcp.sse_app()
+
+def _secure(app, transport_name: str, api_key: str):
+    """Wrap an HTTP app with bearer auth + rate limit — identical for both transports."""
+    from ._middleware import BearerAuthMiddleware, RateLimitMiddleware
+
     # Rate limit runs *after* auth so the bucket key is the bearer-token hash.
     # Middleware added later runs first → add rate-limit first, then auth.
     app.add_middleware(RateLimitMiddleware, limit=DEFAULT_RATE_LIMIT, window=DEFAULT_RATE_WINDOW)
     app.add_middleware(BearerAuthMiddleware, expected_key=api_key)
     log_event(
         logging.INFO,
-        "sse_app_built",
+        "http_app_built",
+        transport=transport_name,
         rate_limit=DEFAULT_RATE_LIMIT,
         rate_window=DEFAULT_RATE_WINDOW,
     )
     return app
+
+
+def _build_sse_app():
+    """Build the SSE Starlette app with auth + rate-limit middleware.
+
+    Requires `MCP_API_KEY` env var to be set. Fails loud at startup otherwise —
+    no implicit "auth disabled" mode is supported for SSE.
+
+    SSE is the pre-2025-03-26 HTTP transport and reaches the handshake era only;
+    kept for deployments whose clients still connect to `/sse`.
+    """
+    api_key = _require_api_key("sse")
+    # `host=` for the same reason as below. Without it every request under a
+    # public hostname came back HTTP 421 "Invalid Host header".
+    return _secure(mcp.sse_app(host=BIND_HOST), "sse", api_key)
+
+
+def _build_streamable_http_app():
+    """Build the Streamable HTTP app (`/mcp`) — the native 2026-07-28 transport.
+
+    Same guard as SSE: no `MCP_API_KEY`, no start. Returns a fresh app on every
+    call; the SDK's session manager runs its lifespan only once per instance.
+    """
+    api_key = _require_api_key("streamable-http")
+    app = mcp.streamable_http_app(
+        streamable_http_path=STREAMABLE_HTTP_PATH,
+        stateless_http=True,
+        json_response=True,
+        # Not the SDK default `127.0.0.1`: that silently switches on DNS-rebinding
+        # protection with a localhost-only Host allow-list, which rejects every
+        # request reaching the container under its public hostname. The bearer
+        # token is the guard here — a rebinding page does not have it.
+        host=BIND_HOST,
+    )
+    return _secure(app, "streamable-http", api_key)
 
 
 def main() -> None:
@@ -2109,16 +2159,18 @@ def main() -> None:
         log_event(logging.INFO, "starting", transport="stdio")
         mcp.run(transport="stdio")
         return
-    if transport == "sse":
+    if transport in HTTP_TRANSPORTS:
         import uvicorn
 
-        app = _build_sse_app()
+        app = _build_sse_app() if transport == "sse" else _build_streamable_http_app()
         host = BIND_HOST
         port = BIND_PORT
-        log_event(logging.INFO, "starting", transport="sse", host=host, port=port)
+        log_event(logging.INFO, "starting", transport=transport, host=host, port=port)
         uvicorn.run(app, host=host, port=port, log_level=mcp.settings.log_level.lower())
         return
-    raise SystemExit(f"Unsupported MCP_TRANSPORT={transport!r} (expected 'stdio' or 'sse')")
+    raise SystemExit(
+        f"Unsupported MCP_TRANSPORT={transport!r} (expected 'stdio', 'streamable-http' or 'sse')"
+    )
 
 
 if __name__ == "__main__":

@@ -48,7 +48,7 @@ zefix_search_company  →  zefix_verify_company  →  gazette_company_publicatio
 - 🔍 **`zefix_verify_company`** — quick active/dissolved status check
 - 🌐 **Bilingual output** (Markdown / JSON) with per-source attribution + `provenance`
 - 🔓 **No API key required** — open data from zefix.admin.ch and amtsblattportal.ch
-- ☁️ **Dual transport** — stdio (Claude Desktop) + SSE (cloud)
+- ☁️ **Transports** — stdio (Claude Desktop) + Streamable HTTP at `/mcp` (cloud, native MCP spec `2026-07-28`); SSE kept for existing deployments
 
 ---
 
@@ -86,14 +86,29 @@ uvx register-mcp
 # stdio (for Claude Desktop)
 python -m register_mcp.server
 
-# SSE (cloud deployment) — MCP_API_KEY is REQUIRED
-MCP_API_KEY=$(openssl rand -hex 32) MCP_TRANSPORT=sse PORT=8000 \
+# Streamable HTTP (cloud deployment, endpoint /mcp) — MCP_API_KEY is REQUIRED
+MCP_API_KEY=$(openssl rand -hex 32) MCP_TRANSPORT=streamable-http PORT=8000 \
   python -m register_mcp.server
 ```
 
-### SSE / Cloud Deployment
+### HTTP / Cloud Deployment
 
-When running with `MCP_TRANSPORT=sse`, the server enforces:
+Two HTTP transports are available:
+
+| `MCP_TRANSPORT` | Endpoint | Protocol revisions |
+|---|---|---|
+| `streamable-http` (container default) | `POST /mcp` | `2026-07-28` per-request envelope **and** the `initialize` handshake up to `2025-11-25` |
+| `sse` | `GET /sse` + `POST /messages/` | handshake era only — kept so existing deployments keep working |
+
+`streamable-http` runs stateless with JSON responses: no `Mcp-Session-Id`, no
+session held in a single process, so a second instance needs no sticky
+sessions.
+
+> ⚠️ **Upgrade note (after 0.6.1):** the container image and `compose.yaml` now
+> default to `streamable-http`. Clients configured with `…/sse` must switch to
+> `…/mcp`, or the deployment sets `MCP_TRANSPORT=sse` explicitly.
+
+With either HTTP transport, the server enforces:
 
 - **Bearer-token auth** — set `MCP_API_KEY` to a secret string. Clients must send
   `Authorization: Bearer <key>` on every request. Missing or wrong → HTTP 401.
@@ -136,9 +151,9 @@ non-root `mcp` user; dependencies are resolved from `uv.lock` (`uv sync
 docker build -t register-mcp:local .
 
 docker run --rm -p 8000:8000 \
-  -e MCP_TRANSPORT=sse \
   -e MCP_API_KEY="$(openssl rand -hex 32)" \
   register-mcp:local
+# → Streamable HTTP on http://localhost:8000/mcp
 ```
 
 For local iteration there is a `compose.yaml` with `read_only`, `cap_drop: ALL`
@@ -193,17 +208,19 @@ Or with `uvx`:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-### Cloud Deployment (SSE for browser access)
+### Cloud Deployment (Streamable HTTP for browser access)
 
 For use via **claude.ai in the browser** (e.g. on managed workstations without local software):
 
 **Render.com (recommended):**
 1. Push/fork the repository to GitHub
 2. On [render.com](https://render.com): New Web Service → connect GitHub repo
-3. Set start command: `python -m register_mcp.server --http --port 8000`
-4. In claude.ai under Settings → MCP Servers, add: `https://your-app.onrender.com/sse`
+3. Set start command `python -m register_mcp.server` and the environment
+   variables `MCP_TRANSPORT=streamable-http` and `MCP_API_KEY=<secret>`
+   (Render provides `PORT`)
+4. In claude.ai under Settings → MCP Servers, add: `https://your-app.onrender.com/mcp`
 
-> 💡 *"stdio for the developer laptop, SSE for the browser."*
+> 💡 *"stdio for the developer laptop, Streamable HTTP for the browser."*
 
 ---
 
@@ -253,7 +270,7 @@ The prefix is `gazette_`, not `shab_`, because the source covers SHAB **and** th
 │   Claude / AI   │────▶│       register-mcp           │   └──────────────────────────────┘
 │   (MCP Host)    │◀────│       (MCP Server)           │   ┌──────────────────────────────┐
 └─────────────────┘     │  9 Tools (zefix_ + gazette_) ├──▶│  Amtsblattportal             │
-                        │  Stdio | SSE                 │   │  amtsblattportal.ch/api/v1   │
+                        │  stdio | HTTP /mcp | SSE     │   │  amtsblattportal.ch/api/v1   │
                         │  Egress allow-list           │   │  SHAB + cantonal gazettes    │
                         │  No authentication required  │   └──────────────────────────────┘
                         └──────────────────────────────┘
@@ -548,14 +565,16 @@ other era is refused.
 | Era | Revision | Who reaches it |
 |---|---|---|
 | `initialize` handshake | `2024-11-05` … **`2025-11-25`** | What today's clients speak. The server answers with the revision asked for, or with the `2025-11-25` ceiling when the request asks for something newer. |
-| Per-request envelope | **`2026-07-28`** | A request carrying the `2026-07-28` `_meta` envelope opens a modern connection. |
+| Per-request envelope | **`2026-07-28`** | A request carrying the `2026-07-28` `_meta` envelope opens a modern connection. Over HTTP only via `streamable-http` (`POST /mcp` with `MCP-Protocol-Version` and `Mcp-Method` headers); SSE does not reach it. |
 
 Both revisions are pinned in
 [`tests/test_protocol_version.py`](tests/test_protocol_version.py) and asserted
 against the installed SDK, so a Dependabot bump of `mcp` cannot move either one
-silently. This server builds no ASGI app to send an `initialize` through, so
-the gate asserts the SDK constants rather than a measured response — the
-weaker form, named rather than left unsaid.
+silently. [`tests/test_streamable_http.py`](tests/test_streamable_http.py)
+measures both on the wire: it sends `server/discover`, `tools/list` and
+`tools/call` as `2026-07-28` requests and an `initialize` asking for a future
+revision through the app `main()` serves, and reads the responses. The CI
+`docker` job sends the same `tools/list` to the running image.
 
 Note that the SDK's `LATEST_PROTOCOL_VERSION` is an alias for the **modern**
 era, not for the handshake era — pinning against it alone would leave the era
