@@ -48,7 +48,7 @@ zefix_search_company  →  zefix_verify_company  →  gazette_company_publicatio
 - 🔍 **`zefix_verify_company`** — Schnell-Check: aktiv oder gelöscht?
 - 🌐 **Zweisprachige Ausgabe** (Markdown / JSON) mit Quellenangabe je Datenquelle + `provenance`
 - 🔓 **Kein API-Schlüssel erforderlich** — offene Daten von zefix.admin.ch und amtsblattportal.ch
-- ☁️ **Dualer Transport** — stdio (Claude Desktop) + SSE (Cloud)
+- ☁️ **Transporte** — stdio (Claude Desktop) + Streamable HTTP unter `/mcp` (Cloud, nativ MCP-Spec `2026-07-28`); SSE bleibt für bestehende Deployments
 
 ---
 
@@ -86,14 +86,29 @@ uvx register-mcp
 # stdio (für Claude Desktop)
 python -m register_mcp.server
 
-# SSE (Cloud-Deployment) — MCP_API_KEY ist ERFORDERLICH
-MCP_API_KEY=$(openssl rand -hex 32) MCP_TRANSPORT=sse PORT=8000 \
+# Streamable HTTP (Cloud-Deployment, Endpunkt /mcp) — MCP_API_KEY ist ERFORDERLICH
+MCP_API_KEY=$(openssl rand -hex 32) MCP_TRANSPORT=streamable-http PORT=8000 \
   python -m register_mcp.server
 ```
 
-### SSE / Cloud-Deployment
+### HTTP / Cloud-Deployment
 
-Beim Betrieb mit `MCP_TRANSPORT=sse` erzwingt der Server:
+Zwei HTTP-Transporte stehen zur Wahl:
+
+| `MCP_TRANSPORT` | Endpunkt | Protokoll-Revisionen |
+|---|---|---|
+| `streamable-http` (Vorgabe im Container) | `POST /mcp` | `2026-07-28`-Pro-Request-Envelope **und** der `initialize`-Handshake bis `2025-11-25` |
+| `sse` | `GET /sse` + `POST /messages/` | nur die Handshake-Ära — bleibt, damit bestehende Deployments weiterlaufen |
+
+`streamable-http` läuft zustandslos mit JSON-Antworten: keine `Mcp-Session-Id`,
+keine Sitzung im Speicher eines einzelnen Prozesses, eine zweite Instanz braucht
+also keine Sticky Sessions.
+
+> ⚠️ **Upgrade-Hinweis (nach 0.6.1):** Container-Image und `compose.yaml` starten
+> jetzt mit `streamable-http`. Clients, die auf `…/sse` zeigen, müssen auf
+> `…/mcp` umstellen — oder das Deployment setzt `MCP_TRANSPORT=sse` ausdrücklich.
+
+Bei beiden HTTP-Transporten erzwingt der Server:
 
 - **Bearer-Token-Auth** — setze `MCP_API_KEY` auf eine geheime Zeichenkette. Clients müssen
   bei jeder Anfrage `Authorization: Bearer <key>` senden. Fehlt der Header oder ist er falsch → HTTP 401.
@@ -136,9 +151,9 @@ Non-Root-User `mcp`; Abhängigkeiten werden aus `uv.lock` aufgelöst (`uv sync
 docker build -t register-mcp:local .
 
 docker run --rm -p 8000:8000 \
-  -e MCP_TRANSPORT=sse \
   -e MCP_API_KEY="$(openssl rand -hex 32)" \
   register-mcp:local
+# → Streamable HTTP unter http://localhost:8000/mcp
 ```
 
 Für die lokale Iteration gibt es eine `compose.yaml` mit `read_only`, `cap_drop: ALL`
@@ -193,17 +208,19 @@ Oder mit `uvx`:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-### Cloud-Deployment (SSE für Browser-Zugriff)
+### Cloud-Deployment (Streamable HTTP für Browser-Zugriff)
 
 Für den Einsatz via **claude.ai im Browser** (z.B. auf verwalteten Arbeitsplätzen ohne lokale Software-Installation):
 
 **Render.com (empfohlen):**
 1. Repository auf GitHub pushen/forken
 2. Auf [render.com](https://render.com): New Web Service → GitHub-Repo verbinden
-3. Start-Befehl setzen: `python -m register_mcp.server --http --port 8000`
-4. In claude.ai unter Settings → MCP Servers eintragen: `https://your-app.onrender.com/sse`
+3. Start-Befehl `python -m register_mcp.server` setzen, dazu die
+   Umgebungsvariablen `MCP_TRANSPORT=streamable-http` und `MCP_API_KEY=<geheim>`
+   (`PORT` setzt Render selbst)
+4. In claude.ai unter Settings → MCP Servers eintragen: `https://your-app.onrender.com/mcp`
 
-> 💡 *«stdio für den Entwickler-Laptop, SSE für den Browser.»*
+> 💡 *«stdio für den Entwickler-Laptop, Streamable HTTP für den Browser.»*
 
 ---
 
@@ -253,7 +270,7 @@ Der Prefix ist `gazette_` und nicht `shab_`, weil die Quelle SHAB **und** die ka
 │   Claude / KI   │────▶│       register-mcp           │   └──────────────────────────────┘
 │   (MCP Host)    │◀────│       (MCP Server)           │   ┌──────────────────────────────┐
 └─────────────────┘     │  9 Tools (zefix_ + gazette_) ├──▶│  Amtsblattportal             │
-                        │  Stdio | SSE                 │   │  amtsblattportal.ch/api/v1   │
+                        │  stdio | HTTP /mcp | SSE     │   │  amtsblattportal.ch/api/v1   │
                         │  Egress-Allow-List           │   │  SHAB + kantonale Amtsblätter │
                         │  Keine Authentifizierung     │   └──────────────────────────────┘
                         └──────────────────────────────┘
@@ -557,14 +574,17 @@ aus der jeweils anderen Aera wird abgewiesen.
 | Aera | Revision | Wer sie erreicht |
 |---|---|---|
 | `initialize`-Handshake | `2024-11-05` … **`2025-11-25`** | Was heutige Clients sprechen. Der Server antwortet mit der angefragten Revision — oder mit der Obergrenze `2025-11-25`, wenn die Anfrage etwas Neueres verlangt. |
-| Pro-Request-Envelope | **`2026-07-28`** | Eine Anfrage mit dem `2026-07-28`-`_meta`-Envelope oeffnet eine moderne Verbindung. |
+| Pro-Request-Envelope | **`2026-07-28`** | Eine Anfrage mit dem `2026-07-28`-`_meta`-Envelope oeffnet eine moderne Verbindung. Ueber HTTP nur mit `streamable-http` (`POST /mcp` mit den Kopfzeilen `MCP-Protocol-Version` und `Mcp-Method`); SSE erreicht sie nicht. |
 
 Beide Revisionen sind in
 [`tests/test_protocol_version.py`](tests/test_protocol_version.py) gepinnt und
 werden gegen das installierte SDK geprueft; ein Dependabot-Bump von `mcp` kann
-also keine der beiden still verschieben. Dieser Server baut keine ASGI-App, durch die sich ein `initialize`
-schicken liesse; das Gate sichert deshalb die SDK-Konstanten statt einer
-gemessenen Antwort — die schwaechere Form, benannt statt verschwiegen.
+also keine der beiden still verschieben.
+[`tests/test_streamable_http.py`](tests/test_streamable_http.py) misst beide auf
+dem Draht: Es schickt `server/discover`, `tools/list` und `tools/call` als
+`2026-07-28`-Anfragen und ein `initialize`, das eine kuenftige Revision verlangt,
+durch die App, die `main()` ausliefert, und liest die Antworten. Der CI-Job
+`docker` schickt dasselbe `tools/list` an das laufende Image.
 
 Zu beachten: `LATEST_PROTOCOL_VERSION` im SDK ist ein Alias auf die **moderne**
 Aera, nicht auf die Handshake-Aera — wer nur dagegen pinnt, laesst genau die

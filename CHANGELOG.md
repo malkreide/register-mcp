@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Geaendert — nativ auf Spec 2026-07-28 ueber HTTP
+
+- **Neuer Transport `MCP_TRANSPORT=streamable-http`** (`POST /mcp`). Er ist der
+  einzige HTTP-Weg, auf dem Spec `2026-07-28` ueberhaupt ankommt: jede Anfrage
+  ein eigenstaendiger POST mit `_meta`-Envelope und den Kopfzeilen
+  `MCP-Protocol-Version` und `Mcp-Method`, ohne `initialize` und ohne
+  `Mcp-Session-Id`. Bisher sprach der Server die moderne Aera nur ueber stdio;
+  in der Cloud gab es nur SSE, und SSE kennt den Envelope nicht. Derselbe
+  Endpunkt bedient weiterhin den `initialize`-Handshake bis `2025-11-25`.
+  Zustandslos (`stateless_http=True`) und mit JSON-Antworten
+  (`json_response=True`) — kein Tool meldet Fortschritt oder fragt zurueck.
+  Auth und Rate-Limit sind dieselben wie bei SSE (`_secure`).
+  Das Log-Ereignis `sse_app_built` heisst jetzt `http_app_built` und traegt
+  `transport` — wer darauf alarmiert, muss den Namen nachziehen.
+
+- **Container und `compose.yaml` starten jetzt mit `streamable-http`.**
+  ⚠️ Upgrade: Clients auf `…/sse` muessen auf `…/mcp` umstellen, oder das
+  Deployment setzt `MCP_TRANSPORT=sse` ausdruecklich. SSE bleibt unveraendert
+  verfuegbar.
+
+- **Protokoll-Gate jetzt gemessen, nicht nur aus Konstanten geschlossen**
+  (`tests/test_streamable_http.py`, 11 Faelle): `server/discover` nennt
+  `2026-07-28`, `tools/list` traegt `ttlMs`/`cacheScope` auf dem Draht,
+  `tools/call` laeuft ueber den modernen Einstieg, ein `initialize` mit
+  kuenftiger Revision bekommt `2025-11-25`, eine unbekannte moderne Revision
+  HTTP 400 mit der unterstuetzten genannt. Der CI-Job `docker` schickt dasselbe
+  `tools/list` an das laufende Image, unter einem oeffentlichen Host-Header.
+
+  Gegenprobe je Zusicherung: `host=` weg → 7 Faelle rot; `json_response=False`
+  → 2; `stateless_http=False` → 1; Middleware weg → der 401-Fall; `cache_hints`
+  weg → der `tools/list`-Fall. Die erste Runde der Gegenprobe blieb bei den
+  beiden Flags gruen — ersetzt worden war nicht der Code, sondern der erste
+  Treffer, und der stand im Kommentar darueber. Der Test fuer die Flags prueft
+  deshalb jetzt den Handshake-Pfad: im modernen Einstieg wirken beide gar nicht
+  (er ist ohnehin zustandslos und antwortet einem schnellen Handler ohnehin mit
+  JSON).
+
+### Behoben — SSE wies jeden oeffentlichen Host mit HTTP 421 ab
+
+`mcp.sse_app()` ohne `host=` nimmt `127.0.0.1` an und schaltet dann still den
+DNS-Rebinding-Schutz mit einer Localhost-Liste ein. Gemessen am 2026-09-27:
+`POST /messages/` unter `Host: register-mcp.example.com` →
+`421 Invalid Host header` — also jede Anfrage, die einen Container im Betrieb
+unter seinem Namen erreicht. Keine Suite hat das gesehen, weil `TestClient`
+mit `testserver` fragt und niemand die SSE-App je gebaut hatte. Jetzt
+`host=BIND_HOST` fuer beide HTTP-Transporte; der Schutz vor fremden Aufrufern
+ist das Bearer-Token, das eine Rebinding-Seite nicht hat.
+
+Nebenbei: die Render-Anleitung in beiden READMEs nannte
+`python -m register_mcp.server --http --port 8000` — `main()` liest keine
+Argumente, nur `MCP_TRANSPORT` und `PORT`.
+
 ### Entfernt
 
 - **Das Codex-Gate ist weg:** `.github/workflows/codex-gate.yml`,

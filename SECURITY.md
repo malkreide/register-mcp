@@ -53,7 +53,7 @@ Out of scope:
 
 ## Hardening Notes for Operators
 
-When deploying the SSE transport publicly, in addition to the built-in
+When deploying an HTTP transport (`streamable-http` or `sse`) publicly, in addition to the built-in
 `MCP_API_KEY` + rate limit:
 
 1. Put a real gateway (Cloudflare Access, Railway internal networking,

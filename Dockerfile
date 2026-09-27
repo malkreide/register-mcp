@@ -30,7 +30,7 @@ FROM python:3.14-slim AS runtime
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PATH="/app/.venv/bin:$PATH" \
-    MCP_TRANSPORT=sse \
+    MCP_TRANSPORT=streamable-http \
     PORT=8000
 
 RUN groupadd --system mcp && useradd --system --gid mcp --home-dir /app --shell /usr/sbin/nologin mcp
